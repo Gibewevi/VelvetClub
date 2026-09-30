@@ -383,6 +383,23 @@ func puff(at: Vector2, icon: String, seconds: float) -> void:
 	overlay.add_child(s)
 	puffs.append({"sprite":s,"time":seconds,"start":s.position})
 
+func float_text(at: Vector2, text: String, color: Color, seconds: float) -> void:
+	# A small line of text rising from a spot: what a service was paid, a tip.
+	var l = Label.new()
+	var ls = LabelSettings.new()
+	ls.font = UiKit.font
+	ls.font_size = 10
+	ls.font_color = color
+	ls.outline_size = 2
+	ls.outline_color = Color("140c18")
+	l.label_settings = ls
+	l.text = text
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.size = Vector2(160,14)
+	l.position = Iso.pixel(at.x,at.y)+Vector2(-80,-78)
+	overlay.add_child(l)
+	puffs.append({"sprite":l,"time":seconds,"start":l.position})
+
 func build_item(item: Dictionary) -> void:
 	var info = Art.furniture_entry(item_variant(item),int(item.rot))
 	if bed_looks.get(int(item.id),{}).get("clothes",false): show_clothes.call_deferred(int(item.id),true)

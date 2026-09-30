@@ -18,6 +18,7 @@ var room_type = 0
 var chosen_item = "sofa"
 var look_rng = RandomNumberGenerator.new()
 var placement_rotation = 0
+var rotation_manual = false   # R turns the piece by hand; A gives the orientation back to the game
 var parking_rotation = 1
 var parking_pointer = Vector2.ZERO
 var placement_appearance: Dictionary = {}
@@ -240,7 +241,7 @@ func refresh() -> void:
 	hud.refresh_context()
 	if hud.active in ["build","staff","decor"]: hud.fill_drawer()
 	hud.update_dock()
-	var texts = {"select":"","room":"Tracer : "+Catalog.ROOMS[room_type],"door":"Placer une porte","window":"Placer une fenêtre","furniture":Catalog.ITEMS[chosen_item].name+" · R : tourner",
+	var texts = {"select":"","room":"Tracer : "+Catalog.ROOMS[room_type],"door":"Placer une porte","window":"Placer une fenêtre","furniture":Catalog.ITEMS[chosen_item].name+(" · orientation manuelle · A : auto" if rotation_manual or not Orient.applies(chosen_item) else " · orientation auto · R : tourner à la main"),
 		"parking":"Places · R : tourner", "parking_lane":"Allée · glisser pour tracer"}
 	hud.set_mode_text(texts.get(mode,""))
 	hud.refresh_stats()
@@ -254,7 +255,7 @@ func set_mode(value: String) -> void:
 	elif not hud.active == "build": view.grid.visible = false
 	view.show_street_line(mode in ["parking","parking_lane"])
 	refresh()
-	hud.toast({"select":"Cliquez un meuble, une personne, une ouverture ou le sol d'une pièce.","room":"Cliquez-glissez pour tracer une pièce (2 × 2 m minimum).","door":"Cliquez un mur pour y placer une porte.","window":"Cliquez un mur pour y placer une fenêtre.","furniture":"Cliquez pour placer · R : tourner · Maj : en série · Échap : annuler",
+	hud.toast({"select":"Cliquez un meuble, une personne, une ouverture ou le sol d'une pièce.","room":"Cliquez-glissez pour tracer une pièce (2 × 2 m minimum).","door":"Cliquez un mur pour y placer une porte.","window":"Cliquez un mur pour y placer une fenêtre.","furniture":"Cliquez pour placer · orientation automatique · R : tourner à la main · Maj : en série · Échap : annuler",
 		"parking":"Cliquez pour une place · glissez pour une rangée · R : tourner. Les rangées voisines se raccordent.","parking_lane":"Tracez l'allée à côté des places et jusqu'au trottoir. Une largeur de 6 m facilite les manœuvres."}.get(mode,""))
 
 func set_room_type(t: int) -> void:
@@ -286,9 +287,11 @@ func choose_item(kind: String) -> void:
 	chosen_item = kind
 	placement_appearance = Characters.hire_look(kind,look_rng) if Catalog.is_character(kind) else {}
 	placement_rotation = 0
+	rotation_manual = false
 	set_mode("furniture")
 	var e: Dictionary = Catalog.ITEMS[kind]
 	if Catalog.is_character(kind): hud.toast("%s · %d $/h · cliquez dans une pièce pour le poste" % [e.name,int(e.wage)])
+	elif Orient.applies(kind): hud.toast("%s · %s $ · s'oriente tout seul contre les murs et vers ce qu'il sert · R : tourner à la main · Maj : en série" % [e.name,UiKit.money(int(e.price))])
 	else: hud.toast("%s · %s $ · R : tourner · Maj : en série" % [e.name,UiKit.money(int(e.price))])
 
 func select_room(id: int) -> void:
@@ -470,7 +473,11 @@ func rotate_item() -> void:
 		turn_parking_tool()
 		return
 	if mode == "furniture":
+		# by hand from what is shown, then it stays as the player set it
+		if not rotation_manual: placement_rotation = placement_rot(snap_point(ground_at(get_viewport().get_mouse_position())))
 		placement_rotation = (placement_rotation+1)%4
+		rotation_manual = true
+		refresh()
 		update_preview(get_viewport().get_mouse_position())
 		return
 	var item = model.item_by_id(selected_item)
@@ -478,6 +485,21 @@ func rotate_item() -> void:
 	var before = model.snapshot()
 	if model.move_item(selected_item,item.x,item.z,int(item.rot)+1): commit(before,"Objet tourné de 90°.")
 	else: hud.toast(model.error)
+
+func placement_rot(at: Vector2) -> int:
+	# The rotation used at this spot: the player's when forced, otherwise the
+	# one the surroundings call for (walls, the table, the bar...).
+	if rotation_manual or mode != "furniture": return placement_rotation
+	var r = Orient.best(model,chosen_item,at.x,at.y,placement_rotation,moving_item)
+	return r if r >= 0 else placement_rotation
+
+func auto_rotation() -> void:
+	# A: the game orients the piece again.
+	if mode != "furniture" or not rotation_manual: return
+	rotation_manual = false
+	refresh()
+	update_preview(get_viewport().get_mouse_position())
+	hud.toast("Orientation automatique")
 
 func start_move() -> void:
 	var item = model.item_by_id(selected_item).duplicate()
@@ -487,7 +509,7 @@ func start_move() -> void:
 	moving_item = id
 	placement_appearance = item.get("appearance",{}).duplicate(true)
 	placement_rotation = int(item.rot)
-	hud.toast("Cliquez la nouvelle position · R : tourner · Échap : annuler")
+	hud.toast("Cliquez la nouvelle position · orientation automatique · R : tourner à la main · Échap : annuler")
 
 func duplicate_item() -> void:
 	var item = model.item_by_id(selected_item).duplicate()
@@ -613,6 +635,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				KEY_SPACE: set_speed(0 if sim.speed != 0 else 1)
 				KEY_O: toggle_open()
 				KEY_R: rotate_item()
+				KEY_A: auto_rotation()
 				KEY_DELETE, KEY_BACKSPACE: delete_selection()
 				KEY_ESCAPE:
 					if mode != "select" or selected_item >= 0 or selected_room >= 0 or selected_parking >= 0 or selected_client != null: set_mode("select")
@@ -656,9 +679,10 @@ func begin_action(screen: Vector2) -> void:
 		var at = snap_point(p)
 		var before = model.snapshot()
 		var id = -1
+		var rot = placement_rot(at)
 		if moving_item >= 0:
-			if model.move_item(moving_item,at.x,at.y,placement_rotation): id = moving_item
-		else: id = model.purchase_item(chosen_item,at.x,at.y,placement_rotation,placement_appearance)
+			if model.move_item(moving_item,at.x,at.y,rot): id = moving_item
+		else: id = model.purchase_item(chosen_item,at.x,at.y,rot,placement_appearance)
 		if id == -1:
 			hud.toast(model.error)
 			return
@@ -793,7 +817,7 @@ func update_preview(screen: Vector2) -> void:
 	var wp = world_px(screen)
 	if mode == "furniture":
 		var p = snap_point(ground_at(screen))
-		var item = {"kind":chosen_item,"x":p.x,"z":p.y,"rot":placement_rotation,"appearance":placement_appearance}
+		var item = {"kind":chosen_item,"x":p.x,"z":p.y,"rot":placement_rot(p),"appearance":placement_appearance}
 		view.preview_item(item,model.valid_item(item,moving_item))
 	elif mode in ["door","window"]:
 		view.preview_edge(view.nearest_edge(wp),mode)
@@ -895,6 +919,7 @@ func capture(path: String) -> void:
 		if arg == "--setup=reception": capture_reception()
 		if arg == "--setup=depth": capture_depth()
 		if arg == "--setup=parking": capture_parking()
+		if arg == "--setup=orient": capture_orient()
 		if arg == "--setup=parking_modular": capture_modular_parking()
 		if arg == "--setup=delivery": capture_delivery()
 		if arg == "--open": toggle_open()
@@ -914,11 +939,12 @@ func capture(path: String) -> void:
 		if arg.begins_with("--until="):
 			# wait for a room phase (undress / dance / action) to show it
 			var phase = arg.trim_prefix("--until=")
-			set_speed(3 if phase == "shower_door" else 1)
+			set_speed(3 if phase in ["shower_door","paid"] else 1)
 			var waited = 0.0
 			var shown = func():
 				if phase == "stage": return sim.staff.values().any(func(e): return is_instance_valid(e) and e.brain.get("state","") == "dancing" and e.path.is_empty())
 				if phase == "shower_door": return view.shower_doors.values().any(func(d): return d.open and int(d.shown) == 0)
+				if phase == "paid": return view.overlay.get_children().any(func(l): return l is Label and l.text.contains("Prestation"))
 				return sim.clients.any(func(c): return is_instance_valid(c) and c.brain.has("service") and c.brain.service.get("phase","") == phase and (phase != "dance" or c.brain.service.escort.path.is_empty()))
 			while waited < 120.0 and not shown.call():
 				await get_tree().process_frame
@@ -981,8 +1007,14 @@ func capture(path: String) -> void:
 		return
 	if frames > 0:
 		# a short sequence, e.g. someone stepping into the shower
+		var delivery_motion = Array(OS.get_cmdline_user_args()).any(func(a): return a.begins_with("--delivery-motion="))
 		set_speed(1)
 		for i in range(frames):
+			if delivery_motion and i > 0:
+				# Fixed simulation steps make the full arrival/departure reviewable
+				# without screen capture timing changing the braking distance.
+				for substep in range(3): deliveries.step(.03)
+				view.depth_sort()
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png(path.replace(".png","_%02d.png" % i))
 			await get_tree().create_timer(0.09).timeout
@@ -1221,6 +1253,7 @@ func smoke_test() -> void:
 	check(container.stretch_shrink == zoom and viewport.canvas_item_default_texture_filter == Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST,"World is scaled by an integer with nearest filtering")
 	depth_checks()
 	parking_checks()
+	orient_checks()
 	print("SMOKE_TEST_RESULT: %d failures" % failures)
 	if failures == 0: print("SMOKE_TEST_PASSED")
 	get_tree().quit(1 if failures > 0 else 0)
@@ -1257,6 +1290,33 @@ func parking_checks() -> void:
 	check(model.parkings.size() == 1,"Undo brings it back")
 	model.parkings.clear()
 	changed_view()
+
+func orient_checks() -> void:
+	# Placing: the game orients the piece; R takes over, A gives it back.
+	choose_item("sofa")
+	check(not rotation_manual and hud.mode_label.text.contains("auto"),"A new piece is oriented automatically")
+	rotate_item()
+	var forced = placement_rotation
+	check(rotation_manual and placement_rot(Vector2(100,100)) == forced,"R turns it by hand and the game no longer overrides it")
+	auto_rotation()
+	check(not rotation_manual,"A gives the orientation back to the game")
+	set_mode("select")
+
+func capture_orient() -> void:
+	# Documentation: a room furnished only with automatic orientation.
+	var before = model.snapshot()
+	model.add_room(-20,-12,10,9,0)
+	model.set_opening("x:-16:-3","door")
+	var place = func(kind: String, x: float, z: float) -> void:
+		var r = Orient.best(model,kind,x,z,0)
+		if model.add_item(kind,x,z,r if r >= 0 else 0) == -1: print("ORIENT_SKIP %s %s,%s %s" % [kind,x,z,model.error])
+	for e in [["bar",-15.0,-9.9],["backbar",-15.0,-11.7],["sofa",-19.45,-7.0],["coffee",-18.1,-7.0],["table",-12.2,-6.0],
+			["bed",-12.0,-10.6],["shower",-10.5,-3.5]]:
+		place.call(e[0],e[1],e[2])
+	for e in [["stool",-16.0,-8.8],["stool",-15.0,-8.8],["stool",-14.0,-8.8],["armchair",-18.0,-5.1],["armchair",-18.0,-8.9],
+			["chair",-12.2,-4.95],["chair",-12.2,-7.05],["chair",-11.15,-6.0],["chair",-13.25,-6.0]]:
+		place.call(e[0],e[1],e[2])
+	commit(before,"orient")
 
 func depth_checks() -> void:
 	# Drawing order: people on seats, beds, the stage and in the shower, in the
@@ -1848,9 +1908,20 @@ func capture_delivery() -> void:
 	commit(before,"Livraison")
 	deliveries.enabled = false
 	var delivery_seconds = 27.0
+	var motion = ""
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--delivery-at="): delivery_seconds = float(arg.trim_prefix("--delivery-at="))
+		if arg.begins_with("--delivery-motion="): motion = arg.trim_prefix("--delivery-motion=")
+	if motion != "": delivery_seconds = 18.1
 	for i in range(int(delivery_seconds*10)): deliveries.step(.1)
+	if motion == "arrival":
+		for i in range(200):
+			if deliveries.phase == "arrive" and deliveries.truck_x-deliveries.stop_x <= 10.0: break
+			deliveries.step(.03)
+	elif motion == "departure":
+		for i in range(3000):
+			if deliveries.phase == "close" and deliveries.timer <= .2: break
+			deliveries.step(.03)
 
 func delivery_ui_checks(dir: String) -> void:
 	sim.active = false

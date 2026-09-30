@@ -244,9 +244,9 @@ func refresh_deliveries() -> void:
 
 func fill_deliveries() -> void:
 	section("COMMANDES ET LIVRAISONS")
-	drawer_body.add_child(wrap_label("Placez vos achats : leur fantôme réserve l'emplacement. Les achats se regroupent jusqu'à l'arrêt du camion. Les livreurs passent par les portes, puis déballent sur place."))
+	drawer_body.add_child(wrap_label("Placez vos achats : leur fantôme réserve l'emplacement. Les achats se regroupent jusqu'à l'arrêt de la fourgonnette. Les livreurs passent par les portes, puis déballent sur place."))
 	section(game.deliveries.status_text())
-	if game.deliveries.status_text() == "Livreur bloqué": drawer_body.add_child(wrap_label("Rétablissez un passage entre le livreur et la rue pour qu'il puisse rejoindre son camion.",1,UiKit.GOLD))
+	if game.deliveries.status_text() == "Livreur bloqué": drawer_body.add_child(wrap_label("Rétablissez un passage entre le livreur et la rue pour qu'il puisse rejoindre sa fourgonnette.",1,UiKit.GOLD))
 	var pending = game.model.furniture.filter(func(i): return i.get("delivery_pending",false))
 	if pending.is_empty(): drawer_body.add_child(wrap_label("Tous les objets sont installés."))
 	for item in pending:
@@ -784,7 +784,7 @@ func show_help() -> void:
 	open_modal("Commandes",func(col):
 		for block in [
 			["CONSTRUIRE","T pièce · P porte · F fenêtre\nCliquez-glissez pour tracer ; tirez les poignées pour agrandir."],
-			["MOBILIER","B catalogue · R tourner · Maj + clic : en série\nGlisser un objet pour le déplacer."],
+			["MOBILIER","B catalogue · orientation automatique (murs, table, bar) · R : tourner à la main · A : auto · Maj + clic : en série\nGlisser un objet pour le déplacer."],
 			["SÉLECTION","Suppr supprimer · Ctrl + D copier\nCtrl + Z / Y annuler / rétablir · Ctrl + S enregistrer"],
 			["TEMPS","Espace pause · 1 normal · 2 accéléré"],
 			["VUE","Molette : zoom ×1 à ×4 · clic droit + glisser\nW murs hauts / coupés · G grille · F11 plein écran"],

@@ -24,6 +24,7 @@ const FEATURES = {"reception":true,"bar":true,"stage":true,"lounge_company":true
 const ROLE_FEATURE = {"receptionist":"reception","bartender":"bar","escort":"lounge_company","security":"staff_roles"}
 const QUEUE_MAX = 12
 const QUEUE_GAP = 0.65
+const QUICK_KNEEL_GAP = 0.4
 const OPEN_MINUTES = 480
 const DAY_MINUTES = 1440
 const MINUTES_PER_SECOND = 2.5
@@ -1323,7 +1324,7 @@ func escort_ai(a: Actor, arrived: bool, gm: float) -> void:
 # ------------------------------------------------------------------ encounters
 
 const SERVICES = [
-	{"key":"quick","name":"Prestation rapide","price":80,"minutes":14},
+	{"key":"quick","name":"Prestation rapide","price":80,"minutes":20},
 	{"key":"classic","name":"Prestation classique","price":150,"minutes":26},
 	{"key":"full","name":"Prestation complète","price":260,"minutes":40}]
 # Price factor by standing (1 débutante .. 4 prestige).
@@ -1658,18 +1659,16 @@ func start_service(c: Actor, e: Actor) -> void:
 	sv.tempo = -1.0
 	if int(sv.tier) == 0:
 		sv.phase = "quick_arrival"
-		sv.phase_t = 2.0
+		sv.phase_t = 3.0
 		c.play("stand")
 		e.play("stand")
 	c.brain.state = "in_service"
 	e.brain.state = "in_service"
 	c.brain.timer = float(SERVICES[int(sv.tier)].minutes)
-	money += int(sv.price)
-	night.private = int(night.private)+int(sv.price)
-	c.brain.spent += int(sv.price)
+	# the client pays at the end (see end_service)
 	night.served += 1
 	night["tier_%d" % int(sv.tier)] = int(night.get("tier_%d" % int(sv.tier),0))+1
-	view.puff(Vector2(bed.x,bed.z),"dollar",2.0)
+	view.puff(c.world.lerp(e.world,0.5) if int(sv.tier) == 0 else Vector2(bed.x,bed.z),"heart",2.0)
 
 func end_service(c: Actor, aborted: bool = false) -> void:
 	# Floor poses preserve the bed; bed-based visits leave it unmade.
@@ -1698,6 +1697,14 @@ func end_service(c: Actor, aborted: bool = false) -> void:
 		view.set_bed_look(bed_id,"unmade")
 	else:
 		view.set_bed_look(bed_id,"unmade" if bed.get("unmade",false) else "made")
+	if started and not aborted:
+		var tier = int(sv.tier)
+		money += int(sv.price)
+		night.private = int(night.private)+int(sv.price)
+		c.brain.spent += int(sv.price)
+		view.float_text(c.world,"%s  +%d $" % [SERVICES[tier].name,int(sv.price)],Color("ffd66b"),3.0)
+	elif started:
+		view.float_text(c.world,"Interrompue · non payée",Color("c9c2d6"),2.5)
 	if started and not aborted:
 		var tier = int(sv.tier)
 		var lvl = standing(e) if e != null and is_instance_valid(e) else 1
@@ -1750,13 +1757,30 @@ func service_script(c: Actor, gm: float) -> void:
 			sv.phase_t = float(sv.phase_t)-gm
 			if sv.phase_t <= 0:
 				sv.phase = "quick_pose"
+				# She kneels right in front of him, not at the arrival spacing.
+				var gap: Vector2 = e.world-c.world
+				if gap.length() > QUICK_KNEEL_GAP: e.set_world(c.world+gap.normalized()*QUICK_KNEEL_GAP)
 				c.face(e.world-c.world)
 				e.face(c.world-e.world)
 				c.play("stand")
 				e.play("kneel")
-		else:
+				b.puff = 1.0
+		elif sv.phase == "quick_pose":
 			b.timer -= gm
-			if b.timer <= 0: end_service(c)
+			b.puff = float(b.get("puff",0.0))-gm
+			if b.puff <= 0:
+				b.puff = 3.0
+				view.puff(c.world.lerp(e.world,0.5),"heart",1.6)
+			if b.timer <= 0:
+				# she gets up; a word, then he pays and they part
+				sv.phase = "quick_after"
+				sv.phase_t = 3.0
+				e.play("stand")
+				c.emote("heart",2.0)
+				e.emote("heart",2.0)
+		else:
+			sv.phase_t = float(sv.phase_t)-gm
+			if sv.phase_t <= 0: end_service(c)
 		return
 	var bp = Vector2(bed.x,bed.z)
 	var size: Vector2 = Catalog.ITEMS[bed.kind].size
@@ -1792,6 +1816,7 @@ func service_script(c: Actor, gm: float) -> void:
 			# a tip for the show, then under the covers
 			var tip = 10*(1+int(sv.tier))*standing(e) if e != null and is_instance_valid(e) else 10
 			money += tip
+			view.float_text(sv.stage,"Pourboire  +%d $" % tip,Color("ffd66b"),2.5)
 			night.private = int(night.private)+tip
 			c.brain.spent += tip
 			sv.phase = "action"

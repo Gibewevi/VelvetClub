@@ -1,10 +1,11 @@
 """Delivery props at native pixel resolution, using the game's own painter.
 
-Warm ivory box truck, blue uniform couriers, taped kraft cartons and a yellow
-hand truck: the supplied artwork's shapes and palette at the existing scale.
+Compact yellow van, taped kraft cartons and a yellow hand truck, using the
+supplied artwork's shapes and palette at the existing game scale.
 """
 from pa_core import save, write_json
 from pa_iso import Mat, box, cyl, render, finish, rot_x
+import math
 import numpy as np
 
 IVORY = Mat(tones=['37303e','69606e','a398aa','bdb2c1','d7c9ce','f7e5d7'])
@@ -43,26 +44,32 @@ def wheel(x,y,z,r=.42):
     return [a,b,c]
 
 
-def truck(opening,blink,load=3):
+def truck(opening,blink,load=3,pitch=0):
     from pa_truck import truck as constructed_truck
-    return constructed_truck(opening,blink,load,carton)
+    return constructed_truck(opening,blink,load,carton,pitch=pitch)
 
 
 def export():
-    from pa_truck import LIGHTS
+    from pa_truck import LIGHTS, FOOTPRINTS
     manifest={"_truck_lights":LIGHTS}
-    def put(name,prims):
+    def put(name,prims,opening=0,pitch=0.0):
         cv=prims if hasattr(prims,'rgba') else finish(render(prims))
         path=f'delivery/{name}.png'; save(cv.rgba,path)
         manifest[name]={'file':path,'ox':int(cv.ox),'oy':int(cv.oy)}
         if name.startswith('truck_'):
-            opening=int(name.split('_')[1])
-            manifest[name]['footprint']=[[-3.9,-1.35,7.7,2.95],[-3.9,-1.35,8.65,2.95],[-3.9,-2.15,8.9,4.3]][opening]
+            manifest[name]['footprint']=FOOTPRINTS[opening]
+            manifest[name]['pitch']=pitch
     for opening in range(3):
-        for blink in range(2): put(f'truck_{opening}_{blink}',truck(opening,blink))
+        cv=truck(opening,False)
+        for blink in range(2): put(f'truck_{opening}_{blink}',cv,opening=opening)
     for opening in [1,2]:
-        for blink in range(2):
-            for load in range(4): put(f'truck_{opening}_{blink}_load{load}',truck(opening,blink,load))
+        for load in range(4):
+            cv=truck(opening,False,load)
+            for blink in range(2): put(f'truck_{opening}_{blink}_load{load}',cv,opening=opening)
+    for phase,sign in [('brake',1),('launch',-1)]:
+        for level in range(1,4):
+            angle=sign*level
+            put(f'truck_{phase}_{level}',truck(0,False,pitch=angle),pitch=math.radians(angle))
     for size,(w,h,d) in enumerate([(.48,.4,.4),(.85,.8,.65),(1.65,1.05,.8)]):
         for opened in [False,True]: put(f'box_{size}_{int(opened)}',carton(w,h,d,opened=opened))
         p=[box(-w/2-.08,.16,-d/2-.1,w/2+.08,.22,d/2+.1,YELLOW),

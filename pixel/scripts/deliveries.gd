@@ -5,6 +5,12 @@ extends Node
 # Editing/undo never rewinds a truck or resurrects an already delivered parcel.
 const BATCH_WAIT = 18.0
 const RETRY_WAIT = 22.0
+const CRUISE_SPEED = 13.0
+const BRAKE_DISTANCE = 6.0
+const BRAKE_ACCEL = CRUISE_SPEED*CRUISE_SPEED/(2.0*BRAKE_DISTANCE)
+const LAUNCH_ACCEL = 13.0
+const STOP_SETTLE = 0.55
+const DOOR_OPEN_TIME = 1.2
 var game
 var model: BuildingModel
 var nav = ClubNav.new()
@@ -20,6 +26,11 @@ var timer = BATCH_WAIT
 var clock = 0.0
 var stop_x = 0.0
 var truck_x = 32.0
+var truck_speed = 0.0
+var drive_accel = 0.0
+var settle_age = -1.0
+var brake_started = false
+var launch_started = false
 var order_number = 0
 var cones: Array = []
 var enabled = true
@@ -61,6 +72,13 @@ func reset() -> void:
 	timer = BATCH_WAIT
 	order_number = 0
 	truck.visible = false
+	truck.set_warning_lights(false)
+	truck.reset_drive_effects()
+	truck_speed = 0.0
+	drive_accel = 0.0
+	settle_age = -1.0
+	brake_started = false
+	launch_started = false
 	for i in range(workers.size()):
 		workers[i].visible = false
 		workers[i].path = []
@@ -104,12 +122,14 @@ func sync_orders() -> void:
 	updated.emit()
 
 func loading_point(i: int = 0) -> Vector2:
-	# At the tail lift: couriers physically cross the road edge to the pavement.
-	return Vector2(stop_x+4.8+i*.6,Street.LANE_WEST-.35+i*.7)
+	# Just behind the compact van's step, clear of its outward-opening doors.
+	return Vector2(stop_x+3.6+i*.6,Street.LANE_WEST-.35+i*.7)
 
 func rebuild_nav() -> void:
 	var obstacles: Array = []
-	if phase in ["open","unload","close"]: obstacles.append(Rect2(stop_x-3.8,Street.LANE_WEST-1.35,7.5,2.7))
+	if phase in ["open","unload","close"]:
+		obstacles.append(Rect2(stop_x-2.85,Street.LANE_WEST-1.34,5.65,2.68))
+		obstacles.append(Rect2(stop_x+2.4,Street.LANE_WEST-2.14,.85,4.28))
 	nav.rebuild(model,true,obstacles)
 
 func destination(from: Vector2, item: Dictionary) -> Array:
@@ -136,37 +156,48 @@ func destination(from: Vector2, item: Dictionary) -> Array:
 	return best
 
 func _process(delta: float) -> void:
-	if not enabled or game == null or game.sim.speed == 0 or game.sim.paused_for_report: return
+	if game == null: return
+	truck.warning_paused = not enabled or game.sim.speed == 0 or game.sim.paused_for_report
+	if not enabled or game.sim.speed == 0 or game.sim.paused_for_report: return
 	step(minf(delta,.15)*game.sim.speed)
 
 func step(dt: float) -> void:
+	if dt <= 0: return
+	truck.step_effects(dt)
 	clock += dt
 	if phase == "waiting":
 		timer -= dt
 		if timer <= 0:
 			var entry: Dictionary = game.sim.entrance
-			stop_x = clampf(float(entry.get("door",Vector2.ZERO).x)-3.0,-15,14)
+			stop_x = clampf(float(entry.get("door",Vector2.ZERO).x)-3.5,-15,14)
 			truck_x = 34
+			truck_speed = CRUISE_SPEED
+			drive_accel = 0.0
+			settle_age = -1.0
+			brake_started = false
+			launch_started = false
 			phase = "arrive"
 			truck.visible = true
-			game.hud.toast("Le camion de livraison arrive.")
+			game.hud.toast("La fourgonnette de livraison arrive.")
 	elif phase == "arrive":
-		truck_x = move_toward(truck_x,stop_x,9.0*dt)
-		if is_equal_approx(truck_x,stop_x):
+		if advance_arrival(dt):
 			active_order = queue.duplicate()
 			queue.clear()
 			deferred_keys.clear()
 			order_number += 1
 			phase = "open"
-			timer = 1.2
+			settle_age = 0.0
+			timer = STOP_SETTLE+DOOR_OPEN_TIME
 			rebuild_nav()
 			for i in range(2):
 				workers[i].set_world(loading_point(i))
 				jobs[i] = {"key":"","state":"idle","timer":0.0,"target":Vector2.ZERO}
 	elif phase == "open":
+		settle_age = minf(settle_age+dt,STOP_SETTLE+DOOR_OPEN_TIME)
 		timer -= dt
 		if timer <= 0:
 			phase = "unload"
+			settle_age = -1.0
 			for a in workers: a.visible = true
 	elif phase == "unload":
 		for i in range(2): worker_step(i,dt)
@@ -179,15 +210,62 @@ func step(dt: float) -> void:
 			for a in workers: a.visible = false
 	elif phase == "close":
 		timer -= dt
-		if timer <= 0: phase = "depart"
+		if timer <= 0:
+			phase = "depart"
+			truck_speed = 0.0
+			drive_accel = LAUNCH_ACCEL
+			settle_age = -1.0
+			if not launch_started:
+				launch_started = true
+				truck.set_world(Vector2(truck_x,Street.LANE_WEST))
+				truck.play_launch()
+			rebuild_nav()
 	elif phase == "depart":
-		truck_x -= dt*9
-		if truck_x < -34:
+		advance_departure(dt)
+		if truck_x <= -34:
 			truck.visible = false
+			truck_speed = 0.0
+			drive_accel = 0.0
 			phase = "waiting" if not queue.is_empty() else "idle"
 			timer = RETRY_WAIT if not deferred_keys.is_empty() else BATCH_WAIT
 	update_truck()
 	updated.emit()
+
+func advance_arrival(dt: float) -> bool:
+	# Integrate the cruise and braking sections separately, including a step
+	# that crosses their boundary. Position and speed reach zero together.
+	var remaining = maxf(truck_x-stop_x,0.0)
+	if remaining > BRAKE_DISTANCE:
+		var cruise_dt = minf(dt,(remaining-BRAKE_DISTANCE)/CRUISE_SPEED)
+		truck_x -= CRUISE_SPEED*cruise_dt
+		truck_speed = CRUISE_SPEED
+		drive_accel = 0.0
+		dt -= cruise_dt
+		if dt <= 0: return false
+		remaining = maxf(truck_x-stop_x,0.0)
+	if not brake_started:
+		brake_started = true
+		truck.set_world(Vector2(truck_x,Street.LANE_WEST))
+		truck.play_brake()
+	truck_speed = minf(CRUISE_SPEED,sqrt(2.0*BRAKE_ACCEL*remaining))
+	var brake_dt = minf(dt,truck_speed/BRAKE_ACCEL)
+	truck_x = maxf(stop_x,truck_x-truck_speed*brake_dt+0.5*BRAKE_ACCEL*brake_dt*brake_dt)
+	truck_speed = maxf(0.0,truck_speed-BRAKE_ACCEL*brake_dt)
+	drive_accel = -BRAKE_ACCEL
+	if truck_speed < 0.0001 or truck_x-stop_x < 0.0001:
+		truck_x = stop_x
+		truck_speed = 0.0
+		drive_accel = 0.0
+		return true
+	return false
+
+func advance_departure(dt: float) -> void:
+	var accelerating_dt = minf(dt,maxf(0.0,CRUISE_SPEED-truck_speed)/LAUNCH_ACCEL)
+	var distance = truck_speed*accelerating_dt+0.5*LAUNCH_ACCEL*accelerating_dt*accelerating_dt
+	truck_speed = minf(CRUISE_SPEED,truck_speed+LAUNCH_ACCEL*accelerating_dt)
+	distance += truck_speed*(dt-accelerating_dt)
+	truck_x = maxf(-34.0,truck_x-distance)
+	drive_accel = LAUNCH_ACCEL if truck_speed < CRUISE_SPEED else 0.0
 
 func worker_step(i: int, dt: float) -> void:
 	var j: Dictionary = jobs[i]
@@ -271,16 +349,19 @@ func defer_item(key: String) -> void:
 
 func update_truck() -> void:
 	truck.set_world(Vector2(truck_x,Street.LANE_WEST))
-	var opening = 2 if phase == "unload" else (1 if phase in ["open","close"] else 0)
-	var name = "truck_%d_%d" % [opening,int(floor(clock*2.7))%2]
+	var opening_doors = phase == "close" or (phase == "open" and settle_age >= STOP_SETTLE)
+	var opening = 2 if phase == "unload" else (1 if opening_doors else 0)
+	var name = "truck_%d_0" % opening
 	if opening > 0:
 		var carried = jobs.filter(func(j): return j.key != "" and j.state in ["carry","unpack","plan"]).size()
 		name += "_load%d" % clampi(active_order.size()-carried,0,3)
 	truck.show_frame(name)
+	truck.set_drive_state(phase,truck_speed,drive_accel,settle_age)
+	truck.set_warning_lights(phase in ["open","unload","close"])
 	# Cones remain children of the truck; local ground coordinates match the art.
 	if cones.is_empty():
 		var info: Dictionary = truck.art.cone
-		for p in [Vector2(-4.1,1.6),Vector2(4.9,1.6),Vector2(5,-1.7)]:
+		for p in [Vector2(-3.1,1.35),Vector2(3.8,1.5),Vector2(3.8,-1.5)]:
 			var s = Sprite2D.new()
 			s.texture = Art.tex(info.file)
 			s.centered = false
@@ -288,14 +369,14 @@ func update_truck() -> void:
 			s.position = Iso.pixel(p.x,p.y)
 			truck.add_child(s)
 			cones.append(s)
-	for cone in cones: cone.visible = phase in ["open","unload","close"]
+	for cone in cones: cone.visible = opening_doors or phase == "unload"
 
 func status_text() -> String:
 	var n = queue.size()+active_order.size()
 	if phase == "idle": return "Livraisons"
 	if phase == "waiting": return "%d colis · %ds" % [n,ceili(timer)]
-	if phase == "arrive": return "Camion en approche"
-	if phase in ["close","depart"]: return "Camion au départ"
+	if phase == "arrive": return "Livraison en approche"
+	if phase in ["close","depart"]: return "Livraison au départ"
 	for i in range(jobs.size()):
 		if jobs[i].state == "return" and workers[i].path.is_empty() and workers[i].world.distance_to(loading_point(i)) > .7: return "Livreur bloqué"
 	return "Livraison · %d colis" % n
@@ -306,7 +387,7 @@ func item_status(item: Dictionary) -> String:
 	for j in jobs:
 		if j.key == key: return {"pickup":"Chargement du colis","plan":"Transport","carry":"Transport","unpack":"Déballage"}.get(j.state,"En livraison")
 	if key in deferred_keys: return "Accès bloqué · dégagez le passage"
-	return "Dans le camion" if key in active_order else "Commande regroupée · en attente"
+	return "Dans la fourgonnette" if key in active_order else "Commande regroupée · en attente"
 
 func to_dict() -> Dictionary:
 	var saved: Array = []
@@ -315,10 +396,11 @@ func to_dict() -> Dictionary:
 		j.erase("target")
 		j.pos = [workers[i].world.x,workers[i].world.y]
 		saved.append(j)
-	return {"phase":phase,"timer":timer,"clock":clock,"stop_x":stop_x,"truck_x":truck_x,"queue":queue.duplicate(),"active":active_order.duplicate(),"deferred":deferred_keys.duplicate(),"jobs":saved,"number":order_number}
+	return {"phase":phase,"timer":timer,"clock":clock,"stop_x":stop_x,"truck_x":truck_x,"truck_speed":truck_speed,"drive_accel":drive_accel,"settle_age":settle_age,"brake_started":brake_started,"launch_started":launch_started,"queue":queue.duplicate(),"active":active_order.duplicate(),"deferred":deferred_keys.duplicate(),"jobs":saved,"number":order_number}
 
 func from_dict(data: Dictionary) -> void:
 	if not data.get("phase","") in ["idle","waiting","arrive","open","unload","close","depart"]: return
+	truck.reset_drive_effects()
 	phase = data.phase
 	for key in ["timer","clock","stop_x","truck_x"]:
 		var value = data.get(key)
@@ -326,6 +408,17 @@ func from_dict(data: Dictionary) -> void:
 	stop_x = clampf(stop_x,-15,14)
 	truck_x = clampf(truck_x,-40,40)
 	timer = clampf(timer,0,RETRY_WAIT)
+	# Older saves resume their existing motion without replaying an arrival
+	# or departure effect. New saves preserve the exact speed and settling age.
+	var remaining = maxf(truck_x-stop_x,0.0)
+	truck_speed = minf(CRUISE_SPEED,sqrt(2.0*BRAKE_ACCEL*remaining)) if phase == "arrive" else (CRUISE_SPEED if phase == "depart" else 0.0)
+	drive_accel = -BRAKE_ACCEL if phase == "arrive" and remaining <= BRAKE_DISTANCE else 0.0
+	settle_age = STOP_SETTLE+maxf(0.0,DOOR_OPEN_TIME-timer) if phase == "open" else -1.0
+	for limits in [["truck_speed",0.0,CRUISE_SPEED],["drive_accel",-BRAKE_ACCEL,LAUNCH_ACCEL],["settle_age",-1.0,STOP_SETTLE+DOOR_OPEN_TIME]]:
+		var value = data.get(limits[0])
+		if (value is float or value is int) and is_finite(float(value)): set(limits[0],clampf(float(value),limits[1],limits[2]))
+	brake_started = data.get("brake_started",phase != "arrive" or remaining <= BRAKE_DISTANCE) == true
+	launch_started = data.get("launch_started",phase == "depart") == true
 	for pair in [["queue","queue"],["active","active_order"],["deferred","deferred_keys"]]:
 		if data.get(pair[0]) is Array: set(pair[1],data[pair[0]].filter(func(k): return k is String).slice(0,3000))
 	var number = data.get("number",0)

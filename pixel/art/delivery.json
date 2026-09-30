@@ -1,368 +1,430 @@
 {
-  "_truck_lights": [
-    {
-      "x": -2.72,
-      "y": 2.67,
-      "z": 0.96,
-      "color": "ff861b",
-      "blink": true,
-      "power": 0.3
-    },
-    {
-      "x": -1.52,
-      "y": 3.28,
-      "z": 1.2,
-      "color": "ff861b",
-      "blink": true,
-      "power": 0.36
-    },
-    {
-      "x": 3.45,
-      "y": 3.28,
-      "z": 1.2,
-      "color": "ff861b",
-      "blink": true,
-      "power": 0.36
-    },
-    {
-      "x": 3.45,
-      "y": 3.28,
-      "z": -1.2,
-      "color": "ff861b",
-      "blink": true,
-      "power": 0.3
-    },
-    {
-      "x": -3.56,
-      "y": 1.14,
-      "z": 1.14,
-      "color": "ffd898",
-      "blink": false,
-      "power": 0.3
-    },
-    {
-      "x": -1.43,
-      "y": 1.21,
-      "z": 1.25,
-      "color": "ff9b29",
-      "blink": true,
-      "power": 0.35
-    },
-    {
-      "x": 3.37,
-      "y": 1.21,
-      "z": 1.25,
-      "color": "ff9b29",
-      "blink": true,
-      "power": 0.35
-    },
-    {
-      "x": 3.68,
-      "y": 0.74,
-      "z": 0.91,
-      "color": "ff4937",
-      "blink": false,
-      "power": 0.4
-    },
-    {
-      "x": 3.68,
-      "y": 0.74,
-      "z": -1.01,
-      "color": "ff4937",
-      "blink": false,
-      "power": 0.35
-    }
-  ],
-  "truck_0_0": {
-    "file": "delivery/truck_0_0.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -1.35,
-      7.7,
-      2.95
-    ]
+ "_truck_lights": [
+  {
+   "x": -2.77,
+   "y": 1.01,
+   "z": 0.84,
+   "color": "ffd28a",
+   "blink": false,
+   "power": 0.1
   },
-  "truck_0_1": {
-    "file": "delivery/truck_0_1.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -1.35,
-      7.7,
-      2.95
-    ]
+  {
+   "x": 2.57,
+   "y": 2.35,
+   "z": 1.11,
+   "color": "ffab32",
+   "blink": true,
+   "power": 0.14
   },
-  "truck_1_0": {
-    "file": "delivery/truck_1_0.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -1.35,
-      8.65,
-      2.95
-    ]
+  {
+   "x": 2.57,
+   "y": 2.35,
+   "z": -1.11,
+   "color": "ffab32",
+   "blink": true,
+   "power": 0.14
   },
-  "truck_1_1": {
-    "file": "delivery/truck_1_1.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -1.35,
-      8.65,
-      2.95
-    ]
+  {
+   "x": -2.77,
+   "y": 0.81,
+   "z": 0.91,
+   "color": "ffab32",
+   "blink": true,
+   "power": 0.1
   },
-  "truck_2_0": {
-    "file": "delivery/truck_2_0.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -2.15,
-      8.9,
-      4.3
-    ]
-  },
-  "truck_2_1": {
-    "file": "delivery/truck_2_1.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -2.15,
-      8.9,
-      4.3
-    ]
-  },
-  "truck_1_0_load0": {
-    "file": "delivery/truck_1_0_load0.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -1.35,
-      8.65,
-      2.95
-    ]
-  },
-  "truck_1_0_load1": {
-    "file": "delivery/truck_1_0_load1.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -1.35,
-      8.65,
-      2.95
-    ]
-  },
-  "truck_1_0_load2": {
-    "file": "delivery/truck_1_0_load2.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -1.35,
-      8.65,
-      2.95
-    ]
-  },
-  "truck_1_0_load3": {
-    "file": "delivery/truck_1_0_load3.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -1.35,
-      8.65,
-      2.95
-    ]
-  },
-  "truck_1_1_load0": {
-    "file": "delivery/truck_1_1_load0.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -1.35,
-      8.65,
-      2.95
-    ]
-  },
-  "truck_1_1_load1": {
-    "file": "delivery/truck_1_1_load1.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -1.35,
-      8.65,
-      2.95
-    ]
-  },
-  "truck_1_1_load2": {
-    "file": "delivery/truck_1_1_load2.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -1.35,
-      8.65,
-      2.95
-    ]
-  },
-  "truck_1_1_load3": {
-    "file": "delivery/truck_1_1_load3.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -1.35,
-      8.65,
-      2.95
-    ]
-  },
-  "truck_2_0_load0": {
-    "file": "delivery/truck_2_0_load0.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -2.15,
-      8.9,
-      4.3
-    ]
-  },
-  "truck_2_0_load1": {
-    "file": "delivery/truck_2_0_load1.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -2.15,
-      8.9,
-      4.3
-    ]
-  },
-  "truck_2_0_load2": {
-    "file": "delivery/truck_2_0_load2.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -2.15,
-      8.9,
-      4.3
-    ]
-  },
-  "truck_2_0_load3": {
-    "file": "delivery/truck_2_0_load3.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -2.15,
-      8.9,
-      4.3
-    ]
-  },
-  "truck_2_1_load0": {
-    "file": "delivery/truck_2_1_load0.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -2.15,
-      8.9,
-      4.3
-    ]
-  },
-  "truck_2_1_load1": {
-    "file": "delivery/truck_2_1_load1.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -2.15,
-      8.9,
-      4.3
-    ]
-  },
-  "truck_2_1_load2": {
-    "file": "delivery/truck_2_1_load2.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -2.15,
-      8.9,
-      4.3
-    ]
-  },
-  "truck_2_1_load3": {
-    "file": "delivery/truck_2_1_load3.png",
-    "ox": 84,
-    "oy": 109,
-    "footprint": [
-      -3.9,
-      -2.15,
-      8.9,
-      4.3
-    ]
-  },
-  "box_0_0": {
-    "file": "delivery/box_0_0.png",
-    "ox": 11,
-    "oy": 17
-  },
-  "box_0_1": {
-    "file": "delivery/box_0_1.png",
-    "ox": 12,
-    "oy": 18
-  },
-  "cart_0": {
-    "file": "delivery/cart_0.png",
-    "ox": 13,
-    "oy": 43
-  },
-  "box_1_0": {
-    "file": "delivery/box_1_0.png",
-    "ox": 15,
-    "oy": 29
-  },
-  "box_1_1": {
-    "file": "delivery/box_1_1.png",
-    "ox": 18,
-    "oy": 31
-  },
-  "cart_1": {
-    "file": "delivery/cart_1.png",
-    "ox": 18,
-    "oy": 44
-  },
-  "box_2_0": {
-    "file": "delivery/box_2_0.png",
-    "ox": 23,
-    "oy": 38
-  },
-  "box_2_1": {
-    "file": "delivery/box_2_1.png",
-    "ox": 28,
-    "oy": 42
-  },
-  "cart_2": {
-    "file": "delivery/cart_2.png",
-    "ox": 26,
-    "oy": 45
-  },
-  "cone": {
-    "file": "delivery/cone.png",
-    "ox": 11,
-    "oy": 16
+  {
+   "x": 2.63,
+   "y": 0.86,
+   "z": 1.11,
+   "color": "ff7253",
+   "blink": false,
+   "power": 0.08
   }
+ ],
+ "truck_0_0": {
+  "file": "delivery/truck_0_0.png",
+  "ox": 77,
+  "oy": 109,
+  "footprint": [
+   -2.94,
+   -1.4,
+   5.8,
+   2.9
+  ],
+  "pitch": 0.0
+ },
+ "truck_0_1": {
+  "file": "delivery/truck_0_1.png",
+  "ox": 77,
+  "oy": 109,
+  "footprint": [
+   -2.94,
+   -1.4,
+   5.8,
+   2.9
+  ],
+  "pitch": 0.0
+ },
+ "truck_1_0": {
+  "file": "delivery/truck_1_0.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -1.4,
+   6.7,
+   2.9
+  ],
+  "pitch": 0.0
+ },
+ "truck_1_1": {
+  "file": "delivery/truck_1_1.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -1.4,
+   6.7,
+   2.9
+  ],
+  "pitch": 0.0
+ },
+ "truck_2_0": {
+  "file": "delivery/truck_2_0.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -2.14,
+   6.4,
+   4.28
+  ],
+  "pitch": 0.0
+ },
+ "truck_2_1": {
+  "file": "delivery/truck_2_1.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -2.14,
+   6.4,
+   4.28
+  ],
+  "pitch": 0.0
+ },
+ "truck_1_0_load0": {
+  "file": "delivery/truck_1_0_load0.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -1.4,
+   6.7,
+   2.9
+  ],
+  "pitch": 0.0
+ },
+ "truck_1_1_load0": {
+  "file": "delivery/truck_1_1_load0.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -1.4,
+   6.7,
+   2.9
+  ],
+  "pitch": 0.0
+ },
+ "truck_1_0_load1": {
+  "file": "delivery/truck_1_0_load1.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -1.4,
+   6.7,
+   2.9
+  ],
+  "pitch": 0.0
+ },
+ "truck_1_1_load1": {
+  "file": "delivery/truck_1_1_load1.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -1.4,
+   6.7,
+   2.9
+  ],
+  "pitch": 0.0
+ },
+ "truck_1_0_load2": {
+  "file": "delivery/truck_1_0_load2.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -1.4,
+   6.7,
+   2.9
+  ],
+  "pitch": 0.0
+ },
+ "truck_1_1_load2": {
+  "file": "delivery/truck_1_1_load2.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -1.4,
+   6.7,
+   2.9
+  ],
+  "pitch": 0.0
+ },
+ "truck_1_0_load3": {
+  "file": "delivery/truck_1_0_load3.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -1.4,
+   6.7,
+   2.9
+  ],
+  "pitch": 0.0
+ },
+ "truck_1_1_load3": {
+  "file": "delivery/truck_1_1_load3.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -1.4,
+   6.7,
+   2.9
+  ],
+  "pitch": 0.0
+ },
+ "truck_2_0_load0": {
+  "file": "delivery/truck_2_0_load0.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -2.14,
+   6.4,
+   4.28
+  ],
+  "pitch": 0.0
+ },
+ "truck_2_1_load0": {
+  "file": "delivery/truck_2_1_load0.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -2.14,
+   6.4,
+   4.28
+  ],
+  "pitch": 0.0
+ },
+ "truck_2_0_load1": {
+  "file": "delivery/truck_2_0_load1.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -2.14,
+   6.4,
+   4.28
+  ],
+  "pitch": 0.0
+ },
+ "truck_2_1_load1": {
+  "file": "delivery/truck_2_1_load1.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -2.14,
+   6.4,
+   4.28
+  ],
+  "pitch": 0.0
+ },
+ "truck_2_0_load2": {
+  "file": "delivery/truck_2_0_load2.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -2.14,
+   6.4,
+   4.28
+  ],
+  "pitch": 0.0
+ },
+ "truck_2_1_load2": {
+  "file": "delivery/truck_2_1_load2.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -2.14,
+   6.4,
+   4.28
+  ],
+  "pitch": 0.0
+ },
+ "truck_2_0_load3": {
+  "file": "delivery/truck_2_0_load3.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -2.14,
+   6.4,
+   4.28
+  ],
+  "pitch": 0.0
+ },
+ "truck_2_1_load3": {
+  "file": "delivery/truck_2_1_load3.png",
+  "ox": 67,
+  "oy": 89,
+  "footprint": [
+   -2.94,
+   -2.14,
+   6.4,
+   4.28
+  ],
+  "pitch": 0.0
+ },
+ "truck_brake_1": {
+  "file": "delivery/truck_brake_1.png",
+  "ox": 77,
+  "oy": 109,
+  "footprint": [
+   -2.94,
+   -1.4,
+   5.8,
+   2.9
+  ],
+  "pitch": 0.017453292519943295
+ },
+ "truck_brake_2": {
+  "file": "delivery/truck_brake_2.png",
+  "ox": 77,
+  "oy": 109,
+  "footprint": [
+   -2.94,
+   -1.4,
+   5.8,
+   2.9
+  ],
+  "pitch": 0.03490658503988659
+ },
+ "truck_brake_3": {
+  "file": "delivery/truck_brake_3.png",
+  "ox": 77,
+  "oy": 109,
+  "footprint": [
+   -2.94,
+   -1.4,
+   5.8,
+   2.9
+  ],
+  "pitch": 0.05235987755982989
+ },
+ "truck_launch_1": {
+  "file": "delivery/truck_launch_1.png",
+  "ox": 77,
+  "oy": 109,
+  "footprint": [
+   -2.94,
+   -1.4,
+   5.8,
+   2.9
+  ],
+  "pitch": -0.017453292519943295
+ },
+ "truck_launch_2": {
+  "file": "delivery/truck_launch_2.png",
+  "ox": 77,
+  "oy": 109,
+  "footprint": [
+   -2.94,
+   -1.4,
+   5.8,
+   2.9
+  ],
+  "pitch": -0.03490658503988659
+ },
+ "truck_launch_3": {
+  "file": "delivery/truck_launch_3.png",
+  "ox": 77,
+  "oy": 109,
+  "footprint": [
+   -2.94,
+   -1.4,
+   5.8,
+   2.9
+  ],
+  "pitch": -0.05235987755982989
+ },
+ "box_0_0": {
+  "file": "delivery/box_0_0.png",
+  "ox": 11,
+  "oy": 17
+ },
+ "box_0_1": {
+  "file": "delivery/box_0_1.png",
+  "ox": 12,
+  "oy": 18
+ },
+ "cart_0": {
+  "file": "delivery/cart_0.png",
+  "ox": 13,
+  "oy": 43
+ },
+ "box_1_0": {
+  "file": "delivery/box_1_0.png",
+  "ox": 15,
+  "oy": 29
+ },
+ "box_1_1": {
+  "file": "delivery/box_1_1.png",
+  "ox": 18,
+  "oy": 31
+ },
+ "cart_1": {
+  "file": "delivery/cart_1.png",
+  "ox": 18,
+  "oy": 44
+ },
+ "box_2_0": {
+  "file": "delivery/box_2_0.png",
+  "ox": 23,
+  "oy": 38
+ },
+ "box_2_1": {
+  "file": "delivery/box_2_1.png",
+  "ox": 28,
+  "oy": 42
+ },
+ "cart_2": {
+  "file": "delivery/cart_2.png",
+  "ox": 26,
+  "oy": 45
+ },
+ "cone": {
+  "file": "delivery/cone.png",
+  "ox": 11,
+  "oy": 16
+ }
 }

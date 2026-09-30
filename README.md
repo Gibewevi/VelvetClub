@@ -1,4 +1,4 @@
-# Construction — V39 pixel art
+# Construction — V46 pixel art
 
 Jeu natif Windows de gestion d'un club, en isométrique et en vrai pixel art rétro. Développé avec Godot 4.5.1, avec le moteur et les ressources intégrés à l'exécutable : rien à installer pour jouer.
 
@@ -6,7 +6,17 @@ Le projet `pixel/` est un jeu 2D. Tout le graphisme est dessiné pixel par pixel
 
 ## Jouer
 
-Lancer `build/Construction-V39-Camion-Polish.exe`.
+Lancer `build/Construction-V46-Fumee-BD.exe`.
+
+**V46 — Fumée BD.** Le freinage et le démarrage font apparaître plusieurs petites bouffées rondes en pixel art, crème avec des ombres roses et mauves. Elles gonflent, se séparent en petits nuages et disparaissent rapidement, accompagnées de quelques éclats. Le freinage les émet progressivement près des roues ; le départ accentue la traînée des roues arrière. Les bouffées restent sur la route quand la fourgonnette s'éloigne, et la pause fige leur animation. Aperçus dans `build/Apercus-V46/`.
+
+**V44 — Toit unifié.** Le toit de la fourgonnette forme une seule coque, de la cabine à la caisse. Il est plus fin, avec des épaules dont la couleur se raccorde aux flancs et deux rainures discrètes et continues. Les portes, la suspension et les livraisons conservent leur fonctionnement. Aperçus dans `build/Apercus-V44/`.
+
+**V43 — Fourgonnette arrondie.** La carrosserie jaune devient légèrement plus large, avec des flancs galbés, un toit bombé aux quatre coins arrondis, une cabine et des pare-chocs adoucis. Deux rainures peu contrastées parcourent le toit, et les joints des panneaux restent discrets. Les portes, le marchepied et les passages de roue suivent cette nouvelle silhouette. Les poses de freinage et de démarrage sont redessinées sur la grille native, roues au sol et feux alignés. Les livraisons, commandes et sauvegardes conservent leur fonctionnement. Aperçus dans `build/Apercus-V43/`.
+
+**V41 — Arrivées et départs animés.** La fourgonnette DLH arrive plus vivement, ralentit progressivement devant le club et s'arrête exactement à sa place. La suspension bascule légèrement au freinage puis se stabilise avant l'ouverture des portes ; de petites bouffées de poussière apparaissent près des roues. Au départ, elle accélère depuis l'arrêt avec une bascule inverse. Les effets restent sur la grille pixel art et la poussière reste ancrée à la route. La pause fige le mouvement, et une sauvegarde reprend la vitesse et la phase en cours sans répéter les effets déjà déclenchés. Les warnings conservent leur pulsation douce. Aperçus dans `build/Apercus-V41/`.
+
+**V40 — Petite fourgonnette DLH.** Le véhicule de livraison devient une fourgonnette jaune compacte, aux formes plus rondes, avec le marquage rouge DLH. Ses portes arrière s'ouvrent sur les cartons et un petit marchepied. Les livreurs, leurs trajets et les cônes suivent les nouvelles dimensions. La carrosserie reste stable ; seuls les petits warnings pulsent doucement à l'arrêt, à un rythme indépendant de l'accélération du jeu. La pause fige aussi ces lumières. Les commandes et sauvegardes existantes restent compatibles. Aperçus dans `build/Apercus-V40/`.
 
 **V39 — Camion retravaillé.** Le camion de livraison reprend plus précisément le modèle de référence : cabine profilée, vitrage et rétroviseurs, roues et passages de roue, châssis, panneaux ivoire, emblème de colis, bandes réfléchissantes et feux. L'arrière détaille les portes, leurs charnières et verrouillages, la soute et le hayon rainuré. Le dessin reste sur la grille native du jeu, avec contours nets et agrandissement sans lissage. Les achats, les commandes en cours et les sauvegardes conservent leur fonctionnement. Aperçus dans `build/Apercus-V39/`.
 
@@ -50,6 +60,7 @@ Le joueur démarre avec une réputation d'une étoile et aucun employé. **Pour 
   - Vert : le module tient, ses entrées restent dégagées et le budget suffit. Rouge : hors terrain, bâtiment, chevauchement de places, accès bloqué ou budget insuffisant. Relâcher en rouge ne construit rien et ne coûte rien.
   - Les places peuvent être installées avant leur allée. Garder 6 m libres devant elles pour manœuvrer ; deux rangées face à face partagent ce dégagement. Cette surface libre n'est payée que lorsqu'on y trace une allée. Les rangées accolées dos à dos sont possibles ; les places empilées qui se bloquent sont refusées.
   - Le prototype de circulation de la V34 reste séparé dans `Street.traffic_layout()` ; les nouveaux modules ne simulent pas encore de voitures.
+- **Orientation automatique (V42)** : pendant la pose, un meuble se tourne tout seul selon ce qui l'entoure : dos au mur (canapé, lit, armoire, étagère, WC, lavabo, miroir, néon…), vers sa table (chaise), vers le bar (tabouret), vers une table basse (canapé, fauteuil) ; un bar ou un comptoir d'accueil laisse la place derrière pour le personnel, et rien ne s'adosse à une porte. Sans raison claire, la rotation choisie reste. `R` tourne à la main (le jeu n'y touche plus), `A` rend l'orientation au jeu.
 - **Superpositions (V33)** : chaque personnage passe devant ou derrière les meubles selon sa vraie position.
   - Assis sur un canapé, un fauteuil, une chaise ou un lit, il est toujours devant l'assise. Il est devant le dossier ou la tête de lit quand le meuble fait face au joueur, et derrière quand le meuble est tourné.
   - La danseuse passe devant ou derrière la barre selon l'orientation de la scène.
@@ -83,7 +94,7 @@ Le joueur démarre avec une réputation d'une étoile et aucun employé. **Pour 
 | Tracer une pièce | `T` ou Construire → Pièce, puis cliquer-glisser |
 | Porte / fenêtre | `P` / `F`, puis cliquer un mur |
 | Parking | `K` : Places · clic : une place · glisser : rangée · `R` : tourner · Construire → Allée : passage libre |
-| Mobilier | `B` ; `Maj` + clic pour poser en série ; `R` pour tourner |
+| Mobilier | `B` ; `Maj` + clic pour poser en série ; orientation automatique pendant la pose ; `R` pour tourner à la main, `A` pour revenir à l'automatique |
 | Sélection | Clic sur un meuble, une personne, une ouverture ou le sol d'une pièce |
 | Déplacer / copier / supprimer | Glisser · `Ctrl + D` · `Suppr` |
 | Annuler / rétablir | `Ctrl + Z` / `Ctrl + Y` (l'argent suit) |
@@ -120,7 +131,7 @@ Ouvrir `pixel/project.godot` dans Godot 4.5.1.
 | `pixel/scripts/actor.gd` | Personnage en calques 32 × 48 partageant une palette, animations, déplacements |
 | `pixel/scripts/street.gd` | Rue fixe, rangées de places orientées, allées et entrées ; prototype de planification des trajets séparé du calcul de construction |
 | `pixel/scripts/nav.gd`, `sim.gd` | Navigation A* par les portes ; simulation du club (clients, personnel, argent, réputation) |
-| `pixel/scripts/deliveries.gd`, `delivery_courier.gd`, `delivery_prop.gd` | Regroupement des achats, file d'attente, camion, transport des colis, accès et déballage ; reprise de livraison sauvegardée |
+| `pixel/scripts/deliveries.gd`, `delivery_courier.gd`, `delivery_prop.gd`, `delivery_dust.gd`, `delivery_smoke_art.gd` | Regroupement des achats, file d'attente, conduite et suspension de la fourgonnette, bouffées BD aux roues, transport des colis, accès et déballage ; reprise de livraison sauvegardée |
 | `pixel/scripts/hud.gd`, `ui_kit.gd`, `editors.gd` | Interface rétro pixel art : fenêtres déplaçables, dock, historique, éditeurs d'apparence et de revêtements |
 | `pixel/scripts/main.gd` | Caméra au pixel, outils, historique, sauvegarde, tests intégrés |
 | `pixel/shaders/palette.gdshader` | Index de palette → couleur, contour de sélection, teinte d'aperçu |
@@ -129,8 +140,8 @@ Ouvrir `pixel/project.godot` dans Godot 4.5.1.
 | `tools/pixelart/pa_escort.py` | Tenues des escorts par standing : cartes de pixels du buste, bas, résille, gants, bijoux, jupes |
 | `tools/pixelart/pa_tiles.py`, `pa_draw2d.py` | Sols (dont bitume fissuré et dalles de trottoir), murs, ouvertures, décor de rue, halos ; tracés 2D |
 | `tools/pixelart/pa_street.py` | Bordures, marquages usés, butées de roues, herbes, grilles, taches d'huile, fissures, panneau P |
-| `tools/pixelart/pa_delivery.py` | Camion fermé/ouvert et warnings, chargement variable, colis de trois tailles, diables/chariots et cônes à la résolution native |
-| `tools/pixelart/pa_truck.py`, `pa_truck_patterns.py` | Carrosserie du camion, cabine profilée, roues, portes articulées, hayon, peinture, vitrage et points lumineux |
+| `tools/pixelart/pa_delivery.py` | Export de la fourgonnette fermée/ouverte, chargement variable, colis de trois tailles, diables/chariots et cônes à la résolution native |
+| `tools/pixelart/pa_truck.py`, `pa_truck_patterns.py` | Fourgonnette aux volumes arrondis, toit rainuré, flancs galbés, portes, soute, poses de suspension et points lumineux ; peinture jaune et marquage DLH |
 | `tools/pixelart/pa_parking.py` | Grande texture de parking sans raccord visible, fissures, grain fin, terre et mousse en bordure, points d'implantation des herbes dans les crevasses |
 | `tools/pixelart/pa_trees.py` | Arbres de rue au pixel (3 silhouettes statiques) et fosses d'arbre |
 | `tools/pixelart/pa_ui.py` | Cadres de fenêtres, boutons, icônes 10 × 10 et émotes de l'interface rétro |
@@ -143,9 +154,13 @@ Exécuter `./Build.ps1`. Le script effectue, dans l'ordre :
 1. la régénération de tout le pixel art (si Python est présent) ;
 2. l'import du projet ;
 3. les tests : `model_test.gd` (petit local vétuste de départ avec une seule chambre, déchets accessibles, valeur des revêtements, plan complet de démonstration avec réception et urinoirs, navigation, import 3D, validations), `art_test.gd` (grille 32 × 16, frames 32 × 48, bords nets, index de palette, chaque frame de corps d'un seul tenant avec les pieds au sol et des jambes de taille constante en marchant, calques de chaque apparence, sprites de tout le catalogue, icônes 10 × 10 et cadres de l'interface), la scène (`--smoke-test`), la simulation (`--sim-test` : club fermé sans client, techniciens qui nettoient, file d'attente dehors sans accueil avec clients impatients, aucune entrée sans réceptionniste, puis entrées payées à l'accueil, boissons servies au bar, escort au salon, départ à la fermeture) et l'interface dans une vraie fenêtre (`--ui-test`, y compris le déplacement d'une fenêtre par sa barre de titre) ;
-4. l'export de `build/Construction-V39-Camion-Polish.exe`.
+4. l'export de `build/Construction-V46-Fumee-BD.exe`.
 
 Le test `--delivery-test` couvre le regroupement avant arrivée, les achats de la tournée suivante, deux livreurs, les fantômes inutilisables, le paiement unique, l'annulation et le remboursement, le déplacement en cours de transport, la reprise après sauvegarde, les accès bloqués et leur rétablissement, ainsi que les anciennes parties. Le test d'interface achète aussi deux objets à la souris, ouvre le suivi, observe le transport et le déballage puis vérifie leur installation et le départ du camion.
+
+Le test `delivery_dust_test.gd` vérifie la netteté des textures BD, l'ancrage des bouffées sous un véhicule mobile, la pause, leur expiration et la libération des sprites, y compris après plusieurs émissions rapprochées.
+
+Il vérifie aussi le freinage sans dépassement, l'arrêt exact, la stabilité du trajet selon le pas de simulation, l'accélération au départ, les bascules opposées, l'ancrage de la poussière sur la route, la pause et la reprise des anciennes sauvegardes sans répéter les effets.
 
 Le test `parking_fit_test.gd` couvre les quatre orientations, une place seule et les rangées, l'alignement et la fusion, les entrées dégagées, les bordures communes, le coût, la réutilisation du bitume, les sauvegardes et leur migration. Le test d'interface vérifie avec des événements souris et clavier le clic, le glisser, la rotation, les boutons de prolongement, la pose d'une allée, le refus rouge, l'annulation et le rétablissement.
 

@@ -1,9 +1,11 @@
-"""Native-pixel paint for the delivery truck's broad metal and glass panels.
+"""Clean native-pixel paint for the compact yellow DLH delivery van.
 
 Callbacks follow ``pa_iso.Prim.pattern(local, normal, world, world_normal)``
 and return ``(None, rgba)``. Transparent pixels leave the primitive's shaded
 material intact. Coordinates are truck-local metres, before any world motion;
-the visible flank is +z, the cargo rear +x and the cab front -x.
+the visible flank is +z, the cargo rear +x and the cab front -x. There is no
+grain, random wear or subpixel texture: broad enamel and glass areas remain
+quiet when the van moves or its warning lights blink.
 """
 from __future__ import annotations
 
@@ -14,11 +16,15 @@ def _paint(world):
     return np.zeros((len(world), 4), dtype=np.uint8)
 
 
-def _segment(x, y, a, b, radius):
-    """A crisp capsule in panel space; the painter samples at native pixels."""
-    dx, dy = b[0] - a[0], b[1] - a[1]
-    t = np.clip(((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy), 0, 1)
-    return (x - a[0] - t * dx) ** 2 + (y - a[1] - t * dy) ** 2 <= radius * radius
+WINE = (126, 37, 51, 255)
+
+# Five-column bold letters leave a real open counter in D and readable arms
+# in L/H. Each cell covers more than one native pixel in both panel axes.
+LETTERS = (
+    ("11110", "11011", "11001", "11001", "11001", "11011", "11110"),
+    ("11000", "11000", "11000", "11000", "11000", "11111", "11111"),
+    ("11011", "11011", "11011", "11111", "11011", "11011", "11011"),
+)
 
 
 def _polygon(x, y, vertices):
@@ -32,90 +38,92 @@ def _polygon(x, y, vertices):
     return positive | negative
 
 
-def body_side(local, normal, world, world_normal):
-    """Quiet edge wear and a wine-red parcel emblem on the +z cargo side.
+def _stroke(x, y, a, b, radius):
+    """A single clean panel stroke with short round caps, sampled natively."""
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    t = np.clip(((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy), 0, 1)
+    return (x - a[0] - t * dx) ** 2 + (y - a[1] - t * dy) ** 2 <= radius * radius
 
-    The panel occupies x=-1.55..3.48, y=1.10..3.20. The cube is 1.60 m wide
-    and .96 m high, centred at (0.60, 2.05), with three delivery marks to its
-    right. These panel-space proportions compensate for the isometric view.
+
+def body_side(local, normal, world, world_normal):
+    """DLH wordmark, continuous bordeaux band and two quiet door seams.
+
+    Cargo panel: x=-.90..2.50, y=.60..2.40. Letters span x=-.56..1.48 and
+    y=1.39..2.09, with three speed bars at x=1.70..2.27. The band occupies
+    y=.90..1.07. Door joints at x=-.73 and 2.37 sit clear of the printing.
+    Three broad warm gold areas unify every construction facet on the +z
+    bodywork. Sampling world z rather than normal direction also paints the
+    thin horizontal ledges used to build its curved belly.
     """
     paint = _paint(world)
     x, y = world[:, 0], world[:, 1]
-    side = (world_normal[:, 2] > .8) & (x >= -1.55) & (x <= 3.48) & (y >= 1.10) & (y <= 3.20)
-
-    # A few grouped, shallow stains sit under fittings and along the lower
-    # rail. Nothing adds noise across the clean centre of the enamel panel.
-    stains = np.zeros(x.shape, dtype=bool)
-    for left, bottom, width, height in [
-        (-1.36, 2.88, .065, .22), (-1.22, 3.02, .035, .10),
-        (3.17, 2.91, .055, .21), (3.29, 3.03, .04, .10),
-        (-.83, 1.16, .16, .07), (-.69, 1.14, .07, .10),
-        (1.65, 1.15, .17, .06), (2.76, 1.15, .12, .10),
-        (2.86, 1.14, .09, .05),
-    ]:
-        stains |= (x >= left) & (x < left + width) & (y >= bottom) & (y < bottom + height)
-    paint[side & stains] = (169, 153, 160, 255)
-
-    scuffs = _segment(x, y, (-.96, 1.34), (-.58, 1.36), .018)
-    scuffs |= _segment(x, y, (2.77, 2.80), (3.01, 2.79), .015)
-    paint[side & scuffs] = (175, 161, 168, 255)
-
-    # Nine connected segments make three faces of a printed cube. Keeping
-    # this a surface decal avoids the heavy relief/outlines of tiny boxes.
-    top = (.60, 2.53)
-    left_top, right_top = (-.20, 2.32), (1.40, 2.32)
-    centre = (.60, 2.11)
-    left_bottom, right_bottom = (-.20, 1.78), (1.40, 1.78)
-    bottom = (.60, 1.57)
-    emblem = np.zeros(x.shape, dtype=bool)
+    side = ((world[:, 2] > .90) & (x >= -.90) & (x <= 2.50)
+            & (y >= .60) & (y <= 2.40))
+    paint[side] = (239, 169, 32, 255)
+    paint[side & (y < .88)] = (222, 152, 35, 255)
+    paint[side & (y >= 2.10)] = (243, 179, 43, 255)
+    # Short rounded shoulders make these read as pressed van door joints.
+    # Keep the centre entirely clean; this is panel structure, not wear.
+    seams = np.zeros(x.shape, dtype=bool)
     for a, b in [
-        (top, left_top), (top, right_top),
-        (left_top, centre), (right_top, centre),
-        (left_top, left_bottom), (right_top, right_bottom),
-        (left_bottom, bottom), (right_bottom, bottom), (centre, bottom),
+        ((-.73, .73), (-.73, 2.20)), ((-.73, 2.20), (-.66, 2.28)),
+        ((2.37, .73), (2.37, 2.18)), ((2.37, 2.18), (2.31, 2.25)),
     ]:
-        emblem |= _segment(x, y, a, b, .056)
-    for yy in [1.88, 2.06, 2.24]:
-        emblem |= (x >= 1.63) & (x <= 2.24) & (np.abs(y - yy) <= .052)
-    paint[side & emblem] = (119, 71, 74, 255)
+        seams |= _stroke(x, y, a, b, .033)
+    paint[side & seams] = (194, 128, 31, 255)
+    paint[side & (y >= .90) & (y <= 1.07)] = WINE
+
+    emblem = np.zeros(x.shape, dtype=bool)
+    for letter_index, rows in enumerate(LETTERS):
+        left = -.56 + letter_index * .72
+        for row_index, row in enumerate(rows):
+            top = 2.09 - row_index * .10
+            for column, ink in enumerate(row):
+                if ink == "1":
+                    x0 = left + column * .12
+                    emblem |= ((x >= x0) & (x < x0 + .12)
+                               & (y > top - .10) & (y <= top))
+    for yy in [1.52, 1.72, 1.92]:
+        emblem |= (x >= 1.70) & (x <= 2.27) & (np.abs(y - yy) <= .055)
+    paint[side & emblem] = WINE
     return None, paint
 
 
 def roof_pattern(local, normal, world, world_normal):
-    """Sparse shallow seams on the warm ivory roof, without stippling."""
+    """Single enamel roof, with a narrow shoulder matching the upper flank.
+
+    Cab and cargo share this surface. Its three broad tones follow the
+    actual rounded surface; no dark stripe or bright rail outlines a cap.
+    Grooves remain shallow paint details confined to the nearly flat top.
+    """
     paint = _paint(world)
     x, z = world[:, 0], world[:, 2]
-    roof = world_normal[:, 1] > .8
-    # The material owns the overall warm ivory tone; these are deliberately
-    # only a handful of subdued clusters over its otherwise uninterrupted top.
-    seam = ((np.abs(x - 1.70) < .022) & (z > -.98) & (z < .92))
-    seam |= ((np.abs(z + 1.02) < .018) & (x > -1.33) & (x < 3.28))
-    paint[roof & seam] = (203, 187, 193, 255)
-    worn = _segment(x, z, (-.55, .62), (-.24, .62), .025)
-    worn |= _segment(x, z, (2.44, -.45), (2.68, -.43), .022)
-    paint[roof & worn] = (206, 191, 196, 255)
+    up = world_normal[:, 1]
+    paint[:] = (243, 179, 43, 255)
+    paint[up > .38] = (250, 192, 45, 255)
+    paint[up > .82] = (255, 204, 57, 255)
+    for centre in [-.53, .53]:
+        groove = _stroke(x, z, (-1.53, centre), (2.17, centre), .040)
+        paint[groove & (up > .82)] = (244, 190, 46, 255)
     return None, paint
 
 
 def glass_pattern(local, normal, world, world_normal):
-    """Three readable blue reflection masses on the shaped +z cab window.
+    """Quiet navy glass with two broad reflection masses and a dark sill.
 
-    Clip the primitive itself to the desired trapezoid in x=-3.4..-1.9,
-    y=1.65..2.48. The pattern deliberately paints no frame or window outline.
+    Window geometry clips the paint in x=-2.55..-1.08, y=1.25..2.05. The
+    reflection boundaries use no isolated bright pixels or thin hatch marks.
     """
     paint = _paint(world)
     x, y = world[:, 0], world[:, 1]
-    side = world_normal[:, 2] > .8
-    paint[side] = (34, 45, 63, 255)
+    side = world_normal[:, 2] > .75
+    paint[side] = (38, 48, 64, 255)
 
-    broad = _polygon(x, y, [(-3.40, 2.48), (-2.84, 2.48), (-3.13, 1.78), (-3.40, 1.74)])
-    paint[side & broad] = (65, 87, 108, 255)
-    narrow = _polygon(x, y, [(-3.31, 2.48), (-3.20, 2.48), (-3.42, 1.97), (-3.47, 2.06)])
-    paint[side & narrow] = (100, 124, 141, 255)
-
-    # The rear part of the window stays dark enough to suggest the seat.
-    rear = _polygon(x, y, [(-2.81, 2.48), (-2.14, 2.48), (-2.56, 1.96), (-2.98, 1.92)])
-    paint[side & rear] = (45, 58, 79, 255)
-    bottom = side & (y < 1.78)
-    paint[bottom] = (26, 35, 51, 255)
+    broad = _polygon(x, y, [(-2.62, 2.08), (-1.96, 2.08),
+                             (-2.23, 1.39), (-2.62, 1.35)])
+    paint[side & broad] = (67, 86, 105, 255)
+    rear = _polygon(x, y, [(-1.91, 2.08), (-1.15, 2.08),
+                            (-1.49, 1.59), (-2.11, 1.51)])
+    paint[side & rear] = (48, 61, 79, 255)
+    paint[side & (y < 1.35)] = (30, 39, 55, 255)
     return None, paint

@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 # Jeu de gestion en pixel art isométrique (projet pixel/).
 $projectRoot = $PSScriptRoot
-$version = 'Construction-V39-Camion-Polish'
+$version = 'Construction-V46-Fumee-BD'
 $godotBinary = Join-Path $projectRoot '.tools\godot\Godot_v4.5.1-stable_win64_console.exe'
 if (-not (Test-Path -LiteralPath $godotBinary)) {
     throw 'Godot 4.5.1 est absent de .tools/godot. Voir README.md.'
@@ -34,6 +34,8 @@ try {
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-parking-fit.log') -Pattern 'PARKING_FIT_TESTS_PASSED' -Quiet)) { throw 'Calcul des places de parking échoué.' }
     & $godotBinary --headless --path $gameDir --script res://tests/art_test.gd --log-file (Join-Path $artifacts 'pixel-art.log')
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-art.log') -Pattern 'ART_TESTS_PASSED' -Quiet)) { throw 'Contrôle du pixel art échoué.' }
+    & $godotBinary --headless --path $gameDir --script res://tests/delivery_dust_test.gd --log-file (Join-Path $artifacts 'pixel-delivery-dust.log')
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-delivery-dust.log') -Pattern 'DELIVERY_DUST_TESTS_PASSED' -Quiet)) { throw 'Test de la fumée BD échoué.' }
     & $godotBinary --headless --path $gameDir --script res://tests/quick_service_test.gd --log-file (Join-Path $artifacts 'pixel-quick.log')
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-quick.log') -Pattern 'QUICK_SERVICE_TESTS_PASSED' -Quiet)) { throw 'Test de la prestation rapide échoué.' }
     & $godotBinary --headless --path $gameDir --log-file (Join-Path $artifacts 'pixel-delivery.log') -- --delivery-test

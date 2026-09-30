@@ -78,10 +78,10 @@ func run() -> void:
 			check(c.visible and e.visible and c.anim == "stand" and e.anim == "kneel","Both clothed characters remain visible in the requested poses")
 			check(c.lift == 0 and e.lift == 0 and sim.nav.walkable(c.world) and sim.nav.walkable(e.world),"Both poses are on free floor")
 			check(model.room_at(c.world) == room and model.room_at(e.world) == room,"Both actors are in the same bedroom")
-			check(absf(c.position.x-e.position.x) >= 24.0,"Silhouettes stay separate without contact")
+			check(c.world.distance_to(e.world) <= ClubSim.QUICK_KNEEL_GAP+0.01,"She kneels close in front of the client")
 			check(not world.bed_looks.has(int(bed.id)) and not world.clothes.has(int(bed.id)),"No bed animation or dropped clothing")
 			check(c.appearance == app_c and e.appearance == app_e,"All clothing layers are preserved")
-			check(sim.money-before == sim.service_price(0,e),"The quick visit is charged once")
+			check(sim.money == before,"Nothing is charged before the end of the visit")
 			check(sim.room_private(room),"The bedroom stays reserved during the visit")
 			var frame_c = c.current_frame()
 			var frame_e = e.current_frame()
@@ -97,10 +97,15 @@ func run() -> void:
 						await RenderingServer.frame_post_draw
 						root.get_texture().get_image().save_png(arg.trim_prefix("--capture="))
 						captured = true
+			var price = sim.service_price(0,e)
 			if mode == "layout":
 				sim.layout_changed()
 			else:
 				sim.service_script(c,float(ClubSim.SERVICES[0].minutes)+1.0)
+				check(c.brain.get("service",{}).get("phase","") == "quick_after" and e.anim == "stand" and sim.money == before,"She stands up for a short farewell before he pays")
+				sim.service_script(c,4.0)
+				check(sim.money-before == price,"The quick visit is charged once, at the end")
+				check(world.overlay.get_children().any(func(n): return n is Label and n.text.contains("+%d $" % price)),"The price paid rises above the client")
 			check(bed.unmade == (mode == "unmade"),"The quick visit preserves the bed's previous state")
 			check(c.anim != "stand" and e.anim != "kneel","Both actors leave the static poses")
 		check(not c.brain.has("service") and not e.brain.has("client") and sim.busy_beds.is_empty() and sim.reserved.is_empty(),"Completion or cancellation releases both actors and the room")
