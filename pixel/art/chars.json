@@ -1,0 +1,397 @@
+{
+ "frame": [
+  32,
+  48
+ ],
+ "anchor": [
+  16,
+  46
+ ],
+ "index_scale": 4,
+ "palette_size": 40,
+ "frames": 28,
+ "anims": {
+  "front:idle": [
+   0,
+   1
+  ],
+  "front:walk": [
+   2,
+   3,
+   4,
+   5
+  ],
+  "front:sit": [
+   6
+  ],
+  "front:dance": [
+   7,
+   8,
+   9,
+   10
+  ],
+  "front:mop": [
+   11,
+   12,
+   13,
+   14
+  ],
+  "front:work": [
+   15,
+   16
+  ],
+  "front:stand": [
+   17
+  ],
+  "front:kneel": [
+   18
+  ],
+  "back:idle": [
+   19,
+   20
+  ],
+  "back:walk": [
+   21,
+   22,
+   23,
+   24
+  ],
+  "back:sit": [
+   25
+  ],
+  "back:stand": [
+   26
+  ],
+  "back:kneel": [
+   27
+  ]
+ },
+ "files": {
+  "body_f_lingerie": "chars/body_f_lingerie.png",
+  "body_f_lingerie_genereuse": "chars/body_f_lingerie_genereuse.png",
+  "body_f_lingerie_fine": "chars/body_f_lingerie_fine.png",
+  "body_f_body": "chars/body_f_body.png",
+  "body_f_body_genereuse": "chars/body_f_body_genereuse.png",
+  "body_f_body_fine": "chars/body_f_body_fine.png",
+  "body_f_dress": "chars/body_f_dress.png",
+  "body_f_blazer": "chars/body_f_blazer.png",
+  "body_f_maid": "chars/body_f_maid.png",
+  "body_f_tube": "chars/body_f_tube.png",
+  "body_f_tube_genereuse": "chars/body_f_tube_genereuse.png",
+  "body_f_tube_fine": "chars/body_f_tube_fine.png",
+  "body_f_bodycon": "chars/body_f_bodycon.png",
+  "body_f_bodycon_genereuse": "chars/body_f_bodycon_genereuse.png",
+  "body_f_bodycon_fine": "chars/body_f_bodycon_fine.png",
+  "body_f_corset": "chars/body_f_corset.png",
+  "body_f_corset_genereuse": "chars/body_f_corset_genereuse.png",
+  "body_f_corset_fine": "chars/body_f_corset_fine.png",
+  "body_f_cocktail": "chars/body_f_cocktail.png",
+  "body_f_cocktail_genereuse": "chars/body_f_cocktail_genereuse.png",
+  "body_f_cocktail_fine": "chars/body_f_cocktail_fine.png",
+  "body_f_gown": "chars/body_f_gown.png",
+  "body_f_gown_genereuse": "chars/body_f_gown_genereuse.png",
+  "body_f_gown_fine": "chars/body_f_gown_fine.png",
+  "body_f_sequin": "chars/body_f_sequin.png",
+  "body_f_sequin_genereuse": "chars/body_f_sequin_genereuse.png",
+  "body_f_sequin_fine": "chars/body_f_sequin_fine.png",
+  "body_f_string": "chars/body_f_string.png",
+  "body_f_string_genereuse": "chars/body_f_string_genereuse.png",
+  "body_f_string_fine": "chars/body_f_string_fine.png",
+  "body_f_balconnet": "chars/body_f_balconnet.png",
+  "body_f_balconnet_genereuse": "chars/body_f_balconnet_genereuse.png",
+  "body_f_balconnet_fine": "chars/body_f_balconnet_fine.png",
+  "body_f_babydoll": "chars/body_f_babydoll.png",
+  "body_f_babydoll_genereuse": "chars/body_f_babydoll_genereuse.png",
+  "body_f_babydoll_fine": "chars/body_f_babydoll_fine.png",
+  "body_f_bijoux": "chars/body_f_bijoux.png",
+  "body_f_bijoux_genereuse": "chars/body_f_bijoux_genereuse.png",
+  "body_f_bijoux_fine": "chars/body_f_bijoux_fine.png",
+  "hairb_f_bob": "chars/hairb_f_bob.png",
+  "hairf_f_bob": "chars/hairf_f_bob.png",
+  "hairb_f_bun": "chars/hairb_f_bun.png",
+  "hairf_f_bun": "chars/hairf_f_bun.png",
+  "hairb_f_long": "chars/hairb_f_long.png",
+  "hairf_f_long": "chars/hairf_f_long.png",
+  "hairb_f_pony": "chars/hairb_f_pony.png",
+  "hairf_f_pony": "chars/hairf_f_pony.png",
+  "hairb_f_waves": "chars/hairb_f_waves.png",
+  "hairf_f_waves": "chars/hairf_f_waves.png",
+  "face_f_f0": "chars/face_f_f0.png",
+  "face_f_f1": "chars/face_f_f1.png",
+  "face_f_f2": "chars/face_f_f2.png",
+  "face_f_f3": "chars/face_f_f3.png",
+  "hat_f_headband": "chars/hat_f_headband.png",
+  "glasses_f_1": "chars/glasses_f_1.png",
+  "glasses_f_2": "chars/glasses_f_2.png",
+  "body_m_security": "chars/body_m_security.png",
+  "body_m_janitor": "chars/body_m_janitor.png",
+  "body_m_casual": "chars/body_m_casual.png",
+  "body_m_suit": "chars/body_m_suit.png",
+  "body_m_bartender": "chars/body_m_bartender.png",
+  "hairb_m_curly": "chars/hairb_m_curly.png",
+  "hairf_m_curly": "chars/hairf_m_curly.png",
+  "hairb_m_fade": "chars/hairb_m_fade.png",
+  "hairf_m_fade": "chars/hairf_m_fade.png",
+  "hairb_m_shaved": "chars/hairb_m_shaved.png",
+  "hairf_m_shaved": "chars/hairf_m_shaved.png",
+  "hairb_m_short": "chars/hairb_m_short.png",
+  "hairf_m_short": "chars/hairf_m_short.png",
+  "face_m_0": "chars/face_m_0.png",
+  "face_m_1": "chars/face_m_1.png",
+  "face_m_2": "chars/face_m_2.png",
+  "hat_m_police": "chars/hat_m_police.png",
+  "hat_m_cap": "chars/hat_m_cap.png",
+  "glasses_m_1": "chars/glasses_m_1.png",
+  "glasses_m_2": "chars/glasses_m_2.png"
+ },
+ "roles": {
+  "clear": 0,
+  "ink": 1,
+  "skin": [
+   2,
+   3,
+   4,
+   5
+  ],
+  "hair": [
+   6,
+   7,
+   8,
+   9
+  ],
+  "g1": [
+   10,
+   11,
+   12,
+   13
+  ],
+  "g2": [
+   14,
+   15,
+   16,
+   17
+  ],
+  "g3": [
+   18,
+   19,
+   20,
+   21
+  ],
+  "eye_white": 22,
+  "iris": 23,
+  "lips": 24,
+  "blush": 25,
+  "shoe": [
+   26,
+   27,
+   28,
+   28
+  ],
+  "metal": [
+   29,
+   29,
+   30,
+   30
+  ],
+  "shine": 31,
+  "prop": [
+   32,
+   33,
+   34,
+   35
+  ],
+  "wood": [
+   36,
+   36,
+   37,
+   37
+  ],
+  "lens": [
+   38,
+   38,
+   39,
+   39
+  ]
+ },
+ "female_outfits": [
+  "lingerie",
+  "body",
+  "dress",
+  "blazer",
+  "maid",
+  "tube",
+  "bodycon",
+  "corset",
+  "cocktail",
+  "gown",
+  "sequin",
+  "string",
+  "balconnet",
+  "babydoll",
+  "bijoux"
+ ],
+ "male_outfits": [
+  "security",
+  "janitor",
+  "casual",
+  "suit",
+  "bartender"
+ ],
+ "female_hair": [
+  "long",
+  "bob",
+  "bun",
+  "waves",
+  "pony"
+ ],
+ "male_hair": [
+  "fade",
+  "short",
+  "shaved",
+  "short",
+  "curly"
+ ],
+ "hats": {
+  "security": "police",
+  "maid": "headband"
+ },
+ "silhouettes": [
+  "galbee",
+  "genereuse",
+  "fine"
+ ],
+ "outfits": {
+  "lingerie": {
+   "g2": "1c1620",
+   "g3": "f6c9dc",
+   "shoe": "c8336a",
+   "lips": "d23a64"
+  },
+  "body": {
+   "g2": "1d1519",
+   "g3": "3a2630",
+   "shoe": "1c1418",
+   "lips": "b02a4a"
+  },
+  "dress": {
+   "g2": "1a1418",
+   "g3": "f0d080",
+   "shoe": "b8264e"
+  },
+  "blazer": {
+   "g2": "2b2233",
+   "g3": "f2e6c8",
+   "shoe": "2a1c24"
+  },
+  "maid": {
+   "g2": "f5f1ec",
+   "g3": "231b25",
+   "shoe": "1a1418"
+  },
+  "suit": {
+   "g2": "e9e4dc",
+   "g3": "a0263e",
+   "shoe": "1c1616"
+  },
+  "casual": {
+   "g2": "3b5382",
+   "g3": "4a3426",
+   "shoe": "e5e1d8"
+  },
+  "security": {
+   "g2": "17171c",
+   "g3": "35302e",
+   "shoe": "121216"
+  },
+  "janitor": {
+   "g2": "d8c79c",
+   "g3": "e9b92c",
+   "shoe": "3a2a20"
+  },
+  "bartender": {
+   "g2": "f2efe9",
+   "g3": "b3203c",
+   "shoe": "161416"
+  },
+  "tube": {
+   "g2": "1a1a24",
+   "g3": "ece4f4",
+   "shoe": "e0609a",
+   "lips": "e0507a"
+  },
+  "bodycon": {
+   "g2": "1a1418",
+   "g3": "f0d080",
+   "shoe": "c01e44",
+   "lips": "c8284e"
+  },
+  "corset": {
+   "g2": "15121a",
+   "g3": "f0d080",
+   "shoe": "1a1418",
+   "lips": "a01838"
+  },
+  "cocktail": {
+   "g2": "1a1418",
+   "g3": "f0d080",
+   "shoe": "d8b060",
+   "lips": "b8284a"
+  },
+  "gown": {
+   "g2": "141018",
+   "g3": "f0d080",
+   "shoe": "d8b060",
+   "lips": "a0102e"
+  },
+  "sequin": {
+   "g2": "1a1418",
+   "g3": "f6e6b0",
+   "shoe": "e0c070",
+   "lips": "b0203c"
+  },
+  "string": {
+   "g2": "1a1418",
+   "g3": "f6c9dc",
+   "shoe": "e0609a",
+   "lips": "e0507a"
+  },
+  "balconnet": {
+   "g2": "15121a",
+   "g3": "f2d6e4",
+   "shoe": "1a1418",
+   "lips": "c8284e"
+  },
+  "babydoll": {
+   "g2": "1a1418",
+   "g3": "f6e6b0",
+   "shoe": "c01e44",
+   "lips": "b8284a"
+  },
+  "bijoux": {
+   "g2": "1a1418",
+   "g3": "f0d080",
+   "shoe": "d8b060",
+   "lips": "a0102e"
+  }
+ },
+ "fixed": {
+  "ink": "1b101e",
+  "eye_white": "f6f0ec",
+  "iris": "2e1e2c",
+  "lips": "c9506c",
+  "metal": [
+   "f2d67e",
+   "b07e3a"
+  ],
+  "shine": "ffffff",
+  "prop": "b9c3cf",
+  "wood": [
+   "b0875a",
+   "7a5536"
+  ],
+  "lens": [
+   "7b8aa6",
+   "15151c"
+  ]
+ }
+}

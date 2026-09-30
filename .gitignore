@@ -1,0 +1,14 @@
+.tools/
+pixel/.godot/
+tools/pixelart/__pycache__/
+build/*.exe
+build/*.pck
+build/*.zip
+build/*.log
+tests/artifacts/
+# screenshots and comparisons (some show reference artwork that must not be published)
+build/Apercus*/
+build/*.png
+build/*.gif
+# old 3D character exports (before the pixel-art remake)
+build/Personnage-*/

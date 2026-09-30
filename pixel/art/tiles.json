@@ -1,0 +1,2798 @@
+{
+ "floors": {
+  "boards": "tiles/floor_boards.png",
+  "boards_worn": "tiles/floor_boards_worn.png",
+  "boards_damaged": "tiles/floor_boards_damaged.png",
+  "tile": "tiles/floor_tile.png",
+  "tile_dirty": "tiles/floor_tile_dirty.png",
+  "terrazzo": "tiles/floor_terrazzo.png",
+  "plain": "tiles/floor_plain.png",
+  "carpet": "tiles/floor_carpet.png",
+  "carpet_worn": "tiles/floor_carpet_worn.png",
+  "pavers": "tiles/floor_pavers.png",
+  "asphalt": "tiles/floor_asphalt.png",
+  "grass": "tiles/floor_grass.png",
+  "asphalt_cracked": "tiles/floor_asphalt_cracked.png",
+  "slabs": "tiles/floor_slabs.png"
+ },
+ "walls": {
+  "brick:x:full:0": {
+   "file": "tiles/wall_brick_x_full_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "brick:x:full": {
+   "file": "tiles/wall_brick_x_full_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "brick:x:full:1": {
+   "file": "tiles/wall_brick_x_full_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "brick:x:full:2": {
+   "file": "tiles/wall_brick_x_full_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "brick:x:full:3": {
+   "file": "tiles/wall_brick_x_full_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "brick:x:full_door:0": {
+   "file": "tiles/wall_brick_x_full_door_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "brick:x:full_door": {
+   "file": "tiles/wall_brick_x_full_door_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "brick:x:full_door:1": {
+   "file": "tiles/wall_brick_x_full_door_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "brick:x:full_door:2": {
+   "file": "tiles/wall_brick_x_full_door_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "brick:x:full_door:3": {
+   "file": "tiles/wall_brick_x_full_door_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "brick:x:full_window:0": {
+   "file": "tiles/wall_brick_x_full_window_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "brick:x:full_window": {
+   "file": "tiles/wall_brick_x_full_window_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "brick:x:full_window:1": {
+   "file": "tiles/wall_brick_x_full_window_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "brick:x:full_window:2": {
+   "file": "tiles/wall_brick_x_full_window_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "brick:x:full_window:3": {
+   "file": "tiles/wall_brick_x_full_window_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "brick:x:low:0": {
+   "file": "tiles/wall_brick_x_low_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "brick:x:low": {
+   "file": "tiles/wall_brick_x_low_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "brick:x:low:1": {
+   "file": "tiles/wall_brick_x_low_1.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "brick:x:low:2": {
+   "file": "tiles/wall_brick_x_low_2.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "brick:x:low:3": {
+   "file": "tiles/wall_brick_x_low_3.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "brick:x:low_window:0": {
+   "file": "tiles/wall_brick_x_low_window_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "brick:x:low_window": {
+   "file": "tiles/wall_brick_x_low_window_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "brick:x:low_window:1": {
+   "file": "tiles/wall_brick_x_low_window_1.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "brick:x:low_window:2": {
+   "file": "tiles/wall_brick_x_low_window_2.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "brick:x:low_window:3": {
+   "file": "tiles/wall_brick_x_low_window_3.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "brick:z:full:0": {
+   "file": "tiles/wall_brick_z_full_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "brick:z:full": {
+   "file": "tiles/wall_brick_z_full_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "brick:z:full:1": {
+   "file": "tiles/wall_brick_z_full_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "brick:z:full:2": {
+   "file": "tiles/wall_brick_z_full_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "brick:z:full:3": {
+   "file": "tiles/wall_brick_z_full_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "brick:z:full_door:0": {
+   "file": "tiles/wall_brick_z_full_door_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "brick:z:full_door": {
+   "file": "tiles/wall_brick_z_full_door_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "brick:z:full_door:1": {
+   "file": "tiles/wall_brick_z_full_door_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "brick:z:full_door:2": {
+   "file": "tiles/wall_brick_z_full_door_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "brick:z:full_door:3": {
+   "file": "tiles/wall_brick_z_full_door_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "brick:z:full_window:0": {
+   "file": "tiles/wall_brick_z_full_window_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "brick:z:full_window": {
+   "file": "tiles/wall_brick_z_full_window_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "brick:z:full_window:1": {
+   "file": "tiles/wall_brick_z_full_window_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "brick:z:full_window:2": {
+   "file": "tiles/wall_brick_z_full_window_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "brick:z:full_window:3": {
+   "file": "tiles/wall_brick_z_full_window_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "brick:z:low:0": {
+   "file": "tiles/wall_brick_z_low_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "brick:z:low": {
+   "file": "tiles/wall_brick_z_low_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "brick:z:low:1": {
+   "file": "tiles/wall_brick_z_low_1.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "brick:z:low:2": {
+   "file": "tiles/wall_brick_z_low_2.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "brick:z:low:3": {
+   "file": "tiles/wall_brick_z_low_3.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "brick:z:low_window:0": {
+   "file": "tiles/wall_brick_z_low_window_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "brick:z:low_window": {
+   "file": "tiles/wall_brick_z_low_window_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "brick:z:low_window:1": {
+   "file": "tiles/wall_brick_z_low_window_1.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "brick:z:low_window:2": {
+   "file": "tiles/wall_brick_z_low_window_2.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "brick:z:low_window:3": {
+   "file": "tiles/wall_brick_z_low_window_3.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "decay:x:full:0": {
+   "file": "tiles/wall_decay_x_full_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "decay:x:full": {
+   "file": "tiles/wall_decay_x_full_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "decay:x:full:1": {
+   "file": "tiles/wall_decay_x_full_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "decay:x:full:2": {
+   "file": "tiles/wall_decay_x_full_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "decay:x:full:3": {
+   "file": "tiles/wall_decay_x_full_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "decay:x:full_door:0": {
+   "file": "tiles/wall_decay_x_full_door_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "decay:x:full_door": {
+   "file": "tiles/wall_decay_x_full_door_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "decay:x:full_door:1": {
+   "file": "tiles/wall_decay_x_full_door_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "decay:x:full_door:2": {
+   "file": "tiles/wall_decay_x_full_door_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "decay:x:full_door:3": {
+   "file": "tiles/wall_decay_x_full_door_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "decay:x:full_window:0": {
+   "file": "tiles/wall_decay_x_full_window_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "decay:x:full_window": {
+   "file": "tiles/wall_decay_x_full_window_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "decay:x:full_window:1": {
+   "file": "tiles/wall_decay_x_full_window_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "decay:x:full_window:2": {
+   "file": "tiles/wall_decay_x_full_window_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "decay:x:full_window:3": {
+   "file": "tiles/wall_decay_x_full_window_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "decay:x:low:0": {
+   "file": "tiles/wall_decay_x_low_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "decay:x:low": {
+   "file": "tiles/wall_decay_x_low_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "decay:x:low:1": {
+   "file": "tiles/wall_decay_x_low_1.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "decay:x:low:2": {
+   "file": "tiles/wall_decay_x_low_2.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "decay:x:low:3": {
+   "file": "tiles/wall_decay_x_low_3.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "decay:x:low_window:0": {
+   "file": "tiles/wall_decay_x_low_window_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "decay:x:low_window": {
+   "file": "tiles/wall_decay_x_low_window_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "decay:x:low_window:1": {
+   "file": "tiles/wall_decay_x_low_window_1.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "decay:x:low_window:2": {
+   "file": "tiles/wall_decay_x_low_window_2.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "decay:x:low_window:3": {
+   "file": "tiles/wall_decay_x_low_window_3.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "decay:z:full:0": {
+   "file": "tiles/wall_decay_z_full_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "decay:z:full": {
+   "file": "tiles/wall_decay_z_full_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "decay:z:full:1": {
+   "file": "tiles/wall_decay_z_full_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "decay:z:full:2": {
+   "file": "tiles/wall_decay_z_full_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "decay:z:full:3": {
+   "file": "tiles/wall_decay_z_full_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "decay:z:full_door:0": {
+   "file": "tiles/wall_decay_z_full_door_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "decay:z:full_door": {
+   "file": "tiles/wall_decay_z_full_door_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "decay:z:full_door:1": {
+   "file": "tiles/wall_decay_z_full_door_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "decay:z:full_door:2": {
+   "file": "tiles/wall_decay_z_full_door_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "decay:z:full_door:3": {
+   "file": "tiles/wall_decay_z_full_door_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "decay:z:full_window:0": {
+   "file": "tiles/wall_decay_z_full_window_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "decay:z:full_window": {
+   "file": "tiles/wall_decay_z_full_window_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "decay:z:full_window:1": {
+   "file": "tiles/wall_decay_z_full_window_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "decay:z:full_window:2": {
+   "file": "tiles/wall_decay_z_full_window_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "decay:z:full_window:3": {
+   "file": "tiles/wall_decay_z_full_window_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "decay:z:low:0": {
+   "file": "tiles/wall_decay_z_low_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "decay:z:low": {
+   "file": "tiles/wall_decay_z_low_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "decay:z:low:1": {
+   "file": "tiles/wall_decay_z_low_1.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "decay:z:low:2": {
+   "file": "tiles/wall_decay_z_low_2.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "decay:z:low:3": {
+   "file": "tiles/wall_decay_z_low_3.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "decay:z:low_window:0": {
+   "file": "tiles/wall_decay_z_low_window_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "decay:z:low_window": {
+   "file": "tiles/wall_decay_z_low_window_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "decay:z:low_window:1": {
+   "file": "tiles/wall_decay_z_low_window_1.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "decay:z:low_window:2": {
+   "file": "tiles/wall_decay_z_low_window_2.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "decay:z:low_window:3": {
+   "file": "tiles/wall_decay_z_low_window_3.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "paper:x:full:0": {
+   "file": "tiles/wall_paper_x_full_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "paper:x:full": {
+   "file": "tiles/wall_paper_x_full_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "paper:x:full:1": {
+   "file": "tiles/wall_paper_x_full_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "paper:x:full:2": {
+   "file": "tiles/wall_paper_x_full_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "paper:x:full:3": {
+   "file": "tiles/wall_paper_x_full_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "paper:x:full_door:0": {
+   "file": "tiles/wall_paper_x_full_door_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "paper:x:full_door": {
+   "file": "tiles/wall_paper_x_full_door_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "paper:x:full_door:1": {
+   "file": "tiles/wall_paper_x_full_door_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "paper:x:full_door:2": {
+   "file": "tiles/wall_paper_x_full_door_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "paper:x:full_door:3": {
+   "file": "tiles/wall_paper_x_full_door_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "paper:x:full_window:0": {
+   "file": "tiles/wall_paper_x_full_window_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "paper:x:full_window": {
+   "file": "tiles/wall_paper_x_full_window_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "paper:x:full_window:1": {
+   "file": "tiles/wall_paper_x_full_window_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "paper:x:full_window:2": {
+   "file": "tiles/wall_paper_x_full_window_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "paper:x:full_window:3": {
+   "file": "tiles/wall_paper_x_full_window_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "paper:x:low:0": {
+   "file": "tiles/wall_paper_x_low_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "paper:x:low": {
+   "file": "tiles/wall_paper_x_low_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "paper:x:low:1": {
+   "file": "tiles/wall_paper_x_low_1.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "paper:x:low:2": {
+   "file": "tiles/wall_paper_x_low_2.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "paper:x:low:3": {
+   "file": "tiles/wall_paper_x_low_3.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "paper:x:low_window:0": {
+   "file": "tiles/wall_paper_x_low_window_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "paper:x:low_window": {
+   "file": "tiles/wall_paper_x_low_window_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "paper:x:low_window:1": {
+   "file": "tiles/wall_paper_x_low_window_1.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "paper:x:low_window:2": {
+   "file": "tiles/wall_paper_x_low_window_2.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "paper:x:low_window:3": {
+   "file": "tiles/wall_paper_x_low_window_3.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "paper:z:full:0": {
+   "file": "tiles/wall_paper_z_full_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "paper:z:full": {
+   "file": "tiles/wall_paper_z_full_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "paper:z:full:1": {
+   "file": "tiles/wall_paper_z_full_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "paper:z:full:2": {
+   "file": "tiles/wall_paper_z_full_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "paper:z:full:3": {
+   "file": "tiles/wall_paper_z_full_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "paper:z:full_door:0": {
+   "file": "tiles/wall_paper_z_full_door_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "paper:z:full_door": {
+   "file": "tiles/wall_paper_z_full_door_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "paper:z:full_door:1": {
+   "file": "tiles/wall_paper_z_full_door_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "paper:z:full_door:2": {
+   "file": "tiles/wall_paper_z_full_door_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "paper:z:full_door:3": {
+   "file": "tiles/wall_paper_z_full_door_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "paper:z:full_window:0": {
+   "file": "tiles/wall_paper_z_full_window_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "paper:z:full_window": {
+   "file": "tiles/wall_paper_z_full_window_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "paper:z:full_window:1": {
+   "file": "tiles/wall_paper_z_full_window_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "paper:z:full_window:2": {
+   "file": "tiles/wall_paper_z_full_window_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "paper:z:full_window:3": {
+   "file": "tiles/wall_paper_z_full_window_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "paper:z:low:0": {
+   "file": "tiles/wall_paper_z_low_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "paper:z:low": {
+   "file": "tiles/wall_paper_z_low_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "paper:z:low:1": {
+   "file": "tiles/wall_paper_z_low_1.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "paper:z:low:2": {
+   "file": "tiles/wall_paper_z_low_2.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "paper:z:low:3": {
+   "file": "tiles/wall_paper_z_low_3.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "paper:z:low_window:0": {
+   "file": "tiles/wall_paper_z_low_window_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "paper:z:low_window": {
+   "file": "tiles/wall_paper_z_low_window_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "paper:z:low_window:1": {
+   "file": "tiles/wall_paper_z_low_window_1.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "paper:z:low_window:2": {
+   "file": "tiles/wall_paper_z_low_window_2.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "paper:z:low_window:3": {
+   "file": "tiles/wall_paper_z_low_window_3.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "peeling:x:full:0": {
+   "file": "tiles/wall_peeling_x_full_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "peeling:x:full": {
+   "file": "tiles/wall_peeling_x_full_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "peeling:x:full:1": {
+   "file": "tiles/wall_peeling_x_full_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "peeling:x:full:2": {
+   "file": "tiles/wall_peeling_x_full_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "peeling:x:full:3": {
+   "file": "tiles/wall_peeling_x_full_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "peeling:x:full_door:0": {
+   "file": "tiles/wall_peeling_x_full_door_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "peeling:x:full_door": {
+   "file": "tiles/wall_peeling_x_full_door_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "peeling:x:full_door:1": {
+   "file": "tiles/wall_peeling_x_full_door_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "peeling:x:full_door:2": {
+   "file": "tiles/wall_peeling_x_full_door_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "peeling:x:full_door:3": {
+   "file": "tiles/wall_peeling_x_full_door_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "peeling:x:full_window:0": {
+   "file": "tiles/wall_peeling_x_full_window_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "peeling:x:full_window": {
+   "file": "tiles/wall_peeling_x_full_window_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "peeling:x:full_window:1": {
+   "file": "tiles/wall_peeling_x_full_window_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "peeling:x:full_window:2": {
+   "file": "tiles/wall_peeling_x_full_window_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "peeling:x:full_window:3": {
+   "file": "tiles/wall_peeling_x_full_window_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "peeling:x:low:0": {
+   "file": "tiles/wall_peeling_x_low_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "peeling:x:low": {
+   "file": "tiles/wall_peeling_x_low_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "peeling:x:low:1": {
+   "file": "tiles/wall_peeling_x_low_1.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "peeling:x:low:2": {
+   "file": "tiles/wall_peeling_x_low_2.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "peeling:x:low:3": {
+   "file": "tiles/wall_peeling_x_low_3.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "peeling:x:low_window:0": {
+   "file": "tiles/wall_peeling_x_low_window_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "peeling:x:low_window": {
+   "file": "tiles/wall_peeling_x_low_window_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "peeling:x:low_window:1": {
+   "file": "tiles/wall_peeling_x_low_window_1.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "peeling:x:low_window:2": {
+   "file": "tiles/wall_peeling_x_low_window_2.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "peeling:x:low_window:3": {
+   "file": "tiles/wall_peeling_x_low_window_3.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "peeling:z:full:0": {
+   "file": "tiles/wall_peeling_z_full_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "peeling:z:full": {
+   "file": "tiles/wall_peeling_z_full_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "peeling:z:full:1": {
+   "file": "tiles/wall_peeling_z_full_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "peeling:z:full:2": {
+   "file": "tiles/wall_peeling_z_full_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "peeling:z:full:3": {
+   "file": "tiles/wall_peeling_z_full_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "peeling:z:full_door:0": {
+   "file": "tiles/wall_peeling_z_full_door_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "peeling:z:full_door": {
+   "file": "tiles/wall_peeling_z_full_door_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "peeling:z:full_door:1": {
+   "file": "tiles/wall_peeling_z_full_door_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "peeling:z:full_door:2": {
+   "file": "tiles/wall_peeling_z_full_door_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "peeling:z:full_door:3": {
+   "file": "tiles/wall_peeling_z_full_door_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "peeling:z:full_window:0": {
+   "file": "tiles/wall_peeling_z_full_window_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "peeling:z:full_window": {
+   "file": "tiles/wall_peeling_z_full_window_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "peeling:z:full_window:1": {
+   "file": "tiles/wall_peeling_z_full_window_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "peeling:z:full_window:2": {
+   "file": "tiles/wall_peeling_z_full_window_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "peeling:z:full_window:3": {
+   "file": "tiles/wall_peeling_z_full_window_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "peeling:z:low:0": {
+   "file": "tiles/wall_peeling_z_low_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "peeling:z:low": {
+   "file": "tiles/wall_peeling_z_low_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "peeling:z:low:1": {
+   "file": "tiles/wall_peeling_z_low_1.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "peeling:z:low:2": {
+   "file": "tiles/wall_peeling_z_low_2.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "peeling:z:low:3": {
+   "file": "tiles/wall_peeling_z_low_3.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "peeling:z:low_window:0": {
+   "file": "tiles/wall_peeling_z_low_window_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "peeling:z:low_window": {
+   "file": "tiles/wall_peeling_z_low_window_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "peeling:z:low_window:1": {
+   "file": "tiles/wall_peeling_z_low_window_1.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "peeling:z:low_window:2": {
+   "file": "tiles/wall_peeling_z_low_window_2.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "peeling:z:low_window:3": {
+   "file": "tiles/wall_peeling_z_low_window_3.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "plain:x:full:0": {
+   "file": "tiles/wall_plain_x_full_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "plain:x:full": {
+   "file": "tiles/wall_plain_x_full_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "plain:x:full:1": {
+   "file": "tiles/wall_plain_x_full_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "plain:x:full:2": {
+   "file": "tiles/wall_plain_x_full_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "plain:x:full:3": {
+   "file": "tiles/wall_plain_x_full_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "plain:x:full_door:0": {
+   "file": "tiles/wall_plain_x_full_door_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "plain:x:full_door": {
+   "file": "tiles/wall_plain_x_full_door_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "plain:x:full_door:1": {
+   "file": "tiles/wall_plain_x_full_door_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "plain:x:full_door:2": {
+   "file": "tiles/wall_plain_x_full_door_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "plain:x:full_door:3": {
+   "file": "tiles/wall_plain_x_full_door_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "plain:x:full_window:0": {
+   "file": "tiles/wall_plain_x_full_window_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "plain:x:full_window": {
+   "file": "tiles/wall_plain_x_full_window_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "plain:x:full_window:1": {
+   "file": "tiles/wall_plain_x_full_window_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "plain:x:full_window:2": {
+   "file": "tiles/wall_plain_x_full_window_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "plain:x:full_window:3": {
+   "file": "tiles/wall_plain_x_full_window_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "plain:x:low:0": {
+   "file": "tiles/wall_plain_x_low_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "plain:x:low": {
+   "file": "tiles/wall_plain_x_low_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "plain:x:low:1": {
+   "file": "tiles/wall_plain_x_low_1.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "plain:x:low:2": {
+   "file": "tiles/wall_plain_x_low_2.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "plain:x:low:3": {
+   "file": "tiles/wall_plain_x_low_3.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "plain:x:low_window:0": {
+   "file": "tiles/wall_plain_x_low_window_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "plain:x:low_window": {
+   "file": "tiles/wall_plain_x_low_window_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "plain:x:low_window:1": {
+   "file": "tiles/wall_plain_x_low_window_1.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "plain:x:low_window:2": {
+   "file": "tiles/wall_plain_x_low_window_2.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "plain:x:low_window:3": {
+   "file": "tiles/wall_plain_x_low_window_3.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "plain:z:full:0": {
+   "file": "tiles/wall_plain_z_full_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "plain:z:full": {
+   "file": "tiles/wall_plain_z_full_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "plain:z:full:1": {
+   "file": "tiles/wall_plain_z_full_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "plain:z:full:2": {
+   "file": "tiles/wall_plain_z_full_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "plain:z:full:3": {
+   "file": "tiles/wall_plain_z_full_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "plain:z:full_door:0": {
+   "file": "tiles/wall_plain_z_full_door_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "plain:z:full_door": {
+   "file": "tiles/wall_plain_z_full_door_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "plain:z:full_door:1": {
+   "file": "tiles/wall_plain_z_full_door_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "plain:z:full_door:2": {
+   "file": "tiles/wall_plain_z_full_door_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "plain:z:full_door:3": {
+   "file": "tiles/wall_plain_z_full_door_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "plain:z:full_window:0": {
+   "file": "tiles/wall_plain_z_full_window_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "plain:z:full_window": {
+   "file": "tiles/wall_plain_z_full_window_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "plain:z:full_window:1": {
+   "file": "tiles/wall_plain_z_full_window_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "plain:z:full_window:2": {
+   "file": "tiles/wall_plain_z_full_window_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "plain:z:full_window:3": {
+   "file": "tiles/wall_plain_z_full_window_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "plain:z:low:0": {
+   "file": "tiles/wall_plain_z_low_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "plain:z:low": {
+   "file": "tiles/wall_plain_z_low_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "plain:z:low:1": {
+   "file": "tiles/wall_plain_z_low_1.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "plain:z:low:2": {
+   "file": "tiles/wall_plain_z_low_2.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "plain:z:low:3": {
+   "file": "tiles/wall_plain_z_low_3.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "plain:z:low_window:0": {
+   "file": "tiles/wall_plain_z_low_window_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "plain:z:low_window": {
+   "file": "tiles/wall_plain_z_low_window_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "plain:z:low_window:1": {
+   "file": "tiles/wall_plain_z_low_window_1.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "plain:z:low_window:2": {
+   "file": "tiles/wall_plain_z_low_window_2.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "plain:z:low_window:3": {
+   "file": "tiles/wall_plain_z_low_window_3.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile:x:full:0": {
+   "file": "tiles/wall_tile_x_full_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile:x:full": {
+   "file": "tiles/wall_tile_x_full_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile:x:full:1": {
+   "file": "tiles/wall_tile_x_full_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile:x:full:2": {
+   "file": "tiles/wall_tile_x_full_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile:x:full:3": {
+   "file": "tiles/wall_tile_x_full_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile:x:full_door:0": {
+   "file": "tiles/wall_tile_x_full_door_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile:x:full_door": {
+   "file": "tiles/wall_tile_x_full_door_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile:x:full_door:1": {
+   "file": "tiles/wall_tile_x_full_door_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile:x:full_door:2": {
+   "file": "tiles/wall_tile_x_full_door_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile:x:full_door:3": {
+   "file": "tiles/wall_tile_x_full_door_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile:x:full_window:0": {
+   "file": "tiles/wall_tile_x_full_window_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile:x:full_window": {
+   "file": "tiles/wall_tile_x_full_window_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile:x:full_window:1": {
+   "file": "tiles/wall_tile_x_full_window_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile:x:full_window:2": {
+   "file": "tiles/wall_tile_x_full_window_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile:x:full_window:3": {
+   "file": "tiles/wall_tile_x_full_window_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile:x:low:0": {
+   "file": "tiles/wall_tile_x_low_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile:x:low": {
+   "file": "tiles/wall_tile_x_low_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile:x:low:1": {
+   "file": "tiles/wall_tile_x_low_1.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile:x:low:2": {
+   "file": "tiles/wall_tile_x_low_2.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile:x:low:3": {
+   "file": "tiles/wall_tile_x_low_3.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile:x:low_window:0": {
+   "file": "tiles/wall_tile_x_low_window_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile:x:low_window": {
+   "file": "tiles/wall_tile_x_low_window_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile:x:low_window:1": {
+   "file": "tiles/wall_tile_x_low_window_1.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile:x:low_window:2": {
+   "file": "tiles/wall_tile_x_low_window_2.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile:x:low_window:3": {
+   "file": "tiles/wall_tile_x_low_window_3.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile:z:full:0": {
+   "file": "tiles/wall_tile_z_full_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile:z:full": {
+   "file": "tiles/wall_tile_z_full_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile:z:full:1": {
+   "file": "tiles/wall_tile_z_full_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile:z:full:2": {
+   "file": "tiles/wall_tile_z_full_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile:z:full:3": {
+   "file": "tiles/wall_tile_z_full_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile:z:full_door:0": {
+   "file": "tiles/wall_tile_z_full_door_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile:z:full_door": {
+   "file": "tiles/wall_tile_z_full_door_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile:z:full_door:1": {
+   "file": "tiles/wall_tile_z_full_door_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile:z:full_door:2": {
+   "file": "tiles/wall_tile_z_full_door_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile:z:full_door:3": {
+   "file": "tiles/wall_tile_z_full_door_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile:z:full_window:0": {
+   "file": "tiles/wall_tile_z_full_window_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile:z:full_window": {
+   "file": "tiles/wall_tile_z_full_window_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile:z:full_window:1": {
+   "file": "tiles/wall_tile_z_full_window_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile:z:full_window:2": {
+   "file": "tiles/wall_tile_z_full_window_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile:z:full_window:3": {
+   "file": "tiles/wall_tile_z_full_window_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile:z:low:0": {
+   "file": "tiles/wall_tile_z_low_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile:z:low": {
+   "file": "tiles/wall_tile_z_low_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile:z:low:1": {
+   "file": "tiles/wall_tile_z_low_1.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile:z:low:2": {
+   "file": "tiles/wall_tile_z_low_2.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile:z:low:3": {
+   "file": "tiles/wall_tile_z_low_3.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile:z:low_window:0": {
+   "file": "tiles/wall_tile_z_low_window_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile:z:low_window": {
+   "file": "tiles/wall_tile_z_low_window_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile:z:low_window:1": {
+   "file": "tiles/wall_tile_z_low_window_1.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile:z:low_window:2": {
+   "file": "tiles/wall_tile_z_low_window_2.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile:z:low_window:3": {
+   "file": "tiles/wall_tile_z_low_window_3.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile_dirty:x:full:0": {
+   "file": "tiles/wall_tile_dirty_x_full_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile_dirty:x:full": {
+   "file": "tiles/wall_tile_dirty_x_full_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile_dirty:x:full:1": {
+   "file": "tiles/wall_tile_dirty_x_full_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile_dirty:x:full:2": {
+   "file": "tiles/wall_tile_dirty_x_full_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile_dirty:x:full:3": {
+   "file": "tiles/wall_tile_dirty_x_full_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile_dirty:x:full_door:0": {
+   "file": "tiles/wall_tile_dirty_x_full_door_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile_dirty:x:full_door": {
+   "file": "tiles/wall_tile_dirty_x_full_door_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile_dirty:x:full_door:1": {
+   "file": "tiles/wall_tile_dirty_x_full_door_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile_dirty:x:full_door:2": {
+   "file": "tiles/wall_tile_dirty_x_full_door_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile_dirty:x:full_door:3": {
+   "file": "tiles/wall_tile_dirty_x_full_door_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile_dirty:x:full_window:0": {
+   "file": "tiles/wall_tile_dirty_x_full_window_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile_dirty:x:full_window": {
+   "file": "tiles/wall_tile_dirty_x_full_window_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile_dirty:x:full_window:1": {
+   "file": "tiles/wall_tile_dirty_x_full_window_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile_dirty:x:full_window:2": {
+   "file": "tiles/wall_tile_dirty_x_full_window_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile_dirty:x:full_window:3": {
+   "file": "tiles/wall_tile_dirty_x_full_window_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "tile_dirty:x:low:0": {
+   "file": "tiles/wall_tile_dirty_x_low_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile_dirty:x:low": {
+   "file": "tiles/wall_tile_dirty_x_low_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile_dirty:x:low:1": {
+   "file": "tiles/wall_tile_dirty_x_low_1.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile_dirty:x:low:2": {
+   "file": "tiles/wall_tile_dirty_x_low_2.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile_dirty:x:low:3": {
+   "file": "tiles/wall_tile_dirty_x_low_3.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile_dirty:x:low_window:0": {
+   "file": "tiles/wall_tile_dirty_x_low_window_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile_dirty:x:low_window": {
+   "file": "tiles/wall_tile_dirty_x_low_window_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile_dirty:x:low_window:1": {
+   "file": "tiles/wall_tile_dirty_x_low_window_1.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile_dirty:x:low_window:2": {
+   "file": "tiles/wall_tile_dirty_x_low_window_2.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile_dirty:x:low_window:3": {
+   "file": "tiles/wall_tile_dirty_x_low_window_3.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "tile_dirty:z:full:0": {
+   "file": "tiles/wall_tile_dirty_z_full_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile_dirty:z:full": {
+   "file": "tiles/wall_tile_dirty_z_full_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile_dirty:z:full:1": {
+   "file": "tiles/wall_tile_dirty_z_full_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile_dirty:z:full:2": {
+   "file": "tiles/wall_tile_dirty_z_full_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile_dirty:z:full:3": {
+   "file": "tiles/wall_tile_dirty_z_full_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile_dirty:z:full_door:0": {
+   "file": "tiles/wall_tile_dirty_z_full_door_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile_dirty:z:full_door": {
+   "file": "tiles/wall_tile_dirty_z_full_door_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile_dirty:z:full_door:1": {
+   "file": "tiles/wall_tile_dirty_z_full_door_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile_dirty:z:full_door:2": {
+   "file": "tiles/wall_tile_dirty_z_full_door_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile_dirty:z:full_door:3": {
+   "file": "tiles/wall_tile_dirty_z_full_door_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile_dirty:z:full_window:0": {
+   "file": "tiles/wall_tile_dirty_z_full_window_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile_dirty:z:full_window": {
+   "file": "tiles/wall_tile_dirty_z_full_window_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile_dirty:z:full_window:1": {
+   "file": "tiles/wall_tile_dirty_z_full_window_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile_dirty:z:full_window:2": {
+   "file": "tiles/wall_tile_dirty_z_full_window_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile_dirty:z:full_window:3": {
+   "file": "tiles/wall_tile_dirty_z_full_window_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "tile_dirty:z:low:0": {
+   "file": "tiles/wall_tile_dirty_z_low_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile_dirty:z:low": {
+   "file": "tiles/wall_tile_dirty_z_low_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile_dirty:z:low:1": {
+   "file": "tiles/wall_tile_dirty_z_low_1.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile_dirty:z:low:2": {
+   "file": "tiles/wall_tile_dirty_z_low_2.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile_dirty:z:low:3": {
+   "file": "tiles/wall_tile_dirty_z_low_3.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile_dirty:z:low_window:0": {
+   "file": "tiles/wall_tile_dirty_z_low_window_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile_dirty:z:low_window": {
+   "file": "tiles/wall_tile_dirty_z_low_window_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile_dirty:z:low_window:1": {
+   "file": "tiles/wall_tile_dirty_z_low_window_1.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile_dirty:z:low_window:2": {
+   "file": "tiles/wall_tile_dirty_z_low_window_2.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "tile_dirty:z:low_window:3": {
+   "file": "tiles/wall_tile_dirty_z_low_window_3.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "wallpaper_torn:x:full:0": {
+   "file": "tiles/wall_wallpaper_torn_x_full_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "wallpaper_torn:x:full": {
+   "file": "tiles/wall_wallpaper_torn_x_full_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "wallpaper_torn:x:full:1": {
+   "file": "tiles/wall_wallpaper_torn_x_full_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "wallpaper_torn:x:full:2": {
+   "file": "tiles/wall_wallpaper_torn_x_full_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "wallpaper_torn:x:full:3": {
+   "file": "tiles/wall_wallpaper_torn_x_full_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "wallpaper_torn:x:full_door:0": {
+   "file": "tiles/wall_wallpaper_torn_x_full_door_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "wallpaper_torn:x:full_door": {
+   "file": "tiles/wall_wallpaper_torn_x_full_door_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "wallpaper_torn:x:full_door:1": {
+   "file": "tiles/wall_wallpaper_torn_x_full_door_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "wallpaper_torn:x:full_door:2": {
+   "file": "tiles/wall_wallpaper_torn_x_full_door_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "wallpaper_torn:x:full_door:3": {
+   "file": "tiles/wall_wallpaper_torn_x_full_door_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "wallpaper_torn:x:full_window:0": {
+   "file": "tiles/wall_wallpaper_torn_x_full_window_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "wallpaper_torn:x:full_window": {
+   "file": "tiles/wall_wallpaper_torn_x_full_window_0.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "wallpaper_torn:x:full_window:1": {
+   "file": "tiles/wall_wallpaper_torn_x_full_window_1.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "wallpaper_torn:x:full_window:2": {
+   "file": "tiles/wall_wallpaper_torn_x_full_window_2.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "wallpaper_torn:x:full_window:3": {
+   "file": "tiles/wall_wallpaper_torn_x_full_window_3.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "wallpaper_torn:x:low:0": {
+   "file": "tiles/wall_wallpaper_torn_x_low_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "wallpaper_torn:x:low": {
+   "file": "tiles/wall_wallpaper_torn_x_low_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "wallpaper_torn:x:low:1": {
+   "file": "tiles/wall_wallpaper_torn_x_low_1.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "wallpaper_torn:x:low:2": {
+   "file": "tiles/wall_wallpaper_torn_x_low_2.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "wallpaper_torn:x:low:3": {
+   "file": "tiles/wall_wallpaper_torn_x_low_3.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "wallpaper_torn:x:low_window:0": {
+   "file": "tiles/wall_wallpaper_torn_x_low_window_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "wallpaper_torn:x:low_window": {
+   "file": "tiles/wall_wallpaper_torn_x_low_window_0.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "wallpaper_torn:x:low_window:1": {
+   "file": "tiles/wall_wallpaper_torn_x_low_window_1.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "wallpaper_torn:x:low_window:2": {
+   "file": "tiles/wall_wallpaper_torn_x_low_window_2.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "wallpaper_torn:x:low_window:3": {
+   "file": "tiles/wall_wallpaper_torn_x_low_window_3.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "wallpaper_torn:z:full:0": {
+   "file": "tiles/wall_wallpaper_torn_z_full_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "wallpaper_torn:z:full": {
+   "file": "tiles/wall_wallpaper_torn_z_full_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "wallpaper_torn:z:full:1": {
+   "file": "tiles/wall_wallpaper_torn_z_full_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "wallpaper_torn:z:full:2": {
+   "file": "tiles/wall_wallpaper_torn_z_full_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "wallpaper_torn:z:full:3": {
+   "file": "tiles/wall_wallpaper_torn_z_full_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "wallpaper_torn:z:full_door:0": {
+   "file": "tiles/wall_wallpaper_torn_z_full_door_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "wallpaper_torn:z:full_door": {
+   "file": "tiles/wall_wallpaper_torn_z_full_door_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "wallpaper_torn:z:full_door:1": {
+   "file": "tiles/wall_wallpaper_torn_z_full_door_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "wallpaper_torn:z:full_door:2": {
+   "file": "tiles/wall_wallpaper_torn_z_full_door_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "wallpaper_torn:z:full_door:3": {
+   "file": "tiles/wall_wallpaper_torn_z_full_door_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "wallpaper_torn:z:full_window:0": {
+   "file": "tiles/wall_wallpaper_torn_z_full_window_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "wallpaper_torn:z:full_window": {
+   "file": "tiles/wall_wallpaper_torn_z_full_window_0.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "wallpaper_torn:z:full_window:1": {
+   "file": "tiles/wall_wallpaper_torn_z_full_window_1.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "wallpaper_torn:z:full_window:2": {
+   "file": "tiles/wall_wallpaper_torn_z_full_window_2.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "wallpaper_torn:z:full_window:3": {
+   "file": "tiles/wall_wallpaper_torn_z_full_window_3.png",
+   "ox": 38,
+   "oy": 69
+  },
+  "wallpaper_torn:z:low:0": {
+   "file": "tiles/wall_wallpaper_torn_z_low_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "wallpaper_torn:z:low": {
+   "file": "tiles/wall_wallpaper_torn_z_low_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "wallpaper_torn:z:low:1": {
+   "file": "tiles/wall_wallpaper_torn_z_low_1.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "wallpaper_torn:z:low:2": {
+   "file": "tiles/wall_wallpaper_torn_z_low_2.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "wallpaper_torn:z:low:3": {
+   "file": "tiles/wall_wallpaper_torn_z_low_3.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "wallpaper_torn:z:low_window:0": {
+   "file": "tiles/wall_wallpaper_torn_z_low_window_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "wallpaper_torn:z:low_window": {
+   "file": "tiles/wall_wallpaper_torn_z_low_window_0.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "wallpaper_torn:z:low_window:1": {
+   "file": "tiles/wall_wallpaper_torn_z_low_window_1.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "wallpaper_torn:z:low_window:2": {
+   "file": "tiles/wall_wallpaper_torn_z_low_window_2.png",
+   "ox": 38,
+   "oy": 25
+  },
+  "wallpaper_torn:z:low_window:3": {
+   "file": "tiles/wall_wallpaper_torn_z_low_window_3.png",
+   "ox": 38,
+   "oy": 25
+  }
+ },
+ "posts": {
+  "full": {
+   "file": "tiles/post_full.png",
+   "ox": 8,
+   "oy": 62
+  },
+  "low": {
+   "file": "tiles/post_low.png",
+   "ox": 8,
+   "oy": 21
+  }
+ },
+ "openings": {
+  "door:x": {
+   "file": "tiles/door_x.png",
+   "ox": 5,
+   "oy": 56
+  },
+  "door_open:x": {
+   "file": "tiles/door_open_x.png",
+   "ox": 5,
+   "oy": 56
+  },
+  "window:x": {
+   "file": "tiles/window_x.png",
+   "ox": 5,
+   "oy": 52
+  },
+  "window_low:x": {
+   "file": "tiles/window_low_x.png",
+   "ox": 4,
+   "oy": 30
+  },
+  "door:z": {
+   "file": "tiles/door_z.png",
+   "ox": 21,
+   "oy": 56
+  },
+  "door_open:z": {
+   "file": "tiles/door_open_z.png",
+   "ox": 21,
+   "oy": 56
+  },
+  "window:z": {
+   "file": "tiles/window_z.png",
+   "ox": 20,
+   "oy": 52
+  },
+  "window_low:z": {
+   "file": "tiles/window_low_z.png",
+   "ox": 20,
+   "oy": 30
+  }
+ },
+ "props": {
+  "street_lamp": {
+   "file": "props/street_lamp.png",
+   "ox": 9,
+   "oy": 92,
+   "lights": [
+    {
+     "x": 0,
+     "y": -81.6,
+     "color": "ffd08a",
+     "radius": 2.6,
+     "power": 1.0
+    }
+   ]
+  },
+  "tree_0": {
+   "file": "props/tree_0.png",
+   "ox": 72,
+   "oy": 134,
+   "lights": [],
+   "pit": {
+    "file": "props/tree_pit_0.png",
+    "ox": 28,
+    "oy": 15
+   }
+  },
+  "tree_1": {
+   "file": "props/tree_1.png",
+   "ox": 72,
+   "oy": 134,
+   "lights": [],
+   "pit": {
+    "file": "props/tree_pit_1.png",
+    "ox": 28,
+    "oy": 15
+   }
+  },
+  "tree_2": {
+   "file": "props/tree_2.png",
+   "ox": 72,
+   "oy": 134,
+   "lights": [],
+   "pit": {
+    "file": "props/tree_pit_2.png",
+    "ox": 28,
+    "oy": 15
+   }
+  },
+  "tree": {
+   "file": "props/tree_0.png",
+   "ox": 72,
+   "oy": 134,
+   "lights": [],
+   "pit": {
+    "file": "props/tree_pit_0.png",
+    "ox": 28,
+    "oy": 15
+   }
+  },
+  "bush": {
+   "file": "props/bush.png",
+   "ox": 26,
+   "oy": 92,
+   "lights": []
+  },
+  "dumpster": {
+   "file": "props/dumpster.png",
+   "ox": 21,
+   "oy": 38,
+   "lights": []
+  },
+  "sign_on": {
+   "file": "props/sign_on.png",
+   "ox": 20,
+   "oy": 63,
+   "lights": [
+    {
+     "x": 0,
+     "y": -38.400000000000006,
+     "color": "ff4fa0",
+     "radius": 2.6,
+     "power": 1.1
+    }
+   ]
+  },
+  "sign_off": {
+   "file": "props/sign_off.png",
+   "ox": 20,
+   "oy": 63,
+   "lights": []
+  },
+  "bollard": {
+   "file": "props/bollard.png",
+   "ox": 7,
+   "oy": 21,
+   "lights": []
+  }
+ },
+ "glows": {
+  "glow_12": "fx/glow_12.png",
+  "glow_12_floor": "fx/glow_12_floor.png",
+  "glow_20": "fx/glow_20.png",
+  "glow_20_floor": "fx/glow_20_floor.png",
+  "glow_28": "fx/glow_28.png",
+  "glow_28_floor": "fx/glow_28_floor.png",
+  "glow_40": "fx/glow_40.png",
+  "glow_40_floor": "fx/glow_40_floor.png",
+  "glow_56": "fx/glow_56.png",
+  "glow_56_floor": "fx/glow_56_floor.png",
+  "glow_72": "fx/glow_72.png",
+  "glow_72_floor": "fx/glow_72_floor.png"
+ },
+ "tone_scale": 40,
+ "index_scale": 4,
+ "wall_h": 56,
+ "low_h": 12,
+ "floor_period": 4,
+ "wall_variants": 4,
+ "street": {
+  "kerb_x_0": {
+   "file": "street/kerb_x_0.png",
+   "ox": 11,
+   "oy": 17
+  },
+  "kerb_x_1": {
+   "file": "street/kerb_x_1.png",
+   "ox": 11,
+   "oy": 17
+  },
+  "kerb_x_2": {
+   "file": "street/kerb_x_2.png",
+   "ox": 11,
+   "oy": 17
+  },
+  "kerb_x_3": {
+   "file": "street/kerb_x_3.png",
+   "ox": 11,
+   "oy": 17
+  },
+  "kerb_low_x": {
+   "file": "street/kerb_low_x.png",
+   "ox": 5,
+   "oy": 7
+  },
+  "stop_x": {
+   "file": "street/stop_x.png",
+   "ox": 18,
+   "oy": 14
+  },
+  "line_x_0": {
+   "file": "street/line_x_0.png",
+   "ox": 4,
+   "oy": 3
+  },
+  "line_x_1": {
+   "file": "street/line_x_1.png",
+   "ox": 4,
+   "oy": 3
+  },
+  "line_x_2": {
+   "file": "street/line_x_2.png",
+   "ox": 4,
+   "oy": 3
+  },
+  "park_kerb_x_0": {
+   "file": "street/park_kerb_x_0.png",
+   "ox": 5,
+   "oy": 8
+  },
+  "park_kerb_half_x_0": {
+   "file": "street/park_kerb_half_x_0.png",
+   "ox": 5,
+   "oy": 8
+  },
+  "park_line_x_0": {
+   "file": "street/park_line_x_0.png",
+   "ox": 5,
+   "oy": 4
+  },
+  "park_kerb_x_1": {
+   "file": "street/park_kerb_x_1.png",
+   "ox": 5,
+   "oy": 8
+  },
+  "park_kerb_half_x_1": {
+   "file": "street/park_kerb_half_x_1.png",
+   "ox": 5,
+   "oy": 8
+  },
+  "park_line_x_1": {
+   "file": "street/park_line_x_1.png",
+   "ox": 5,
+   "oy": 4
+  },
+  "park_kerb_x_2": {
+   "file": "street/park_kerb_x_2.png",
+   "ox": 5,
+   "oy": 8
+  },
+  "park_kerb_half_x_2": {
+   "file": "street/park_kerb_half_x_2.png",
+   "ox": 5,
+   "oy": 8
+  },
+  "park_line_x_2": {
+   "file": "street/park_line_x_2.png",
+   "ox": 5,
+   "oy": 4
+  },
+  "park_kerb_x_3": {
+   "file": "street/park_kerb_x_3.png",
+   "ox": 5,
+   "oy": 8
+  },
+  "park_kerb_half_x_3": {
+   "file": "street/park_kerb_half_x_3.png",
+   "ox": 5,
+   "oy": 8
+  },
+  "park_line_x_3": {
+   "file": "street/park_line_x_3.png",
+   "ox": 5,
+   "oy": 4
+  },
+  "park_stop_x_0": {
+   "file": "street/park_stop_x_0.png",
+   "ox": 18,
+   "oy": 14
+  },
+  "park_stop_x_1": {
+   "file": "street/park_stop_x_1.png",
+   "ox": 18,
+   "oy": 14
+  },
+  "park_stop_x_2": {
+   "file": "street/park_stop_x_2.png",
+   "ox": 18,
+   "oy": 14
+  },
+  "kerb_z_0": {
+   "file": "street/kerb_z_0.png",
+   "ox": 27,
+   "oy": 17
+  },
+  "kerb_z_1": {
+   "file": "street/kerb_z_1.png",
+   "ox": 27,
+   "oy": 17
+  },
+  "kerb_z_2": {
+   "file": "street/kerb_z_2.png",
+   "ox": 27,
+   "oy": 17
+  },
+  "kerb_z_3": {
+   "file": "street/kerb_z_3.png",
+   "ox": 27,
+   "oy": 17
+  },
+  "kerb_low_z": {
+   "file": "street/kerb_low_z.png",
+   "ox": 21,
+   "oy": 7
+  },
+  "stop_z": {
+   "file": "street/stop_z.png",
+   "ox": 18,
+   "oy": 14
+  },
+  "line_z_0": {
+   "file": "street/line_z_0.png",
+   "ox": 84,
+   "oy": 3
+  },
+  "line_z_1": {
+   "file": "street/line_z_1.png",
+   "ox": 84,
+   "oy": 3
+  },
+  "line_z_2": {
+   "file": "street/line_z_2.png",
+   "ox": 84,
+   "oy": 3
+  },
+  "park_kerb_z_0": {
+   "file": "street/park_kerb_z_0.png",
+   "ox": 21,
+   "oy": 8
+  },
+  "park_kerb_half_z_0": {
+   "file": "street/park_kerb_half_z_0.png",
+   "ox": 13,
+   "oy": 8
+  },
+  "park_line_z_0": {
+   "file": "street/park_line_z_0.png",
+   "ox": 85,
+   "oy": 4
+  },
+  "park_kerb_z_1": {
+   "file": "street/park_kerb_z_1.png",
+   "ox": 21,
+   "oy": 8
+  },
+  "park_kerb_half_z_1": {
+   "file": "street/park_kerb_half_z_1.png",
+   "ox": 13,
+   "oy": 8
+  },
+  "park_line_z_1": {
+   "file": "street/park_line_z_1.png",
+   "ox": 85,
+   "oy": 4
+  },
+  "park_kerb_z_2": {
+   "file": "street/park_kerb_z_2.png",
+   "ox": 21,
+   "oy": 8
+  },
+  "park_kerb_half_z_2": {
+   "file": "street/park_kerb_half_z_2.png",
+   "ox": 13,
+   "oy": 8
+  },
+  "park_line_z_2": {
+   "file": "street/park_line_z_2.png",
+   "ox": 85,
+   "oy": 4
+  },
+  "park_kerb_z_3": {
+   "file": "street/park_kerb_z_3.png",
+   "ox": 21,
+   "oy": 8
+  },
+  "park_kerb_half_z_3": {
+   "file": "street/park_kerb_half_z_3.png",
+   "ox": 13,
+   "oy": 8
+  },
+  "park_line_z_3": {
+   "file": "street/park_line_z_3.png",
+   "ox": 85,
+   "oy": 4
+  },
+  "park_stop_z_0": {
+   "file": "street/park_stop_z_0.png",
+   "ox": 18,
+   "oy": 14
+  },
+  "park_stop_z_1": {
+   "file": "street/park_stop_z_1.png",
+   "ox": 18,
+   "oy": 14
+  },
+  "park_stop_z_2": {
+   "file": "street/park_stop_z_2.png",
+   "ox": 18,
+   "oy": 14
+  },
+  "dash_x_0": {
+   "file": "street/dash_x_0.png",
+   "ox": 5,
+   "oy": 4
+  },
+  "edge_x_0": {
+   "file": "street/edge_x_0.png",
+   "ox": 4,
+   "oy": 3
+  },
+  "dash_x_1": {
+   "file": "street/dash_x_1.png",
+   "ox": 5,
+   "oy": 4
+  },
+  "edge_x_1": {
+   "file": "street/edge_x_1.png",
+   "ox": 4,
+   "oy": 3
+  },
+  "dash_x_2": {
+   "file": "street/dash_x_2.png",
+   "ox": 5,
+   "oy": 4
+  },
+  "edge_x_2": {
+   "file": "street/edge_x_2.png",
+   "ox": 4,
+   "oy": 3
+  },
+  "weed_0": {
+   "file": "street/weed_0.png",
+   "ox": 7,
+   "oy": 11
+  },
+  "weed_1": {
+   "file": "street/weed_1.png",
+   "ox": 7,
+   "oy": 11
+  },
+  "weed_2": {
+   "file": "street/weed_2.png",
+   "ox": 7,
+   "oy": 11
+  },
+  "weed_3": {
+   "file": "street/weed_3.png",
+   "ox": 7,
+   "oy": 11
+  },
+  "weed_4": {
+   "file": "street/weed_4.png",
+   "ox": 7,
+   "oy": 11
+  },
+  "weed_5": {
+   "file": "street/weed_5.png",
+   "ox": 7,
+   "oy": 11
+  },
+  "park_weed_0": {
+   "file": "street/park_weed_0.png",
+   "ox": 9,
+   "oy": 13
+  },
+  "park_weed_1": {
+   "file": "street/park_weed_1.png",
+   "ox": 9,
+   "oy": 13
+  },
+  "park_weed_2": {
+   "file": "street/park_weed_2.png",
+   "ox": 9,
+   "oy": 13
+  },
+  "park_weed_3": {
+   "file": "street/park_weed_3.png",
+   "ox": 9,
+   "oy": 13
+  },
+  "park_weed_4": {
+   "file": "street/park_weed_4.png",
+   "ox": 9,
+   "oy": 13
+  },
+  "park_weed_5": {
+   "file": "street/park_weed_5.png",
+   "ox": 9,
+   "oy": 13
+  },
+  "park_weed_6": {
+   "file": "street/park_weed_6.png",
+   "ox": 9,
+   "oy": 13
+  },
+  "park_weed_7": {
+   "file": "street/park_weed_7.png",
+   "ox": 9,
+   "oy": 13
+  },
+  "stain_0": {
+   "file": "street/stain_0.png",
+   "ox": 31,
+   "oy": 17
+  },
+  "stain_1": {
+   "file": "street/stain_1.png",
+   "ox": 38,
+   "oy": 20
+  },
+  "stain_2": {
+   "file": "street/stain_2.png",
+   "ox": 44,
+   "oy": 23
+  },
+  "crack_0": {
+   "file": "street/crack_0.png",
+   "ox": 28,
+   "oy": 6
+  },
+  "crack_1": {
+   "file": "street/crack_1.png",
+   "ox": 10,
+   "oy": 13
+  },
+  "crack_2": {
+   "file": "street/crack_2.png",
+   "ox": 34,
+   "oy": 13
+  },
+  "crack_3": {
+   "file": "street/crack_3.png",
+   "ox": 11,
+   "oy": 14
+  },
+  "drain": {
+   "file": "street/drain.png",
+   "ox": 9,
+   "oy": 8
+  },
+  "sign_parking": {
+   "file": "street/sign_parking.png",
+   "ox": 8,
+   "oy": 64
+  },
+  "park_asphalt": {
+   "file": "street/park_asphalt.png",
+   "ox": 0,
+   "oy": 0,
+   "period": 32,
+   "tufts": [
+    [
+     15.109375,
+     0.578125
+    ],
+    [
+     28.328125,
+     13.859375
+    ],
+    [
+     26.890625,
+     7.421875
+    ],
+    [
+     4.578125,
+     2.984375
+    ],
+    [
+     3.828125,
+     10.234375
+    ],
+    [
+     0.296875,
+     22.265625
+    ],
+    [
+     8.296875,
+     0.390625
+    ],
+    [
+     12.671875,
+     24.515625
+    ],
+    [
+     1.171875,
+     28.515625
+    ],
+    [
+     28.796875,
+     1.890625
+    ],
+    [
+     20.078125,
+     12.234375
+    ],
+    [
+     16.484375,
+     18.328125
+    ]
+   ]
+  },
+  "park_soil_x_neg_0": {
+   "file": "street/park_soil_x_neg_0.png",
+   "ox": 2,
+   "oy": 7
+  },
+  "park_soil_half_x_neg_0": {
+   "file": "street/park_soil_half_x_neg_0.png",
+   "ox": 2,
+   "oy": 7
+  },
+  "park_soil_x_neg_1": {
+   "file": "street/park_soil_x_neg_1.png",
+   "ox": 2,
+   "oy": 7
+  },
+  "park_soil_half_x_neg_1": {
+   "file": "street/park_soil_half_x_neg_1.png",
+   "ox": 2,
+   "oy": 7
+  },
+  "park_soil_x_neg_2": {
+   "file": "street/park_soil_x_neg_2.png",
+   "ox": 2,
+   "oy": 7
+  },
+  "park_soil_half_x_neg_2": {
+   "file": "street/park_soil_half_x_neg_2.png",
+   "ox": 2,
+   "oy": 7
+  },
+  "park_soil_x_neg_3": {
+   "file": "street/park_soil_x_neg_3.png",
+   "ox": 2,
+   "oy": 7
+  },
+  "park_soil_half_x_neg_3": {
+   "file": "street/park_soil_half_x_neg_3.png",
+   "ox": 2,
+   "oy": 7
+  },
+  "park_soil_x_pos_0": {
+   "file": "street/park_soil_x_pos_0.png",
+   "ox": 12,
+   "oy": 2
+  },
+  "park_soil_half_x_pos_0": {
+   "file": "street/park_soil_half_x_pos_0.png",
+   "ox": 12,
+   "oy": 2
+  },
+  "park_soil_x_pos_1": {
+   "file": "street/park_soil_x_pos_1.png",
+   "ox": 12,
+   "oy": 2
+  },
+  "park_soil_half_x_pos_1": {
+   "file": "street/park_soil_half_x_pos_1.png",
+   "ox": 12,
+   "oy": 2
+  },
+  "park_soil_x_pos_2": {
+   "file": "street/park_soil_x_pos_2.png",
+   "ox": 12,
+   "oy": 2
+  },
+  "park_soil_half_x_pos_2": {
+   "file": "street/park_soil_half_x_pos_2.png",
+   "ox": 12,
+   "oy": 2
+  },
+  "park_soil_x_pos_3": {
+   "file": "street/park_soil_x_pos_3.png",
+   "ox": 12,
+   "oy": 2
+  },
+  "park_soil_half_x_pos_3": {
+   "file": "street/park_soil_half_x_pos_3.png",
+   "ox": 12,
+   "oy": 2
+  },
+  "park_soil_z_neg_0": {
+   "file": "street/park_soil_z_neg_0.png",
+   "ox": 28,
+   "oy": 7
+  },
+  "park_soil_half_z_neg_0": {
+   "file": "street/park_soil_half_z_neg_0.png",
+   "ox": 20,
+   "oy": 7
+  },
+  "park_soil_z_neg_1": {
+   "file": "street/park_soil_z_neg_1.png",
+   "ox": 28,
+   "oy": 7
+  },
+  "park_soil_half_z_neg_1": {
+   "file": "street/park_soil_half_z_neg_1.png",
+   "ox": 20,
+   "oy": 7
+  },
+  "park_soil_z_neg_2": {
+   "file": "street/park_soil_z_neg_2.png",
+   "ox": 28,
+   "oy": 7
+  },
+  "park_soil_half_z_neg_2": {
+   "file": "street/park_soil_half_z_neg_2.png",
+   "ox": 20,
+   "oy": 7
+  },
+  "park_soil_z_neg_3": {
+   "file": "street/park_soil_z_neg_3.png",
+   "ox": 28,
+   "oy": 7
+  },
+  "park_soil_half_z_neg_3": {
+   "file": "street/park_soil_half_z_neg_3.png",
+   "ox": 20,
+   "oy": 7
+  },
+  "park_soil_z_pos_0": {
+   "file": "street/park_soil_z_pos_0.png",
+   "ox": 18,
+   "oy": 2
+  },
+  "park_soil_half_z_pos_0": {
+   "file": "street/park_soil_half_z_pos_0.png",
+   "ox": 10,
+   "oy": 2
+  },
+  "park_soil_z_pos_1": {
+   "file": "street/park_soil_z_pos_1.png",
+   "ox": 18,
+   "oy": 2
+  },
+  "park_soil_half_z_pos_1": {
+   "file": "street/park_soil_half_z_pos_1.png",
+   "ox": 10,
+   "oy": 2
+  },
+  "park_soil_z_pos_2": {
+   "file": "street/park_soil_z_pos_2.png",
+   "ox": 18,
+   "oy": 2
+  },
+  "park_soil_half_z_pos_2": {
+   "file": "street/park_soil_half_z_pos_2.png",
+   "ox": 10,
+   "oy": 2
+  },
+  "park_soil_z_pos_3": {
+   "file": "street/park_soil_z_pos_3.png",
+   "ox": 18,
+   "oy": 2
+  },
+  "park_soil_half_z_pos_3": {
+   "file": "street/park_soil_half_z_pos_3.png",
+   "ox": 10,
+   "oy": 2
+  }
+ },
+ "fx": {
+  "puddle": "fx/puddle.png"
+ }
+}
