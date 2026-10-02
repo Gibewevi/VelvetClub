@@ -333,11 +333,12 @@ func build_walls() -> void:
 				entry.opening_file = info.file
 				if opening == "door":
 					var open_info: Dictionary = Art.tiles.openings[okey.replace(":","_open:")]
+					var ajar_info: Dictionary = Art.tiles.openings.get(okey.replace(":","_ajar:"),open_info)
 					var center = Vector2(x+0.5,z) if axis == "x" else Vector2(x,z+0.5)
 					# both leaves of a double door swing together, from its middle
 					if pair == "l": center = Vector2(x+1,z) if axis == "x" else Vector2(x,z+1)
 					elif pair == "r": center = Vector2(x,z)
-					doors.append({"sprite":s,"closed":Art.tex(info.file),"open":Art.tex(open_info.file),"center":center,"key":key,"reach":1.3 if pair != "" else 0.9})
+					doors.append({"sprite":s,"closed":Art.tex(info.file),"open":Art.tex(open_info.file),"frames":[Art.tex(info.file),Art.tex(ajar_info.file),Art.tex(open_info.file)],"swing":0.0,"center":center,"key":key,"reach":1.3 if pair != "" else 0.9})
 			var beyond = Vector2(x+0.5,z+(0.5 if front_room.is_empty() else -0.5)) if axis == "x" else Vector2(x+(0.5 if front_room.is_empty() else -0.5),z+0.5)
 			if opening == "door" and pair != "r" and (front_room.is_empty() or back_room.is_empty()) and model.room_at(beyond).is_empty():
 				street_doors.append({"key":key,"axis":axis,"x":x,"z":z,"outside_positive":front_room.is_empty(),"room":owner,"double":pair == "l"})
@@ -351,6 +352,22 @@ func build_walls() -> void:
 		for p in [a,b]:
 			if not points.has(p): points[p] = []
 			points[p].append(s)
+	var joint_points: Dictionary = {}
+	for p in points:
+		var list: Array = points[p]
+		# where walls of one height meet (corner, T, crossing), their caps
+		# are traced as one top and laid over the junction: no seam
+		for height in ["full","low"]:
+			var arms = ""
+			for q in list:
+				if q.kind == "" or (q.full if height == "low" else not q.full): continue
+				var starts = Vector2i(q.x,q.z) == p
+				var dir = ("x" if starts else "X") if q.axis == "x" else ("z" if starts else "Z")
+				if not arms.contains(dir): arms += dir
+			var canon = ""
+			for c in "xXzZ":
+				if arms.contains(c): canon += c
+			if canon.length() >= 2 and canon != "xX" and canon != "zZ": joint_points[p] = joint_points.get(p,[])+[[height,canon,list]]
 	for p in points:
 		var list: Array = points[p]
 		# the middle of a double doorway in a cut wall: one wide passage
@@ -386,6 +403,16 @@ func build_walls() -> void:
 		var entry = add_static(node,Rect2(p.x,p.y,0,0),"post")
 		entry.sprite = node
 		entry.file = info.file
+		joint_points.erase(p)    # a post covers the corner already
+	for p in joint_points:
+		for joint in joint_points[p]:
+			var jinfo: Dictionary = Art.tiles.get("joints",{}).get("%s:%s" % [joint[0],joint[1]],{})
+			if jinfo.is_empty(): continue
+			var owner: Dictionary = joint[2][0].owner
+			var node = sprite(Art.tex(jinfo.file),Iso.pixel(p.x,p.y),Vector2(jinfo.ox,jinfo.oy),Art.material(Palette.wall_palette(Color(owner.wall_color))))
+			var entry = add_static(node,Rect2(p.x,p.y,0,0),"joint")
+			entry.sprite = node
+			entry.file = jinfo.file
 
 static func runs_through(list: Array) -> bool:
 	# two walls (not openings) on either side of a point, on the same line
@@ -393,6 +420,8 @@ static func runs_through(list: Array) -> bool:
 	for s in list:
 		if s.kind != "" and not s.kind.ends_with("door"): solid[s.axis] += 1
 	return solid.x >= 2 or solid.z >= 2
+
+const DOOR_SWING = 14.0   # door pictures per second: closed to open in about 0.15 s
 
 var cloak_fill: Dictionary = {}   # rack / locker id -> share of its places taken
 
@@ -1172,8 +1201,8 @@ func static_order(i: int, j: int) -> int:
 	if a.has("part") and b.has("part") and int(a.id) == int(b.id) and not a.get("separate",false): return 0
 	# A post caps the ends of the walls that meet at it: it is drawn after
 	# them, else the wall leaving towards the viewer cuts the post in half.
-	if a.kind == "post" and b.kind == "wall" and wall_ends_at(b.rect,a.rect.position): return -1
-	if b.kind == "post" and a.kind == "wall" and wall_ends_at(a.rect,b.rect.position): return 1
+	if a.kind in ["post","joint"] and b.kind == "wall" and wall_ends_at(b.rect,a.rect.position): return -1
+	if b.kind in ["post","joint"] and a.kind == "wall" and wall_ends_at(a.rect,b.rect.position): return 1
 	var order = rect_order(a.rect,b.rect)
 	# A high wall that stops where a cut wall passes: the cut wall runs in
 	# front of the high wall's end (they only touch, on a diagonal).
@@ -1506,7 +1535,9 @@ func _timed_process(delta: float) -> void:
 			if is_instance_valid(a) and a.world.distance_to(d.center) < float(d.get("reach",0.9)):
 				open = true
 				break
-		d.sprite.texture = d.open if open else d.closed
+		# the leaf swings through its pictures: closed, ajar, open (and back)
+		d.swing = move_toward(float(d.swing),2.0 if open else 0.0,delta*DOOR_SWING)
+		d.sprite.texture = d.frames[int(round(d.swing))]
 
 # ------------------------------------------------------------------ picking and feedback
 

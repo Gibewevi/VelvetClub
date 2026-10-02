@@ -2383,7 +2383,9 @@ func double_door_checks() -> void:
 	check(leaves.size() == 1 and str(leaves[0].get("file","")).contains("full_door_l") and str(leaves[0].get("opening_file","")).contains("door2_l"),"The pair is drawn as one double door, no jamb in the middle")
 	var both = view.doors.filter(func(d): return d.key in ["x:14:-9","x:15:-9"])
 	check(both.size() == 2 and both[0].center == Vector2(15,-9) and both[1].center == Vector2(15,-9),"Both leaves swing from the middle of the doorway")
-	view._timed_process(0.0)
+	view._timed_process(0.05)
+	check(both.size() == 2 and both.all(func(d): return d.sprite.texture == d.frames[1]),"The leaves swing: ajar first")
+	view._timed_process(0.2)
 	check(both.size() == 2 and both.all(func(d): return d.sprite.texture == d.open),"The maid in the doorway opens both leaves at once")
 	var shut = view.doors.filter(func(d): return d.key in ["x:19:-9","x:20:-9"])
 	check(shut.size() == 2 and shut.all(func(d): return d.sprite.texture == d.closed),"A double door nobody uses stays shut")
@@ -2416,6 +2418,12 @@ func post_depth_checks() -> void:
 	check(stem.size() == 1 and str(stem[0].file).contains("full_e1") and back.size() == 1 and str(back[0].file).contains("full_e1"),"A high wall that stops at a cut wall shows its real end")
 	var inner = wall.call("x:16:-9")
 	check(inner.size() == 1 and not str(inner[0].file).contains("_e"),"Where high walls meet, they simply join")
+	# a T of high walls: one cap laid over the junction, over all three walls
+	var joints = view.statics.filter(func(e): return e.kind == "joint" and Vector2i(e.rect.position) == Vector2i(17,-9))
+	check(joints.size() == 1 and str(joints[0].file).contains("joint_full_xpxmzp"),"A T of high walls gets one seamless cap")
+	if joints.size() == 1:
+		var meeting = wall.call("x:16:-9")+wall.call("x:17:-9")+wall.call("z:17:-9")
+		check(meeting.size() == 3 and meeting.all(func(w): return w.node.z_index < joints[0].node.z_index),"The cap is laid over the three walls")
 	if stem.size() == 1:
 		var low = wall.call("x:16:-5")+wall.call("x:17:-5")
 		check(low.size() == 2 and low.all(func(w): return w.node.z_index > stem[0].node.z_index),"The cut front wall runs in front of the end of the wall between two bedrooms")
@@ -2475,11 +2483,13 @@ func door_pick_checks() -> void:
 		var door: Sprite2D = e.opening_sprite
 		var leaf = Vector2.INF
 		var size = door.texture.get_size()
+		var middle = door.position+door.offset+size/2.0
 		for y in range(int(size.y)):
 			for x in range(int(size.x)):
 				var wp = door.position+door.offset+Vector2(x,y)
 				var on_wall = Art.alpha_at(e.file,Vector2i((wp-e.sprite.position-e.sprite.offset).floor()))
-				if leaf == Vector2.INF and Art.alpha_at(e.opening_file,Vector2i(x,y)) and not on_wall: leaf = wp+Vector2(0.5,0.5)
+				# the pixel of the leaf nearest the middle of the door
+				if Art.alpha_at(e.opening_file,Vector2i(x,y)) and not on_wall and (leaf == Vector2.INF or wp.distance_to(middle) < leaf.distance_to(middle)): leaf = wp+Vector2(0.5,0.5)
 		check(leaf != Vector2.INF,"The wall picture has a hole where the door stands")
 		if leaf != Vector2.INF:
 			var screen = (leaf-camera.position)*float(zoom)

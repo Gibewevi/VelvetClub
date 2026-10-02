@@ -466,60 +466,93 @@ CURTAIN = Mat("a8203c")
 BRASS = Mat("e0ae48")
 
 
-def door_prims(axis, open_=False):
+DOOR_ANGLES = (0, 35, 80)      # closed, ajar, open: the frames of a swing
+LEAF_T = 0.13                  # a leaf half as thick as the wall, set back in it
+
+
+def door_frame_prims(axis, a0, a1, left=True, right=True):
+    """The casing around a door: jambs and lintel through the whole wall,
+    standing a little proud of both faces."""
     t2 = WALL_T / 2
-    prims = []
 
     def B(a, y0, b, y1, z0, z1, mat, **kw):
         if axis == "x":
             return box(a, y0, z0, b, y1, z1, mat, **kw)
         return box(z0, y0, a, z1, y1, b, mat, **kw)
-    prims.append(B(0.07, 0, 0.13, 2.16, -t2 - 0.02, t2 + 0.04, DOOR_FRAME))
-    prims.append(B(0.87, 0, 0.93, 2.16, -t2 - 0.02, t2 + 0.04, DOOR_FRAME))
-    prims.append(B(0.07, 2.1, 0.93, 2.18, -t2 - 0.02, t2 + 0.04, DOOR_FRAME))
-    if not open_:
-        def panel(p, ln, w, n):
-            u = (w[:, 0] if axis == "x" else w[:, 2]) - 0.5
-            v = w[:, 1]
-            d = np.zeros(len(p), dtype=int)
-            paint = np.zeros((len(p), 4), dtype=np.uint8)
-            front = (ln[:, 2] > 0.5) if axis == "x" else (ln[:, 2] > 0.5)
-            face = np.abs(ln[:, 1]) < 0.5
-            win = face & (np.abs(u) < 0.2) & (v > 1.45) & (v < 1.85)
-            paint[win] = (138, 170, 200, 255)
-            paint[win & (np.abs(u + (v - 1.65) * 0.8) < 0.04)] = (196, 222, 240, 255)
-            ins = face & (np.abs(u) < 0.28) & (v > 0.2) & (v < 1.2)
-            edge = ins & ((np.abs(np.abs(u) - 0.27) < 0.03) | (np.abs(v - 0.21) < 0.025) | (np.abs(v - 1.19) < 0.025))
-            d[edge] = -1
-            return d, paint
-        prims.append(B(0.13, 0.0, 0.87, 2.1, -0.02, 0.02, DOOR, pattern=panel))
-        prims.append(B(0.74, 0.98, 0.8, 1.02, 0.02, 0.06, BRASS))
+    prims = []
+    if left:
+        prims.append(B(0.07, 0, 0.13, 2.16, -t2 - 0.03, t2 + 0.03, DOOR_FRAME))
+    if right:
+        prims.append(B(0.87, 0, 0.93, 2.16, -t2 - 0.03, t2 + 0.03, DOOR_FRAME))
+    prims.append(B(a0, 2.1, a1, 2.18, -t2 - 0.03, t2 + 0.03, DOOR_FRAME))
     return prims
+
+
+def swing(prims, axis, hinge, toward, angle):
+    """Turn a leaf about its hinge (vertical, on the front face of the leaf)
+    so it opens into the room in front of the wall. toward = +1 when the
+    leaf runs from its hinge towards +u, -1 towards -u."""
+    if angle == 0:
+        return prims
+    t2 = WALL_T / 2
+    front = -t2 + LEAF_T
+    deg = (-angle if toward > 0 else angle) if axis == "x" else (angle if toward > 0 else -angle)
+    pivot = (hinge, 0, front) if axis == "x" else (front, 0, hinge)
+    return turn(prims, rot_y(deg), pivot)
+
+
+def door_prims(axis, state=0):
+    """A single door: casing through the wall, a solid leaf set back in the
+    opening (its reveal shows), a glazed top and a panel, a brass knob.
+    state 0 closed, 1 ajar, 2 open: the leaf swings into the room in front."""
+    t2 = WALL_T / 2
+
+    def B(a, y0, b, y1, z0, z1, mat, **kw):
+        if axis == "x":
+            return box(a, y0, z0, b, y1, z1, mat, **kw)
+        return box(z0, y0, a, z1, y1, b, mat, **kw)
+
+    def panel(p, ln, w, n):
+        # in the leaf's own frame, so the pattern swings with it
+        u = p[:, 0] if axis == "x" else p[:, 2]
+        v = p[:, 1] + 1.045
+        d = np.zeros(len(p), dtype=int)
+        paint = np.zeros((len(p), 4), dtype=np.uint8)
+        face = (np.abs(ln[:, 2]) > 0.5) if axis == "x" else (np.abs(ln[:, 0]) > 0.5)
+        win = face & (np.abs(u) < 0.2) & (v > 1.45) & (v < 1.85)
+        paint[win] = (138, 170, 200, 255)
+        paint[win & (np.abs(u + (v - 1.65) * 0.8) < 0.04)] = (196, 222, 240, 255)
+        ins = face & (np.abs(u) < 0.28) & (v > 0.2) & (v < 1.2)
+        edge = ins & ((np.abs(np.abs(u) - 0.27) < 0.03) | (np.abs(v - 0.21) < 0.025) | (np.abs(v - 1.19) < 0.025))
+        d[edge] = -1
+        return d, paint
+    front = -t2 + LEAF_T
+    leaf = [B(0.13, 0.0, 0.87, 2.09, -t2, front, DOOR, pattern=panel),
+            B(0.74, 0.98, 0.8, 1.02, front, front + 0.04, BRASS)]
+    return door_frame_prims(axis, 0.07, 0.93) + swing(leaf, axis, 0.13, 1, DOOR_ANGLES[state])
 
 
 STEEL = Mat("8e8c98")
 
 
-def double_door_prims(axis, side, open_=False):
+def double_door_prims(axis, side, state=0):
     """One leaf of a double swing door, 2 m wide across two wall metres:
     'l' is hinged on the left jamb of the first metre, 'r' on the right jamb
-    of the second, and they meet in the middle. Each leaf has a round
-    porthole, a brass push plate by the meeting edge and a steel kick plate.
-    Open, both swing 70 degrees into the room in front of the wall."""
+    of the second, and they meet in the middle. Each leaf is a solid slab set
+    back in the wall, with a round porthole, a brass push plate by the meeting
+    edge and a steel kick plate. state 0 closed, 1 ajar, 2 open: both swing
+    into the room in front of the wall."""
     t2 = WALL_T / 2
 
     def B(a, y0, b, y1, z0, z1, mat, **kw):
         if axis == "x":
             return box(a, y0, z0, b, y1, z1, mat, **kw)
         return box(z0, y0, a, z1, y1, b, mat, **kw)
-    prims = []
     if side == "l":
-        prims.append(B(0.07, 0, 0.13, 2.16, -t2 - 0.02, t2 + 0.04, DOOR_FRAME))
-        prims.append(B(0.07, 2.1, 1.0, 2.18, -t2 - 0.02, t2 + 0.04, DOOR_FRAME))
+        prims = door_frame_prims(axis, 0.07, 1.0, True, False)
         a0, a1, hinge, meet = 0.13, 0.99, 0.13, 1.0
     else:
-        prims.append(B(0.87, 0, 0.93, 2.16, -t2 - 0.02, t2 + 0.04, DOOR_FRAME))
-        prims.append(B(0.0, 2.1, 0.93, 2.18, -t2 - 0.02, t2 + 0.04, DOOR_FRAME))
+        prims = door_frame_prims(axis, 0.0, 0.93, False, True)
         a0, a1, hinge, meet = 0.01, 0.87, 0.87, -1.0
     half = (a1 - a0) / 2
 
@@ -544,12 +577,46 @@ def double_door_prims(axis, side, open_=False):
         edge = face & ~glass & ~ring & ~kick & ((np.abs(np.abs(u) - (half - 0.06)) < 0.022) | (np.abs(v - 0.94) < 0.02))
         d[edge] = -1
         return d, paint
-    panel = [B(a0, 0.02, a1, 2.08, -0.025, 0.025, DOOR, pattern=leaf)]
-    if open_:
-        angle = (-70 if side == "l" else 70) if axis == "x" else (70 if side == "l" else -70)
-        pivot = (hinge, 0, 0) if axis == "x" else (0, 0, hinge)
-        panel = turn(panel, rot_y(angle), pivot)
-    return prims + panel
+    panel = [B(a0, 0.02, a1, 2.08, -t2, -t2 + LEAF_T, DOOR, pattern=leaf)]
+    return prims + swing(panel, axis, hinge, 1 if side == "l" else -1, DOOR_ANGLES[state])
+
+
+JOINT_ARMS = ["".join(a for a in "xXzZ" if a in combo) for combo in
+              ("xz", "xZ", "Xz", "XZ", "xXz", "xXZ", "xzZ", "XzZ", "xXzZ")]
+
+
+def joint_cap(arms, height):
+    """Where walls meet (a corner, a T, a crossing), each wall picture is
+    cut from a straight wall, so their caps overlap with seams. This patch
+    is the caps of all the walls meeting there traced together as one top
+    (no line between them), kept only on the top of the caps, 0.3 m around
+    the point: laid over the walls, the junction reads as one piece.
+    arms: x/X = the wall leaves towards +x/-x, z/Z towards +z/-z."""
+    t2 = WALL_T / 2
+    H = WALL_M if height == "full" else LOW_M
+    face = WALL_FACE if height == "full" else WALL_OUT
+    yb = H - 0.06
+    group = object()
+    prims = []
+    for a in arms:
+        if a in "xX":
+            x0, x1 = (-t2 - 0.02, 1.0) if a == "x" else (-1.0, t2 + 0.02)
+            prims.append(box(x0, 0, -t2, x1, yb, t2, face, group=group))
+            prims.append(box(x0, yb, -t2 - 0.02, x1, H, t2 + 0.02, WALL_CAP, group=group))
+        else:
+            z0, z1 = (-t2 - 0.02, 1.0) if a == "z" else (-1.0, t2 + 0.02)
+            prims.append(box(-t2, 0, z0, t2, yb, z1, face, group=group))
+            prims.append(box(-t2 - 0.02, yb, z0, t2 + 0.02, H, z1, WALL_CAP, group=group))
+    cv = render(prims, edge_light=True, lines=True)
+    caps = np.zeros(cv.pid.shape, dtype=bool)
+    for k, p in enumerate(prims):
+        if p.mat is WALL_CAP:
+            caps |= cv.pid == k
+    top = cv.normal[..., 1] > 0.8
+    near = (np.abs(cv.world[..., 0]) <= t2 + 0.3) & (np.abs(cv.world[..., 2]) <= t2 + 0.3)
+    keep = caps & top & near
+    cv.rgba[~keep] = 0
+    return cv
 
 
 def window_prims(axis, low=False):
@@ -760,14 +827,23 @@ def export():
                     man["walls"][f"{pat}:{axis}:full_e{ends}:{variant}"] = entry
                     if variant == 0:
                         man["walls"][f"{pat}:{axis}:full_e{ends}"] = entry
+    man["joints"] = {}
+    for height in ("full", "low"):
+        for arms in JOINT_ARMS:
+            cv = joint_cap(arms, height)
+            # file names without capitals: Windows would mix up xz and XZ
+            code = "".join({"x": "xp", "X": "xm", "z": "zp", "Z": "zm"}[a] for a in arms)
+            path = f"tiles/joint_{height}_{code}.png"
+            save(cv.rgba, path)
+            man["joints"][f"{height}:{arms}"] = {"file": path, "ox": cv.ox, "oy": cv.oy}
     for kind in ("full", "low"):
         cv = render_idx(post_prims(kind))
         save(cv.rgba, f"tiles/post_{kind}.png")
         man["posts"][kind] = {"file": f"tiles/post_{kind}.png", "ox": cv.ox, "oy": cv.oy}
     for axis in ("x", "z"):
-        for name, prims in (("door", door_prims(axis)), ("door_open", door_prims(axis, True)),
-                            ("door2_l", double_door_prims(axis, "l")), ("door2_l_open", double_door_prims(axis, "l", True)),
-                            ("door2_r", double_door_prims(axis, "r")), ("door2_r_open", double_door_prims(axis, "r", True)),
+        for name, prims in (("door", door_prims(axis)), ("door_ajar", door_prims(axis, 1)), ("door_open", door_prims(axis, 2)),
+                            ("door2_l", double_door_prims(axis, "l")), ("door2_l_ajar", double_door_prims(axis, "l", 1)), ("door2_l_open", double_door_prims(axis, "l", 2)),
+                            ("door2_r", double_door_prims(axis, "r")), ("door2_r_ajar", double_door_prims(axis, "r", 1)), ("door2_r_open", double_door_prims(axis, "r", 2)),
                             ("window", window_prims(axis)), ("window_low", window_prims(axis, True))):
             cv = render(prims)
             finish(cv)

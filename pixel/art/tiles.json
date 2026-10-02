@@ -4035,26 +4035,41 @@
   "door:x": {
    "file": "tiles/door_x.png",
    "ox": 5,
-   "oy": 56
+   "oy": 57
+  },
+  "door_ajar:x": {
+   "file": "tiles/door_ajar_x.png",
+   "ox": 5,
+   "oy": 57
   },
   "door_open:x": {
    "file": "tiles/door_open_x.png",
-   "ox": 5,
-   "oy": 56
+   "ox": 11,
+   "oy": 57
   },
   "door2_l:x": {
    "file": "tiles/door2_l_x.png",
    "ox": 5,
-   "oy": 56
+   "oy": 57
+  },
+  "door2_l_ajar:x": {
+   "file": "tiles/door2_l_ajar_x.png",
+   "ox": 5,
+   "oy": 57
   },
   "door2_l_open:x": {
    "file": "tiles/door2_l_open_x.png",
-   "ox": 10,
-   "oy": 56
+   "ox": 13,
+   "oy": 57
   },
   "door2_r:x": {
    "file": "tiles/door2_r_x.png",
    "ox": 6,
+   "oy": 57
+  },
+  "door2_r_ajar:x": {
+   "file": "tiles/door2_r_ajar_x.png",
+   "ox": 9,
    "oy": 57
   },
   "door2_r_open:x": {
@@ -4075,25 +4090,40 @@
   "door:z": {
    "file": "tiles/door_z.png",
    "ox": 21,
-   "oy": 56
+   "oy": 57
+  },
+  "door_ajar:z": {
+   "file": "tiles/door_ajar_z.png",
+   "ox": 21,
+   "oy": 57
   },
   "door_open:z": {
    "file": "tiles/door_open_z.png",
    "ox": 21,
-   "oy": 56
+   "oy": 57
   },
   "door2_l:z": {
    "file": "tiles/door2_l_z.png",
    "ox": 22,
-   "oy": 56
+   "oy": 57
+  },
+  "door2_l_ajar:z": {
+   "file": "tiles/door2_l_ajar_z.png",
+   "ox": 22,
+   "oy": 57
   },
   "door2_l_open:z": {
    "file": "tiles/door2_l_open_z.png",
    "ox": 22,
-   "oy": 56
+   "oy": 57
   },
   "door2_r:z": {
    "file": "tiles/door2_r_z.png",
+   "ox": 21,
+   "oy": 57
+  },
+  "door2_r_ajar:z": {
+   "file": "tiles/door2_r_ajar_z.png",
    "ox": 21,
    "oy": 57
   },
@@ -4259,6 +4289,98 @@
  "low_h": 12,
  "floor_period": 4,
  "wall_variants": 4,
+ "joints": {
+  "full:xz": {
+   "file": "tiles/joint_full_xpzp.png",
+   "ox": 22,
+   "oy": 62
+  },
+  "full:xZ": {
+   "file": "tiles/joint_full_xpzm.png",
+   "ox": 8,
+   "oy": 69
+  },
+  "full:Xz": {
+   "file": "tiles/joint_full_xmzp.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "full:XZ": {
+   "file": "tiles/joint_full_xmzm.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "full:xXz": {
+   "file": "tiles/joint_full_xpxmzp.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "full:xXZ": {
+   "file": "tiles/joint_full_xpxmzm.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "full:xzZ": {
+   "file": "tiles/joint_full_xpzpzm.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "full:XzZ": {
+   "file": "tiles/joint_full_xmzpzm.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "full:xXzZ": {
+   "file": "tiles/joint_full_xpxmzpzm.png",
+   "ox": 22,
+   "oy": 69
+  },
+  "low:xz": {
+   "file": "tiles/joint_low_xpzp.png",
+   "ox": 22,
+   "oy": 18
+  },
+  "low:xZ": {
+   "file": "tiles/joint_low_xpzm.png",
+   "ox": 8,
+   "oy": 25
+  },
+  "low:Xz": {
+   "file": "tiles/joint_low_xmzp.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "low:XZ": {
+   "file": "tiles/joint_low_xmzm.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "low:xXz": {
+   "file": "tiles/joint_low_xpxmzp.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "low:xXZ": {
+   "file": "tiles/joint_low_xpxmzm.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "low:xzZ": {
+   "file": "tiles/joint_low_xpzpzm.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "low:XzZ": {
+   "file": "tiles/joint_low_xmzpzm.png",
+   "ox": 22,
+   "oy": 25
+  },
+  "low:xXzZ": {
+   "file": "tiles/joint_low_xpxmzpzm.png",
+   "ox": 22,
+   "oy": 25
+  }
+ },
  "street": {
   "kerb_x_0": {
    "file": "street/kerb_x_0.png",

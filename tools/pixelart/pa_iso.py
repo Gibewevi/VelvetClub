@@ -393,6 +393,8 @@ def render(prims, margin=3, bounds=None, shadow=None, shadow_alpha=70, edge_ligh
     cv.pid = ids
     cv.tone = tone2
     cv.prims = prims
+    cv.normal = nn
+    cv.world = world.reshape(H, W, 3)
     # Floor contact shadow (drawn only where nothing else is).
     if shadow is not None:
         _floor_shadow(cv, shadow, shadow_alpha)
