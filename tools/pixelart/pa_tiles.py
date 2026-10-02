@@ -467,7 +467,7 @@ BRASS = Mat("e0ae48")
 
 
 DOOR_ANGLES = (0, 35, 80)      # closed, ajar, open: the frames of a swing
-LEAF_T = WALL_T                # a leaf as thick as the wall itself
+LEAF_T = 0.06                  # a leaf set against the back of the wall: the frame shows the wall's whole depth
 
 
 def door_frame_prims(axis, a0, a1, left=True, right=True):
@@ -495,15 +495,16 @@ def swing(prims, axis, hinge, toward, angle):
     if angle == 0:
         return prims
     t2 = WALL_T / 2
-    front = t2
+    front = -t2 + LEAF_T
     deg = (-angle if toward > 0 else angle) if axis == "x" else (angle if toward > 0 else -angle)
     pivot = (hinge, 0, front) if axis == "x" else (front, 0, hinge)
     return turn(prims, rot_y(deg), pivot)
 
 
 def door_prims(axis, state=0):
-    """A single door: casing through the wall, a solid leaf set back in the
-    opening (its reveal shows), a glazed top and a panel, a brass knob.
+    """A single door: a frame lining the whole depth of the opening (the
+    wall's thickness shows all around the door), the leaf against the back
+    of the wall with a glazed top, a panel and a brass knob.
     state 0 closed, 1 ajar, 2 open: the leaf swings into the room in front."""
     t2 = WALL_T / 2
 
@@ -526,8 +527,8 @@ def door_prims(axis, state=0):
         edge = ins & ((np.abs(np.abs(u) - 0.27) < 0.03) | (np.abs(v - 0.21) < 0.025) | (np.abs(v - 1.19) < 0.025))
         d[edge] = -1
         return d, paint
-    front = t2
-    leaf = [B(0.13, 0.0, 0.87, 2.09, -t2, t2, DOOR, pattern=panel),
+    front = -t2 + LEAF_T
+    leaf = [B(0.13, 0.0, 0.87, 2.09, -t2, front, DOOR, pattern=panel),
             B(0.74, 0.98, 0.8, 1.02, front, front + 0.04, BRASS)]
     return door_frame_prims(axis, 0.07, 0.93) + swing(leaf, axis, 0.13, 1, DOOR_ANGLES[state])
 
@@ -577,7 +578,7 @@ def double_door_prims(axis, side, state=0):
         edge = face & ~glass & ~ring & ~kick & ((np.abs(np.abs(u) - (half - 0.06)) < 0.022) | (np.abs(v - 0.94) < 0.02))
         d[edge] = -1
         return d, paint
-    panel = [B(a0, 0.02, a1, 2.08, -t2, t2, DOOR, pattern=leaf)]
+    panel = [B(a0, 0.02, a1, 2.08, -t2, -t2 + LEAF_T, DOOR, pattern=leaf)]
     return prims + swing(panel, axis, hinge, 1 if side == "l" else -1, DOOR_ANGLES[state])
 
 

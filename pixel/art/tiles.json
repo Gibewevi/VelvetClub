@@ -4034,47 +4034,47 @@
  "openings": {
   "door:x": {
    "file": "tiles/door_x.png",
-   "ox": 13,
+   "ox": 10,
    "oy": 57
   },
   "door_ajar:x": {
    "file": "tiles/door_ajar_x.png",
-   "ox": 13,
+   "ox": 10,
    "oy": 57
   },
   "door_open:x": {
    "file": "tiles/door_open_x.png",
-   "ox": 13,
+   "ox": 10,
    "oy": 57
   },
   "door2_l:x": {
    "file": "tiles/door2_l_x.png",
-   "ox": 15,
+   "ox": 12,
    "oy": 57
   },
   "door2_l_ajar:x": {
    "file": "tiles/door2_l_ajar_x.png",
-   "ox": 15,
+   "ox": 12,
    "oy": 57
   },
   "door2_l_open:x": {
    "file": "tiles/door2_l_open_x.png",
-   "ox": 15,
+   "ox": 12,
    "oy": 57
   },
   "door2_r:x": {
    "file": "tiles/door2_r_x.png",
-   "ox": 11,
+   "ox": 8,
    "oy": 57
   },
   "door2_r_ajar:x": {
    "file": "tiles/door2_r_ajar_x.png",
-   "ox": 11,
+   "ox": 8,
    "oy": 57
   },
   "door2_r_open:x": {
    "file": "tiles/door2_r_open_x.png",
-   "ox": 11,
+   "ox": 8,
    "oy": 57
   },
   "window:x": {
