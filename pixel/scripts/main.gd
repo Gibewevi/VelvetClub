@@ -1305,6 +1305,7 @@ func capture(path: String) -> void:
 		if arg == "--setup=cloak": capture_cloak()
 		if arg == "--setup=partition": capture_partition()
 		if arg == "--setup=doorpick": capture_pointer = Vector2(3.1,2.5)
+		if arg == "--setup=tjunction": capture_tjunction()
 		if arg == "--setup=doorsel":
 			selected_edge = "z:3:2"
 			refresh()
@@ -1454,6 +1455,20 @@ func capture_site() -> void:
 
 var capture_pointer = Vector2.INF   # captures: where the mouse would be (floor point)
 var capture_action: Callable         # captures: done just before the pictures are taken
+
+func capture_tjunction() -> void:
+	# Documentation and check: full-height walls meeting the cut front wall
+	# in a T (two bedrooms side by side, and a partition in a third).
+	var before = model.snapshot()
+	model.add_room(14,-9,3,4,1)
+	model.add_room(17,-9,3,4,1)
+	var c = model.add_room(20,-9,4,4,1)
+	commit(before,"chambres")
+	before = model.snapshot()
+	model.add_partition(BuildingModel.partition_keys(Vector2i(22,-9),Vector2i(22,-5)))
+	# doors in the high walls: between two bedrooms, at the back, in the partition
+	for key in ["z:17:-8","x:15:-9","z:22:-7"]: model.set_opening(key,"door")
+	commit(before,"cloison")
 
 func capture_partition() -> void:
 	# Documentation: a lounge split by partitions into two quiet corners,
@@ -2080,6 +2095,7 @@ func smoke_test() -> void:
 	hire_checks()
 	door_pick_checks()
 	lawn_checks()
+	post_depth_checks()
 	print("SMOKE_TEST_RESULT: %d failures" % failures)
 	if failures == 0: print("SMOKE_TEST_PASSED")
 	get_tree().quit(1 if failures > 0 else 0)
@@ -2336,6 +2352,31 @@ func partition_ui_checks() -> void:
 	sim.money = rich
 	set_mode("select")
 	clear_selection()
+	changed_view()
+
+func post_depth_checks() -> void:
+	# A full post where a high wall meets the cut front wall (a T) is drawn
+	# whole: after every wall that ends at it.
+	var start = model.snapshot()
+	var keep_undo = undo_stack.duplicate()
+	var rich = sim.money
+	sim.money = 100000
+	capture_tjunction()
+	var posts = view.statics.filter(func(e): return e.kind == "post" and Vector2i(e.rect.position) == Vector2i(17,-5))
+	check(posts.size() == 1,"A post stands where the wall between two bedrooms meets the front")
+	if posts.size() == 1:
+		var post: Dictionary = posts[0]
+		var walls = view.statics.filter(func(e): return e.kind == "wall" and e.get("key","") in ["x:16:-5","x:17:-5","z:17:-6"])
+		check(walls.size() == 3 and walls.all(func(w): return w.node.z_index < post.node.z_index),"The post is drawn over the ends of the three walls that meet it")
+	var post_at = func(x, z): return view.statics.any(func(e): return e.kind == "post" and Vector2i(e.rect.position) == Vector2i(x,z))
+	check(not post_at.call(17,-8) and not post_at.call(17,-7) and not post_at.call(22,-7) and not post_at.call(22,-6),"A door in a high wall has its frame, no posts beside it")
+	model.set_opening("x:18:-5","door")
+	view.rebuild()
+	check(post_at.call(18,-5) and post_at.call(19,-5),"A gap in a cut wall keeps its end posts")
+	model.restore(start)
+	undo_stack = keep_undo
+	redo_stack.clear()
+	sim.money = rich
 	changed_view()
 
 func lawn_checks() -> void:

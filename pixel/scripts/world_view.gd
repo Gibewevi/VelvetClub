@@ -314,7 +314,9 @@ func build_walls() -> void:
 		var any_gap = false
 		for s in list:
 			any_full = any_full or (s.full and s.kind != "")
-			any_gap = any_gap or s.kind == "" or s.kind.ends_with("door")
+			# a gap in a cut wall needs its end posts; a door in a high wall
+			# has its own frame and the wall runs on around it
+			any_gap = any_gap or s.kind == ""
 		if any_gap: need = true
 		if list.size() == 2 and list[0].axis == list[1].axis and list[0].full != list[1].full: need = true
 		if not need: continue
@@ -1114,7 +1116,14 @@ func static_order(i: int, j: int) -> int:
 	var b: Dictionary = statics[j]
 	# parts cut from one picture never cover each other: no order needed
 	if a.has("part") and b.has("part") and int(a.id) == int(b.id) and not a.get("separate",false): return 0
+	# A post caps the ends of the walls that meet at it: it is drawn after
+	# them, else the wall leaving towards the viewer cuts the post in half.
+	if a.kind == "post" and b.kind == "wall" and wall_ends_at(b.rect,a.rect.position): return -1
+	if b.kind == "post" and a.kind == "wall" and wall_ends_at(a.rect,b.rect.position): return 1
 	return rect_order(a.rect,b.rect)
+
+static func wall_ends_at(r: Rect2, p: Vector2) -> bool:
+	return r.position.is_equal_approx(p) or r.end.is_equal_approx(p)
 
 func link_static(i: int) -> void:
 	# Order static i against every static its picture touches.
