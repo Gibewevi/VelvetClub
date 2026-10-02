@@ -381,6 +381,11 @@ def wall_prims(axis, kind, pattern_name, variant=0):
         pieces.append((0.0, 1.0, 0.0, H))
     elif kind == "full_door":
         pieces += [(0.0, 0.1, 0.0, H), (0.9, 1.0, 0.0, H), (0.1, 0.9, 2.1, H)]
+    elif kind == "full_door_l":
+        # first metre of a double door: the jamb on its left, the lintel runs on
+        pieces += [(0.0, 0.1, 0.0, H), (0.1, 1.0, 2.1, H)]
+    elif kind == "full_door_r":
+        pieces += [(0.9, 1.0, 0.0, H), (0.0, 0.9, 2.1, H)]
     elif kind == "full_window":
         pieces += [(0.0, 0.15, 0.0, H), (0.85, 1.0, 0.0, H), (0.15, 0.85, 0.0, 0.95), (0.15, 0.85, 1.95, H)]
     elif kind == "low_window":
@@ -478,6 +483,61 @@ def door_prims(axis, open_=False):
         prims.append(B(0.13, 0.0, 0.87, 2.1, -0.02, 0.02, DOOR, pattern=panel))
         prims.append(B(0.74, 0.98, 0.8, 1.02, 0.02, 0.06, BRASS))
     return prims
+
+
+STEEL = Mat("8e8c98")
+
+
+def double_door_prims(axis, side, open_=False):
+    """One leaf of a double swing door, 2 m wide across two wall metres:
+    'l' is hinged on the left jamb of the first metre, 'r' on the right jamb
+    of the second, and they meet in the middle. Each leaf has a round
+    porthole, a brass push plate by the meeting edge and a steel kick plate.
+    Open, both swing 70 degrees into the room in front of the wall."""
+    t2 = WALL_T / 2
+
+    def B(a, y0, b, y1, z0, z1, mat, **kw):
+        if axis == "x":
+            return box(a, y0, z0, b, y1, z1, mat, **kw)
+        return box(z0, y0, a, z1, y1, b, mat, **kw)
+    prims = []
+    if side == "l":
+        prims.append(B(0.07, 0, 0.13, 2.16, -t2 - 0.02, t2 + 0.04, DOOR_FRAME))
+        prims.append(B(0.07, 2.1, 1.0, 2.18, -t2 - 0.02, t2 + 0.04, DOOR_FRAME))
+        a0, a1, hinge, meet = 0.13, 0.99, 0.13, 1.0
+    else:
+        prims.append(B(0.87, 0, 0.93, 2.16, -t2 - 0.02, t2 + 0.04, DOOR_FRAME))
+        prims.append(B(0.0, 2.1, 0.93, 2.18, -t2 - 0.02, t2 + 0.04, DOOR_FRAME))
+        a0, a1, hinge, meet = 0.01, 0.87, 0.87, -1.0
+    half = (a1 - a0) / 2
+
+    def leaf(p, ln, w, n):
+        # in the leaf's own frame, so the pattern turns with it when it swings
+        u = p[:, 0] if axis == "x" else p[:, 2]
+        v = p[:, 1]
+        face = (np.abs(ln[:, 2]) > 0.5) if axis == "x" else (np.abs(ln[:, 0]) > 0.5)
+        d = np.zeros(len(p), dtype=int)
+        paint = np.zeros((len(p), 4), dtype=np.uint8)
+        r = np.hypot(u, (v - 0.5) * 1.0)
+        ring = face & (r >= 0.13) & (r < 0.17)
+        glass = face & (r < 0.13)
+        paint[ring] = (196, 150, 64, 255)
+        paint[glass] = (126, 162, 196, 255)
+        paint[glass & (np.abs(u + (v - 0.5) * 0.9) < 0.035)] = (200, 226, 242, 255)
+        kick = face & (v < -0.74)
+        paint[kick] = (150, 148, 160, 255)
+        paint[face & (np.abs(v + 0.74) < 0.02)] = (98, 96, 108, 255)
+        push = face & (np.abs(u - meet * (half - 0.12)) < 0.05) & (np.abs(v - 0.06) < 0.12)
+        paint[push] = (224, 178, 74, 255)
+        edge = face & ~glass & ~ring & ~kick & ((np.abs(np.abs(u) - (half - 0.06)) < 0.022) | (np.abs(v - 0.94) < 0.02))
+        d[edge] = -1
+        return d, paint
+    panel = [B(a0, 0.02, a1, 2.08, -0.025, 0.025, DOOR, pattern=leaf)]
+    if open_:
+        angle = (-70 if side == "l" else 70) if axis == "x" else (70 if side == "l" else -70)
+        pivot = (hinge, 0, 0) if axis == "x" else (0, 0, hinge)
+        panel = turn(panel, rot_y(angle), pivot)
+    return prims + panel
 
 
 def window_prims(axis, low=False):
@@ -669,7 +729,7 @@ def export():
     man["wall_variants"] = WALL_VARIANTS
     for pat in sorted(set(WALL_FINISH_PATTERNS.values())):
         for axis in ("x", "z"):
-            for kind in ("full", "full_door", "full_window", "low", "low_window"):
+            for kind in ("full", "full_door", "full_door_l", "full_door_r", "full_window", "low", "low_window"):
                 for variant in range(WALL_VARIANTS):
                     cv = render_segment(axis, kind, pat, variant)
                     path = f"tiles/wall_{pat}_{axis}_{kind}_{variant}.png"
@@ -684,6 +744,8 @@ def export():
         man["posts"][kind] = {"file": f"tiles/post_{kind}.png", "ox": cv.ox, "oy": cv.oy}
     for axis in ("x", "z"):
         for name, prims in (("door", door_prims(axis)), ("door_open", door_prims(axis, True)),
+                            ("door2_l", double_door_prims(axis, "l")), ("door2_l_open", double_door_prims(axis, "l", True)),
+                            ("door2_r", double_door_prims(axis, "r")), ("door2_r_open", double_door_prims(axis, "r", True)),
                             ("window", window_prims(axis)), ("window_low", window_prims(axis, True))):
             cv = render(prims)
             finish(cv)

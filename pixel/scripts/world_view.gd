@@ -247,9 +247,27 @@ func sprite(tex: Texture2D, pos: Vector2, offset: Vector2, mat: Material = null)
 	if mat != null: s.material = mat
 	return s
 
+func door_pairs() -> Dictionary:
+	# Doors side by side on one wall line become double doors, two by two
+	# from the start of the run: door key -> "l" (first metre) or "r".
+	var out: Dictionary = {}
+	for key in model.openings:
+		if model.openings[key] != "door": continue
+		var c = key.split(":")
+		var step = Vector2i(1,0) if c[0] == "x" else Vector2i(0,1)
+		var at = Vector2i(int(c[1]),int(c[2]))
+		if model.openings.get(BuildingModel.edge_key(c[0],at.x-step.x,at.y-step.y),"") == "door": continue
+		var n = 0
+		while model.openings.get(BuildingModel.edge_key(c[0],at.x+step.x*n,at.y+step.y*n),"") == "door": n += 1
+		for i in range(0,n-1,2):
+			out[BuildingModel.edge_key(c[0],at.x+step.x*i,at.y+step.y*i)] = "l"
+			out[BuildingModel.edge_key(c[0],at.x+step.x*(i+1),at.y+step.y*(i+1))] = "r"
+	return out
+
 func build_walls() -> void:
 	var walls: Dictionary = model.edges()
 	var segs: Dictionary = {}
+	var pairs = door_pairs()
 	for key in walls:
 		var e: Dictionary = walls[key]
 		var axis: String = e.axis
@@ -264,8 +282,9 @@ func build_walls() -> void:
 		if full and not back_room.is_empty() and int(front_room.type) == 0 and int(back_room.type) == 0: full = false
 		var owner = front_room if not front_room.is_empty() else back_room
 		var opening: String = model.openings.get(key,"")
+		var pair: String = pairs.get(key,"")
 		var kind = "full" if full else "low"
-		if opening == "door": kind = "full_door" if full else ""
+		if opening == "door": kind = ("full_door"+("_"+pair if pair != "" else "")) if full else ""
 		elif opening == "window": kind = "full_window" if full else "low_window"
 		segs[key] = {"axis":axis,"x":x,"z":z,"full":full,"kind":kind,"owner":owner,"opening":opening}
 		var rect = Rect2(x,z,1,0) if axis == "x" else Rect2(x,z,0,1)
@@ -283,7 +302,7 @@ func build_walls() -> void:
 			entry.file = info.file
 		if opening != "":
 			var okey = ""
-			if opening == "door" and full: okey = "door:"+axis
+			if opening == "door" and full: okey = ("door2_%s:" % pair if pair != "" else "door:")+axis
 			elif opening == "window": okey = ("window:" if full else "window_low:")+axis
 			if okey != "":
 				var info: Dictionary = Art.tiles.openings[okey]
@@ -292,13 +311,17 @@ func build_walls() -> void:
 				entry.opening_sprite = s
 				entry.opening_file = info.file
 				if opening == "door":
-					var open_info: Dictionary = Art.tiles.openings["door_open:"+axis]
+					var open_info: Dictionary = Art.tiles.openings[okey.replace(":","_open:")]
 					var center = Vector2(x+0.5,z) if axis == "x" else Vector2(x,z+0.5)
-					doors.append({"sprite":s,"closed":Art.tex(info.file),"open":Art.tex(open_info.file),"center":center,"key":key})
+					# both leaves of a double door swing together, from its middle
+					if pair == "l": center = Vector2(x+1,z) if axis == "x" else Vector2(x,z+1)
+					elif pair == "r": center = Vector2(x,z)
+					doors.append({"sprite":s,"closed":Art.tex(info.file),"open":Art.tex(open_info.file),"center":center,"key":key,"reach":1.3 if pair != "" else 0.9})
 			var beyond = Vector2(x+0.5,z+(0.5 if front_room.is_empty() else -0.5)) if axis == "x" else Vector2(x+(0.5 if front_room.is_empty() else -0.5),z+0.5)
-			if opening == "door" and (front_room.is_empty() or back_room.is_empty()) and model.room_at(beyond).is_empty():
-				street_doors.append({"key":key,"axis":axis,"x":x,"z":z,"outside_positive":front_room.is_empty(),"room":owner})
-	# Posts close corners, wall ends and door gaps.
+			if opening == "door" and pair != "r" and (front_room.is_empty() or back_room.is_empty()) and model.room_at(beyond).is_empty():
+				street_doors.append({"key":key,"axis":axis,"x":x,"z":z,"outside_positive":front_room.is_empty(),"room":owner,"double":pair == "l"})
+	# Posts close the ends of high walls, and the corners, ends and door
+	# gaps of cut walls.
 	var points: Dictionary = {}
 	for key in segs:
 		var s: Dictionary = segs[key]
@@ -309,6 +332,8 @@ func build_walls() -> void:
 			points[p].append(s)
 	for p in points:
 		var list: Array = points[p]
+		# the middle of a double doorway in a cut wall: one wide passage
+		if list.size() == 2 and list[0].axis == list[1].axis and list[0].kind == "" and list[1].kind == "" and list[0].opening == "door" and list[1].opening == "door": continue
 		var need = list.size() != 2 or list[0].axis != list[1].axis
 		var any_full = false
 		var any_gap = false
@@ -320,6 +345,11 @@ func build_walls() -> void:
 		if any_gap: need = true
 		if list.size() == 2 and list[0].axis == list[1].axis and list[0].full != list[1].full: need = true
 		if not need: continue
+		# High walls joining high walls (a corner, a T, a crossing) meet by
+		# themselves: a post there only showed as a pillar standing in the
+		# corner. A post is kept where a high wall stops (at a cut wall, a
+		# gap or its free end): it is the end of that wall.
+		if list.size() >= 2 and list.all(func(q): return q.full and q.kind != ""): continue
 		var post_kind = "full" if any_full else "low"
 		# The dark low posts mark corners, wall ends and door frames. Where a
 		# low wall runs straight on (a T or a crossing), the wall that meets
@@ -696,21 +726,22 @@ func build_exterior() -> void:
 		bx += 2.0
 	var paths: Array = []
 	for d in street_doors:
+		var half = 1.0 if d.get("double",false) else 0.5   # a double door is 2 m wide
 		# a paved path across the lawn, from a front door to the sidewalk
 		if d.axis == "x" and d.outside_positive and float(d.z) < Street.WALK_NEAR.x:
-			var path = Rect2(d.x-0.25,d.z,1.5,Street.WALK_NEAR.x-d.z)
+			var path = Rect2(d.x-0.25,d.z,half*2.0+0.5,Street.WALK_NEAR.x-d.z)
 			var free = true
 			var pz = float(d.z)+0.5
 			while pz < Street.WALK_NEAR.x:
-				if not model.room_at(Vector2(d.x+0.5,pz)).is_empty(): free = false
+				if not model.room_at(Vector2(d.x+half,pz)).is_empty(): free = false
 				pz += 1.0
 			if free:
 				ground.add_child(textured_polygon(Iso.diamond(path.position.x,path.position.y,path.end.x,path.end.y),Art.tex(Art.tiles.floors.slabs),Palette.floor_palette(WALK_COLOR)))
 				paths.append(path)
-		var out = Vector2(d.x+0.5,d.z+1.2) if d.axis == "x" else Vector2(d.x+1.2,d.z+0.5)
-		if not d.outside_positive: out = Vector2(d.x+0.5,d.z-1.2) if d.axis == "x" else Vector2(d.x-1.2,d.z+0.5)
+		var out = Vector2(d.x+half,d.z+1.2) if d.axis == "x" else Vector2(d.x+1.2,d.z+half)
+		if not d.outside_positive: out = Vector2(d.x+half,d.z-1.2) if d.axis == "x" else Vector2(d.x-1.2,d.z+half)
 		var side = Vector2(1,0) if d.axis == "x" else Vector2(0,1)
-		var away = (out-Vector2(d.x+0.5,d.z)).normalized() if d.axis == "x" else (out-Vector2(d.x,d.z+0.5)).normalized()
+		var away = (out-Vector2(d.x+half,d.z)).normalized() if d.axis == "x" else (out-Vector2(d.x,d.z+half)).normalized()
 		# an old red carpet at the door, the club sign beside it, dumpsters further on
 		var carpet = Art.furniture_entry("rug",0 if d.axis == "x" else 1)
 		var cs = sprite(Art.tex(carpet.file),Iso.pixel(out.x,out.y+(0.4 if d.axis == "x" else 0.0)),Vector2(carpet.ox,carpet.oy),Art.rgba_material())
@@ -1444,7 +1475,7 @@ func _timed_process(delta: float) -> void:
 	for d in doors:
 		var open = false
 		for a in actors:
-			if is_instance_valid(a) and a.world.distance_to(d.center) < 0.9:
+			if is_instance_valid(a) and a.world.distance_to(d.center) < float(d.get("reach",0.9)):
 				open = true
 				break
 		d.sprite.texture = d.open if open else d.closed

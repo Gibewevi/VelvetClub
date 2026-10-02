@@ -1306,6 +1306,7 @@ func capture(path: String) -> void:
 		if arg == "--setup=partition": capture_partition()
 		if arg == "--setup=doorpick": capture_pointer = Vector2(3.1,2.5)
 		if arg == "--setup=tjunction": capture_tjunction()
+		if arg == "--setup=doubledoor": capture_double_doors()
 		if arg == "--setup=doorsel":
 			selected_edge = "z:3:2"
 			refresh()
@@ -1469,6 +1470,20 @@ func capture_tjunction() -> void:
 	# doors in the high walls: between two bedrooms, at the back, in the partition
 	for key in ["z:17:-8","x:15:-9","z:22:-7"]: model.set_opening(key,"door")
 	commit(before,"cloison")
+
+func capture_double_doors() -> void:
+	# Documentation: double swing doors. Two at the back of a bedroom (the
+	# left pair held open by a maid standing in it), one between two
+	# bedrooms, and a double front door in the cut wall.
+	var before = model.snapshot()
+	model.add_room(14,-9,4,4,1)
+	model.add_room(18,-9,4,4,1)
+	model.add_room(14,-13,8,4,0)
+	commit(before,"chambres")
+	before = model.snapshot()
+	for key in ["x:14:-9","x:15:-9","x:19:-9","x:20:-9","z:18:-8","z:18:-7","x:15:-5","x:16:-5"]: model.set_opening(key,"door")
+	model.add_item("maid",15.0,-8.5,0)
+	commit(before,"portes")
 
 func capture_partition() -> void:
 	# Documentation: a lounge split by partitions into two quiet corners,
@@ -2096,6 +2111,7 @@ func smoke_test() -> void:
 	door_pick_checks()
 	lawn_checks()
 	post_depth_checks()
+	double_door_checks()
 	print("SMOKE_TEST_RESULT: %d failures" % failures)
 	if failures == 0: print("SMOKE_TEST_PASSED")
 	get_tree().quit(1 if failures > 0 else 0)
@@ -2354,6 +2370,35 @@ func partition_ui_checks() -> void:
 	clear_selection()
 	changed_view()
 
+func double_door_checks() -> void:
+	# Two doors side by side make a double swing door.
+	var start = model.snapshot()
+	var keep_undo = undo_stack.duplicate()
+	var rich = sim.money
+	sim.money = 100000
+	capture_double_doors()
+	var pairs = view.door_pairs()
+	check(pairs.get("x:14:-9","") == "l" and pairs.get("x:15:-9","") == "r" and pairs.get("z:18:-8","") == "l" and pairs.get("z:18:-7","") == "r","Doors side by side pair up")
+	var leaves = view.statics.filter(func(e): return e.get("key","") == "x:14:-9" and e.kind == "wall")
+	check(leaves.size() == 1 and str(leaves[0].get("file","")).contains("full_door_l") and str(leaves[0].get("opening_file","")).contains("door2_l"),"The pair is drawn as one double door, no jamb in the middle")
+	var both = view.doors.filter(func(d): return d.key in ["x:14:-9","x:15:-9"])
+	check(both.size() == 2 and both[0].center == Vector2(15,-9) and both[1].center == Vector2(15,-9),"Both leaves swing from the middle of the doorway")
+	view._timed_process(0.0)
+	check(both.size() == 2 and both.all(func(d): return d.sprite.texture == d.open),"The maid in the doorway opens both leaves at once")
+	var shut = view.doors.filter(func(d): return d.key in ["x:19:-9","x:20:-9"])
+	check(shut.size() == 2 and shut.all(func(d): return d.sprite.texture == d.closed),"A double door nobody uses stays shut")
+	var post_at = func(x, z): return view.statics.any(func(e): return e.kind == "post" and Vector2i(e.rect.position) == Vector2i(x,z))
+	check(not post_at.call(16,-5) and post_at.call(15,-5) and post_at.call(17,-5),"A double doorway in a cut wall is one wide gap, posts at its ends only")
+	check(view.street_doors.filter(func(d): return d.key in ["x:15:-5","x:16:-5"]).size() == 1,"One carpet and one sign for a double front door")
+	model.set_opening("x:21:-9","door")
+	pairs = view.door_pairs()
+	check(pairs.get("x:19:-9","") == "l" and pairs.get("x:20:-9","") == "r" and not pairs.has("x:21:-9"),"Three doors in a row: a double door and a single one")
+	model.restore(start)
+	undo_stack = keep_undo
+	redo_stack.clear()
+	sim.money = rich
+	changed_view()
+
 func post_depth_checks() -> void:
 	# A full post where a high wall meets the cut front wall (a T) is drawn
 	# whole: after every wall that ends at it.
@@ -2370,6 +2415,8 @@ func post_depth_checks() -> void:
 		check(walls.size() == 3 and walls.all(func(w): return w.node.z_index < post.node.z_index),"The post is drawn over the ends of the three walls that meet it")
 	var post_at = func(x, z): return view.statics.any(func(e): return e.kind == "post" and Vector2i(e.rect.position) == Vector2i(x,z))
 	check(not post_at.call(17,-8) and not post_at.call(17,-7) and not post_at.call(22,-7) and not post_at.call(22,-6),"A door in a high wall has its frame, no posts beside it")
+	check(not post_at.call(14,-9) and not post_at.call(17,-9) and not post_at.call(20,-9) and not post_at.call(22,-9),"No post in the corners where high walls meet")
+	check(post_at.call(14,-5) and post_at.call(24,-9),"A post closes a high wall where it stops at a cut wall")
 	model.set_opening("x:18:-5","door")
 	view.rebuild()
 	check(post_at.call(18,-5) and post_at.call(19,-5),"A gap in a cut wall keeps its end posts")
