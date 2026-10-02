@@ -338,7 +338,9 @@ func build_walls() -> void:
 					# both leaves of a double door swing together, from its middle
 					if pair == "l": center = Vector2(x+1,z) if axis == "x" else Vector2(x,z+1)
 					elif pair == "r": center = Vector2(x,z)
-					doors.append({"sprite":s,"closed":Art.tex(info.file),"open":Art.tex(open_info.file),"frames":[Art.tex(info.file),Art.tex(ajar_info.file),Art.tex(open_info.file)],"swing":0.0,"center":center,"key":key,"reach":1.3 if pair != "" else 0.9})
+					var frames = [Art.tex(info.file),Art.tex(ajar_info.file),Art.tex(open_info.file)]
+					s.set_meta("frames",frames)
+					doors.append({"sprite":s,"closed":frames[0],"open":frames[2],"frames":frames,"swing":0.0,"center":center,"key":key,"reach":1.3 if pair != "" else 0.9})
 			var beyond = Vector2(x+0.5,z+(0.5 if front_room.is_empty() else -0.5)) if axis == "x" else Vector2(x+(0.5 if front_room.is_empty() else -0.5),z+0.5)
 			if opening == "door" and pair != "r" and (front_room.is_empty() or back_room.is_empty()) and model.room_at(beyond).is_empty():
 				street_doors.append({"key":key,"axis":axis,"x":x,"z":z,"outside_positive":front_room.is_empty(),"room":owner,"double":pair == "l"})
@@ -1164,11 +1166,14 @@ static func sprite_rect(s: Sprite2D, origin: Vector2) -> Rect2:
 	if s.texture == null: return Rect2()
 	var size = s.texture.get_size()/Vector2(maxi(s.hframes,1),maxi(s.vframes,1))
 	if s.hframes > 1 or s.vframes > 1: return Rect2(origin+s.position+s.offset,size)
-	var key = s.texture.resource_path
-	if not used_rects.has(key):
-		var img = s.texture.get_image()
-		used_rects[key] = Rect2(img.get_used_rect()) if img != null else Rect2(Vector2.ZERO,size)
-	var u: Rect2 = used_rects[key]
+	# a door: every picture of its swing counts (they share one canvas)
+	var u = Rect2()
+	for tex in (s.get_meta("frames") if s.has_meta("frames") else [s.texture]):
+		var key = tex.resource_path
+		if not used_rects.has(key):
+			var img = tex.get_image()
+			used_rects[key] = Rect2(img.get_used_rect()) if img != null else Rect2(Vector2.ZERO,size)
+		u = used_rects[key] if u.size == Vector2.ZERO else u.merge(used_rects[key])
 	return Rect2(origin+s.position+s.offset+u.position,u.size)
 
 func node_rect(node: Node2D) -> Rect2:

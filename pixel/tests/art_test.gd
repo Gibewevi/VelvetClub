@@ -195,6 +195,14 @@ func _init() -> void:
 	for v in range(4):
 		var bush: Dictionary = Art.tiles.props.get("lawn_bush_%d" % v,{})
 		check(not bush.is_empty() and Art.image(bush.file) != null and float(bush.size) > 0.5,"Bush %d exists, with its size" % v)
+	# A door's pictures (closed, ajar, open) share one canvas: swapping them
+	# while it swings must never shift the door.
+	for base in ["door","door2_l","door2_r"]:
+		for axis in ["x","z"]:
+			var states = []
+			for suffix in ["","_ajar","_open"]: states.append(Art.tiles.openings.get("%s%s:%s" % [base,suffix,axis],{}))
+			var same = states.all(func(e): return not e.is_empty() and int(e.ox) == int(states[0].ox) and int(e.oy) == int(states[0].oy) and Art.image(e.file) != null and Art.image(e.file).get_size() == Art.image(states[0].file).get_size())
+			check(same,"The swing pictures of %s (%s) share one canvas" % [base,axis])
 	# Palette ramps mirror the generator exactly.
 	var r = Palette.ramp(Color("c58f73"))
 	check(r[0].to_html(false) == "492028" and r[3].to_html(false) == "c58f73" and r[4].to_html(false) == "edc59f","Runtime ramps match the art generator")

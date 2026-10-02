@@ -1307,6 +1307,9 @@ func capture(path: String) -> void:
 		if arg == "--setup=doorpick": capture_pointer = Vector2(3.1,2.5)
 		if arg == "--setup=tjunction": capture_tjunction()
 		if arg == "--setup=doubledoor": capture_double_doors()
+		if arg == "--setup=doorwalk":
+			await capture_door_walk(path)
+			return
 		if arg == "--setup=doorsel":
 			selected_edge = "z:3:2"
 			refresh()
@@ -1470,6 +1473,38 @@ func capture_tjunction() -> void:
 	# doors in the high walls: between two bedrooms, at the back, in the partition
 	for key in ["z:17:-8","x:15:-9","z:22:-7"]: model.set_opening(key,"door")
 	commit(before,"cloison")
+
+func capture_door_walk(path: String) -> void:
+	# Check of the door animation: someone walks through a single door and
+	# a double door of a high wall, one picture per frame, as the game draws.
+	var before = model.snapshot()
+	model.add_room(14,-12,8,4,1)
+	model.add_room(14,-8,8,4,1)
+	commit(before,"chambres")
+	before = model.snapshot()
+	for key in ["x:15:-8","x:18:-8","x:19:-8"]: model.set_opening(key,"door")
+	commit(before,"portes")
+	set_speed(0)
+	hud.toast_time = 0
+	var a = Actor.new()
+	a.kind = "client"
+	a.configure(Characters.random_client(look_rng))
+	view.add_actor(a)
+	var focus = Iso.to_screen(17.5,-8.0)
+	camera.position = (focus-Vector2(viewport.size)/2.0).round()
+	var n = 0
+	for door in [Vector2(15.5,-8.0),Vector2(19.0,-8.0)]:
+		for i in range(36):
+			# from 1.6 m behind the wall to 1.6 m in front of it
+			a.set_world(door+Vector2(0.0,-1.6+3.2*float(i)/35.0))
+			a.face(Vector2(0,1))
+			a.play("walk")
+			await get_tree().process_frame
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png(path.replace(".png","_%03d.png" % n))
+			n += 1
+	print("CAPTURE_SAVED %d frames" % n)
+	get_tree().quit()
 
 func capture_double_doors() -> void:
 	# Documentation: double swing doors. Two at the back of a bedroom (the

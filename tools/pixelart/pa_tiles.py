@@ -467,7 +467,7 @@ BRASS = Mat("e0ae48")
 
 
 DOOR_ANGLES = (0, 35, 80)      # closed, ajar, open: the frames of a swing
-LEAF_T = 0.13                  # a leaf half as thick as the wall, set back in it
+LEAF_T = WALL_T                # a leaf as thick as the wall itself
 
 
 def door_frame_prims(axis, a0, a1, left=True, right=True):
@@ -495,7 +495,7 @@ def swing(prims, axis, hinge, toward, angle):
     if angle == 0:
         return prims
     t2 = WALL_T / 2
-    front = -t2 + LEAF_T
+    front = t2
     deg = (-angle if toward > 0 else angle) if axis == "x" else (angle if toward > 0 else -angle)
     pivot = (hinge, 0, front) if axis == "x" else (front, 0, hinge)
     return turn(prims, rot_y(deg), pivot)
@@ -526,8 +526,8 @@ def door_prims(axis, state=0):
         edge = ins & ((np.abs(np.abs(u) - 0.27) < 0.03) | (np.abs(v - 0.21) < 0.025) | (np.abs(v - 1.19) < 0.025))
         d[edge] = -1
         return d, paint
-    front = -t2 + LEAF_T
-    leaf = [B(0.13, 0.0, 0.87, 2.09, -t2, front, DOOR, pattern=panel),
+    front = t2
+    leaf = [B(0.13, 0.0, 0.87, 2.09, -t2, t2, DOOR, pattern=panel),
             B(0.74, 0.98, 0.8, 1.02, front, front + 0.04, BRASS)]
     return door_frame_prims(axis, 0.07, 0.93) + swing(leaf, axis, 0.13, 1, DOOR_ANGLES[state])
 
@@ -577,7 +577,7 @@ def double_door_prims(axis, side, state=0):
         edge = face & ~glass & ~ring & ~kick & ((np.abs(np.abs(u) - (half - 0.06)) < 0.022) | (np.abs(v - 0.94) < 0.02))
         d[edge] = -1
         return d, paint
-    panel = [B(a0, 0.02, a1, 2.08, -t2, -t2 + LEAF_T, DOOR, pattern=leaf)]
+    panel = [B(a0, 0.02, a1, 2.08, -t2, t2, DOOR, pattern=leaf)]
     return prims + swing(panel, axis, hinge, 1 if side == "l" else -1, DOOR_ANGLES[state])
 
 
@@ -841,11 +841,24 @@ def export():
         save(cv.rgba, f"tiles/post_{kind}.png")
         man["posts"][kind] = {"file": f"tiles/post_{kind}.png", "ox": cv.ox, "oy": cv.oy}
     for axis in ("x", "z"):
+        # a door's three pictures (closed, ajar, open) share one canvas, so
+        # swapping them never shifts the door
+        states = {"door": [door_prims(axis, k) for k in range(3)],
+                  "door2_l": [double_door_prims(axis, "l", k) for k in range(3)],
+                  "door2_r": [double_door_prims(axis, "r", k) for k in range(3)]}
+        shared = {}
+        for base, sets in states.items():
+            pts = []
+            for prims in sets:
+                for q in prims:
+                    pts += [tuple(c) for c in q.corners()]
+            for k, suffix in enumerate(("", "_ajar", "_open")):
+                shared[base + suffix] = pts
         for name, prims in (("door", door_prims(axis)), ("door_ajar", door_prims(axis, 1)), ("door_open", door_prims(axis, 2)),
                             ("door2_l", double_door_prims(axis, "l")), ("door2_l_ajar", double_door_prims(axis, "l", 1)), ("door2_l_open", double_door_prims(axis, "l", 2)),
                             ("door2_r", double_door_prims(axis, "r")), ("door2_r_ajar", double_door_prims(axis, "r", 1)), ("door2_r_open", double_door_prims(axis, "r", 2)),
                             ("window", window_prims(axis)), ("window_low", window_prims(axis, True))):
-            cv = render(prims)
+            cv = render(prims, bounds=shared.get(name))
             finish(cv)
             path = f"tiles/{name}_{axis}.png"
             save(cv.rgba, path)
