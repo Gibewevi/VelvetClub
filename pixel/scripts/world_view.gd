@@ -284,6 +284,8 @@ func build_walls() -> void:
 				var info: Dictionary = Art.tiles.openings[okey]
 				var s = sprite(Art.tex(info.file),pos,Vector2(info.ox,info.oy),Art.rgba_material())
 				node.add_child(s)
+				entry.opening_sprite = s
+				entry.opening_file = info.file
 				if opening == "door":
 					var open_info: Dictionary = Art.tiles.openings["door_open:"+axis]
 					var center = Vector2(x+0.5,z) if axis == "x" else Vector2(x,z+0.5)
@@ -1432,16 +1434,37 @@ func pick(p: Vector2) -> Dictionary:
 	return best
 
 func pick_wall(p: Vector2) -> String:
+	# The front-most wall under the pointer. A door or a window counts as
+	# its wall: the wall picture has a hole where the door stands.
 	var best = ""
 	var best_z = -100000
 	for e in statics:
-		if e.kind != "wall" or not e.has("sprite"): continue
-		var s: Sprite2D = e.sprite
-		if s.z_index < best_z and best != "": continue
-		var local = Vector2i((p-s.position-s.offset).floor())
-		if Art.alpha_at(e.file,local):
-			best = e.key
-			best_z = e.node.z_index
+		if e.kind != "wall": continue
+		var z: int = e.node.z_index
+		if best != "" and z < best_z: continue
+		for part in [["sprite","file"],["opening_sprite","opening_file"]]:
+			if not e.has(part[0]): continue
+			var s: Sprite2D = e[part[0]]
+			var local = Vector2i((p-s.position-s.offset).floor())
+			if Art.alpha_at(e[part[1]],local):
+				best = e.key
+				best_z = z
+				break
+	return best
+
+func opening_near(p: Vector2, reach: float = 0.35) -> String:
+	# The door or window closest to a floor point: a door in a cut wall has
+	# no picture to click, only the gap between two posts.
+	var best = ""
+	var best_d = reach
+	for key in model.openings:
+		var c = key.split(":")
+		var a = Vector2(int(c[1]),int(c[2]))
+		var b = a+(Vector2(1,0) if c[0] == "x" else Vector2(0,1))
+		var d = Geometry2D.get_closest_point_to_segment(p,a,b).distance_to(p)
+		if d < best_d:
+			best_d = d
+			best = key
 	return best
 
 func nearest_edge(p: Vector2) -> String:

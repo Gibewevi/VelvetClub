@@ -877,7 +877,13 @@ func begin_action(screen: Vector2) -> void:
 		if key == "":
 			hud.toast("Visez un mur existant.")
 			return
-		if model.openings.get(key) == mode: return
+		if model.openings.get(key) == mode:
+			# already there: select it, to close it up or keep it
+			set_mode("select")
+			selected_edge = key
+			refresh()
+			hud.toast(edge_name(key)+" sélectionnée · Reboucher ou Suppr pour la supprimer.")
+			return
 		var before = model.snapshot()
 		model.set_opening(key,mode)
 		commit(before,("Porte" if mode == "door" else "Fenêtre")+" intégrée au mur.")
@@ -904,8 +910,8 @@ func begin_action(screen: Vector2) -> void:
 		var item = model.item_by_id(selected_item)
 		if not Catalog.is_debris(item.kind): drag = {"kind":"move","id":selected_item,"start":p,"screen":screen,"original":item.duplicate()}
 	else:
-		var key = view.pick_wall(wp)
-		if key != "" and (model.openings.has(key) or not model.partition_room(key).is_empty()): selected_edge = key
+		var key = edge_at(screen)
+		if key != "": selected_edge = key
 		else:
 			room = model.room_at(p)
 			if not room.is_empty(): selected_room = int(room.id)
@@ -915,6 +921,7 @@ func begin_action(screen: Vector2) -> void:
 	refresh()
 
 const WALL_REACH = 0.3   # a drawing this close to a wall starts from it
+const HOVER_EDGE = Color("ffe08a")   # a door, window or partition under the pointer
 
 func growth_start(screen: Vector2) -> Dictionary:
 	# Where a drawing starts says what the player means, without a choice to
@@ -1087,7 +1094,9 @@ func update_preview(screen: Vector2) -> void:
 		var item = {"kind":chosen_item,"x":p.x,"z":p.y,"rot":placement_rot(p),"appearance":placement_appearance}
 		view.preview_item(item,model.valid_item(item,moving_item))
 	elif mode in ["door","window"]:
-		view.preview_edge(view.nearest_edge(wp),mode)
+		var key = view.nearest_edge(wp)
+		view.preview_edge(key,mode)
+		hud.show_hover((edge_name(key)+" déjà là · cliquer pour la sélectionner") if model.openings.get(key) == mode else "",screen)
 	elif mode in ["parking","parking_lane"]:
 		show_parking_preview(parking_candidate({},screen))
 	elif mode == "partition":
@@ -1136,8 +1145,26 @@ func update_preview(screen: Vector2) -> void:
 				if not pk.is_empty():
 					var n = view.parking_layouts.get(int(pk.id),{}).get("bays",[]).size()
 					text = "Parking · %d place%s" % [n,"s" if n > 1 else ""]
+		# a door, window or partition under the pointer: lit and named
+		var edge = edge_at(screen) if not hit.has("actor") and not hit.has("item") else ""
+		if edge != "":
+			text = edge_name(edge)+" · cliquer pour sélectionner"
+			view.show_edge(edge,HOVER_EDGE,not model.openings.has(edge))
+		else: view.show_edge(selected_edge,WorldView.ACCENT,true)
 		view.hover_item(hover_id)
 		hud.show_hover(text,screen)
+
+func edge_at(screen: Vector2) -> String:
+	# The door, window or partition under the pointer: its picture first,
+	# else the door or window whose gap is right by the floor point (walls
+	# cut, or a door hidden behind a wall).
+	var key = view.pick_wall(world_px(screen))
+	if key != "" and (model.openings.has(key) or not model.partition_room(key).is_empty()): return key
+	return view.opening_near(ground_at(screen))
+
+func edge_name(key: String) -> String:
+	if model.openings.has(key): return "Porte" if model.openings[key] == "door" else "Fenêtre"
+	return "Cloison"
 
 func partition_line(d: Dictionary, screen: Vector2) -> Dictionary:
 	# a straight wall from the grid point where the drag started, along the
@@ -1277,6 +1304,10 @@ func capture(path: String) -> void:
 		if arg == "--setup=dust": capture_dust()
 		if arg == "--setup=cloak": capture_cloak()
 		if arg == "--setup=partition": capture_partition()
+		if arg == "--setup=doorpick": capture_pointer = Vector2(3.1,2.5)
+		if arg == "--setup=doorsel":
+			selected_edge = "z:3:2"
+			refresh()
 		if arg == "--setup=team": capture_recruit(0)
 		if arg == "--setup=recruit": capture_recruit(1)
 		if arg == "--open": toggle_open()
@@ -2047,6 +2078,7 @@ func smoke_test() -> void:
 	dust_checks()
 	partition_ui_checks()
 	hire_checks()
+	door_pick_checks()
 	print("SMOKE_TEST_RESULT: %d failures" % failures)
 	if failures == 0: print("SMOKE_TEST_PASSED")
 	get_tree().quit(1 if failures > 0 else 0)
@@ -2301,6 +2333,63 @@ func partition_ui_checks() -> void:
 	undo_stack = keep_undo
 	redo_stack.clear()
 	sim.money = rich
+	set_mode("select")
+	clear_selection()
+	changed_view()
+
+func door_pick_checks() -> void:
+	# A door is easy to pick to close it up: on its own picture when walls
+	# stand high, by its gap when they are cut, with the door tool too.
+	var start = model.snapshot()
+	var keep_undo = undo_stack.duplicate()
+	var keep_walls = view.wall_mode
+	var before = model.snapshot()
+	model.add_room(15,-20,6,4,1)
+	model.set_opening("x:17:-20","door")   # back wall: drawn full height
+	model.set_opening("x:19:-16","door")   # front wall: cut, only a gap
+	commit(before,"pièce")
+	set_mode("select")
+	var walls = view.statics.filter(func(q): return q.get("key","") == "x:17:-20" and q.kind == "wall")
+	check(not walls.is_empty() and walls[0].has("opening_sprite"),"The door on the back wall is drawn")
+	if not walls.is_empty() and walls[0].has("opening_sprite"):
+		# a pixel of the door leaf, where the wall picture has its hole
+		var e: Dictionary = walls[0]
+		var door: Sprite2D = e.opening_sprite
+		var leaf = Vector2.INF
+		var size = door.texture.get_size()
+		for y in range(int(size.y)):
+			for x in range(int(size.x)):
+				var wp = door.position+door.offset+Vector2(x,y)
+				var on_wall = Art.alpha_at(e.file,Vector2i((wp-e.sprite.position-e.sprite.offset).floor()))
+				if leaf == Vector2.INF and Art.alpha_at(e.opening_file,Vector2i(x,y)) and not on_wall: leaf = wp+Vector2(0.5,0.5)
+		check(leaf != Vector2.INF,"The wall picture has a hole where the door stands")
+		if leaf != Vector2.INF:
+			var screen = (leaf-camera.position)*float(zoom)
+			begin_action(screen)
+			check(selected_edge == "x:17:-20","A click on the door itself selects it")
+	# a door in a cut wall: a click by its gap
+	clear_selection()
+	begin_action(screen_of(19.5,-15.9))
+	check(selected_edge == "x:19:-16","A click by the gap of a door in a cut wall selects it")
+	clear_selection()
+	view.wall_mode = 1
+	view.rebuild()
+	update_preview(screen_of(17.5,-19.85))
+	check(hud.hover_label.text.begins_with("Porte · cliquer"),"Hovering a door says a click selects it")
+	begin_action(screen_of(17.5,-19.85))
+	check(selected_edge == "x:17:-20","Walls cut, the back door is picked by its gap")
+	refresh()
+	check(hud.context_body.find_children("*","Button",true,false).any(func(b): return b.text == "Reboucher"),"Its panel offers to close it up")
+	delete_selection()
+	check(not model.openings.has("x:17:-20"),"Closed up")
+	# the door tool on a door already there selects it
+	set_mode("door")
+	begin_action(screen_of(19.5,-15.9))
+	check(mode == "select" and selected_edge == "x:19:-16" and model.openings.get("x:19:-16") == "door","The door tool on an existing door selects it")
+	view.wall_mode = keep_walls
+	model.restore(start)
+	undo_stack = keep_undo
+	redo_stack.clear()
 	set_mode("select")
 	clear_selection()
 	changed_view()
