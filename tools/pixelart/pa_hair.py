@@ -259,6 +259,19 @@ def hat_layer(hat, fig):
         else:
             tone[(PY >= hy + 4.5) & (PY < hy + 6) & (np.abs(PX - cx) < 2)] = DEEP
         tone[(XX == int(cx - 0.5)) & (YY == int(hy))] = HI
+    elif hat == "hardhat":
+        # site safety helmet: high round shell, ridge on top, short peak all
+        # round (role "prop": yellow in the workers' palette)
+        shell = ellipse(cx, hy + 4.2, 8.2, 5.6) & (PY < hy + 4.8)
+        brim = (PY >= hy + 4.0) & (PY < hy + 5.6) & ellipse(cx + (0.6 if front else -0.6), hy + 4.8, 9.4, 2.2)
+        mask |= shell | brim
+        role[mask] = "prop"
+        tone[shell & (PX < cx - 2.5)] = HI
+        tone[shell & (PX > cx + 3.5)] = SH
+        tone[brim] = SH
+        tone[brim & (PY < hy + 4.8) & (PX < cx)] = MID
+        ridge = (np.abs(PX - (cx - 0.5)) < 1.0) & (PY < hy + 2.6) & shell
+        tone[ridge] = HI
     elif hat == "headband":
         band = ellipse(cx - 0.2, hy + 5.0, 8.0, 6.4) & (PY >= hy - 0.5) & (PY < hy + 2.2)
         mask |= band

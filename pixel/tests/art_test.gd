@@ -77,8 +77,10 @@ func _init() -> void:
 		check(bad == 0,"Sheet %s only uses palette indices" % key)
 	for anim in ["front:idle","front:walk","front:sit","front:dance","front:mop","front:work","back:idle","back:walk","back:sit","front:stand","back:stand","front:kneel","back:kneel"]:
 		check(Art.chars.anims.has(anim),"Animation %s exists" % anim)
-	for anim in ["front:stand","back:stand","front:kneel","back:kneel"]:
+	for anim in ["front:stand","back:stand"]:
 		check(Art.chars.anims[anim].size() == 1,"Pose %s is static" % anim)
+	for anim in ["front:kneel","back:kneel"]:
+		check(Art.chars.anims[anim].size() == 6,"Resting pose %s has a slow breathing cycle" % anim)
 	# Bodies stay in one piece in every frame (no seam or break between the
 	# legs and the body), stand on the anchor row and keep a steady leg size
 	# through the walk cycle.
@@ -151,7 +153,7 @@ func _init() -> void:
 				var name = Catalog.anim_kind({"kind":kind,"scheme":sc},f)
 				check(not Art.furniture_entry(name,0).is_empty() and not Art.furniture_entry(name,3).is_empty(),"%s has its picture" % name)
 	# Beds in use and unmade beds have their own pictures.
-	for kind in ["bed_busy","bed_busy_1","bed_busy_2","bed_busy_3","bed_unmade","old_bed_busy","old_bed_busy_1","old_bed_busy_2","old_bed_busy_3","old_bed_unmade","clothes_pile"]:
+	for kind in ["bed_busy","bed_busy_1","bed_busy_2","bed_busy_3","bed_unmade","heart_bed_busy","heart_bed_busy_1","heart_bed_busy_2","heart_bed_busy_3","heart_bed_unmade","old_bed_busy","old_bed_busy_1","old_bed_busy_2","old_bed_busy_3","old_bed_unmade","clothes_pile"]:
 		for r in range(4):
 			check(not Art.furniture_entry(kind,r).is_empty(),"%s has art for rotation %d" % [kind,r])
 	for icon in ["talk","no","sick","wash","heart","dollar","bang","star","zzz","sweat"]:

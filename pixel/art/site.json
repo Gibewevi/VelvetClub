@@ -1,0 +1,685 @@
+{
+ "rows": 14,
+ "row_px": 4,
+ "wall:x:plain:1": {
+  "file": "site/wall_x_plain_1.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:plain:2": {
+  "file": "site/wall_x_plain_2.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:plain:3": {
+  "file": "site/wall_x_plain_3.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:plain:4": {
+  "file": "site/wall_x_plain_4.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:plain:5": {
+  "file": "site/wall_x_plain_5.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:plain:6": {
+  "file": "site/wall_x_plain_6.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:plain:7": {
+  "file": "site/wall_x_plain_7.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:plain:8": {
+  "file": "site/wall_x_plain_8.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:plain:9": {
+  "file": "site/wall_x_plain_9.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:plain:10": {
+  "file": "site/wall_x_plain_10.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:plain:11": {
+  "file": "site/wall_x_plain_11.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:plain:12": {
+  "file": "site/wall_x_plain_12.png",
+  "ox": 21,
+  "oy": 60
+ },
+ "wall:x:plain:13": {
+  "file": "site/wall_x_plain_13.png",
+  "ox": 21,
+  "oy": 65
+ },
+ "wall:x:plain:14": {
+  "file": "site/wall_x_plain_14.png",
+  "ox": 21,
+  "oy": 68
+ },
+ "wall:x:door:1": {
+  "file": "site/wall_x_door_1.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:door:2": {
+  "file": "site/wall_x_door_2.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:door:3": {
+  "file": "site/wall_x_door_3.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:door:4": {
+  "file": "site/wall_x_door_4.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:door:5": {
+  "file": "site/wall_x_door_5.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:door:6": {
+  "file": "site/wall_x_door_6.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:door:7": {
+  "file": "site/wall_x_door_7.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:door:8": {
+  "file": "site/wall_x_door_8.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:door:9": {
+  "file": "site/wall_x_door_9.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:door:10": {
+  "file": "site/wall_x_door_10.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:door:11": {
+  "file": "site/wall_x_door_11.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:door:12": {
+  "file": "site/wall_x_door_12.png",
+  "ox": 21,
+  "oy": 60
+ },
+ "wall:x:door:13": {
+  "file": "site/wall_x_door_13.png",
+  "ox": 21,
+  "oy": 65
+ },
+ "wall:x:door:14": {
+  "file": "site/wall_x_door_14.png",
+  "ox": 21,
+  "oy": 68
+ },
+ "wall:x:window:1": {
+  "file": "site/wall_x_window_1.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:window:2": {
+  "file": "site/wall_x_window_2.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:window:3": {
+  "file": "site/wall_x_window_3.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:window:4": {
+  "file": "site/wall_x_window_4.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:window:5": {
+  "file": "site/wall_x_window_5.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:window:6": {
+  "file": "site/wall_x_window_6.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:window:7": {
+  "file": "site/wall_x_window_7.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:window:8": {
+  "file": "site/wall_x_window_8.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:window:9": {
+  "file": "site/wall_x_window_9.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:window:10": {
+  "file": "site/wall_x_window_10.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:window:11": {
+  "file": "site/wall_x_window_11.png",
+  "ox": 21,
+  "oy": 59
+ },
+ "wall:x:window:12": {
+  "file": "site/wall_x_window_12.png",
+  "ox": 21,
+  "oy": 60
+ },
+ "wall:x:window:13": {
+  "file": "site/wall_x_window_13.png",
+  "ox": 21,
+  "oy": 65
+ },
+ "wall:x:window:14": {
+  "file": "site/wall_x_window_14.png",
+  "ox": 21,
+  "oy": 68
+ },
+ "wall:z:plain:1": {
+  "file": "site/wall_z_plain_1.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:plain:2": {
+  "file": "site/wall_z_plain_2.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:plain:3": {
+  "file": "site/wall_z_plain_3.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:plain:4": {
+  "file": "site/wall_z_plain_4.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:plain:5": {
+  "file": "site/wall_z_plain_5.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:plain:6": {
+  "file": "site/wall_z_plain_6.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:plain:7": {
+  "file": "site/wall_z_plain_7.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:plain:8": {
+  "file": "site/wall_z_plain_8.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:plain:9": {
+  "file": "site/wall_z_plain_9.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:plain:10": {
+  "file": "site/wall_z_plain_10.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:plain:11": {
+  "file": "site/wall_z_plain_11.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:plain:12": {
+  "file": "site/wall_z_plain_12.png",
+  "ox": 37,
+  "oy": 60
+ },
+ "wall:z:plain:13": {
+  "file": "site/wall_z_plain_13.png",
+  "ox": 37,
+  "oy": 65
+ },
+ "wall:z:plain:14": {
+  "file": "site/wall_z_plain_14.png",
+  "ox": 37,
+  "oy": 68
+ },
+ "wall:z:door:1": {
+  "file": "site/wall_z_door_1.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:door:2": {
+  "file": "site/wall_z_door_2.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:door:3": {
+  "file": "site/wall_z_door_3.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:door:4": {
+  "file": "site/wall_z_door_4.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:door:5": {
+  "file": "site/wall_z_door_5.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:door:6": {
+  "file": "site/wall_z_door_6.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:door:7": {
+  "file": "site/wall_z_door_7.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:door:8": {
+  "file": "site/wall_z_door_8.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:door:9": {
+  "file": "site/wall_z_door_9.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:door:10": {
+  "file": "site/wall_z_door_10.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:door:11": {
+  "file": "site/wall_z_door_11.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:door:12": {
+  "file": "site/wall_z_door_12.png",
+  "ox": 37,
+  "oy": 60
+ },
+ "wall:z:door:13": {
+  "file": "site/wall_z_door_13.png",
+  "ox": 37,
+  "oy": 65
+ },
+ "wall:z:door:14": {
+  "file": "site/wall_z_door_14.png",
+  "ox": 37,
+  "oy": 68
+ },
+ "wall:z:window:1": {
+  "file": "site/wall_z_window_1.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:window:2": {
+  "file": "site/wall_z_window_2.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:window:3": {
+  "file": "site/wall_z_window_3.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:window:4": {
+  "file": "site/wall_z_window_4.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:window:5": {
+  "file": "site/wall_z_window_5.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:window:6": {
+  "file": "site/wall_z_window_6.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:window:7": {
+  "file": "site/wall_z_window_7.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:window:8": {
+  "file": "site/wall_z_window_8.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:window:9": {
+  "file": "site/wall_z_window_9.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:window:10": {
+  "file": "site/wall_z_window_10.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:window:11": {
+  "file": "site/wall_z_window_11.png",
+  "ox": 37,
+  "oy": 59
+ },
+ "wall:z:window:12": {
+  "file": "site/wall_z_window_12.png",
+  "ox": 37,
+  "oy": 60
+ },
+ "wall:z:window:13": {
+  "file": "site/wall_z_window_13.png",
+  "ox": 37,
+  "oy": 65
+ },
+ "wall:z:window:14": {
+  "file": "site/wall_z_window_14.png",
+  "ox": 37,
+  "oy": 68
+ },
+ "post:1": {
+  "file": "site/post_1.png",
+  "ox": 8,
+  "oy": 59
+ },
+ "post:2": {
+  "file": "site/post_2.png",
+  "ox": 8,
+  "oy": 59
+ },
+ "post:3": {
+  "file": "site/post_3.png",
+  "ox": 8,
+  "oy": 59
+ },
+ "post:4": {
+  "file": "site/post_4.png",
+  "ox": 8,
+  "oy": 59
+ },
+ "post:5": {
+  "file": "site/post_5.png",
+  "ox": 8,
+  "oy": 59
+ },
+ "post:6": {
+  "file": "site/post_6.png",
+  "ox": 8,
+  "oy": 59
+ },
+ "post:7": {
+  "file": "site/post_7.png",
+  "ox": 8,
+  "oy": 59
+ },
+ "post:8": {
+  "file": "site/post_8.png",
+  "ox": 8,
+  "oy": 59
+ },
+ "post:9": {
+  "file": "site/post_9.png",
+  "ox": 8,
+  "oy": 59
+ },
+ "post:10": {
+  "file": "site/post_10.png",
+  "ox": 8,
+  "oy": 59
+ },
+ "post:11": {
+  "file": "site/post_11.png",
+  "ox": 8,
+  "oy": 59
+ },
+ "post:12": {
+  "file": "site/post_12.png",
+  "ox": 8,
+  "oy": 59
+ },
+ "post:13": {
+  "file": "site/post_13.png",
+  "ox": 8,
+  "oy": 59
+ },
+ "post:14": {
+  "file": "site/post_14.png",
+  "ox": 8,
+  "oy": 62
+ },
+ "pallet_blocks_0": {
+  "file": "site/pallet_blocks_0.png",
+  "ox": 18,
+  "oy": 14
+ },
+ "pallet_blocks_1": {
+  "file": "site/pallet_blocks_1.png",
+  "ox": 18,
+  "oy": 18
+ },
+ "pallet_blocks_2": {
+  "file": "site/pallet_blocks_2.png",
+  "ox": 18,
+  "oy": 23
+ },
+ "pallet_blocks_3": {
+  "file": "site/pallet_blocks_3.png",
+  "ox": 18,
+  "oy": 27
+ },
+ "pallet_blocks_4": {
+  "file": "site/pallet_blocks_4.png",
+  "ox": 18,
+  "oy": 32
+ },
+ "mixer_0": {
+  "file": "site/mixer_0.png",
+  "ox": 20,
+  "oy": 32
+ },
+ "mixer_1": {
+  "file": "site/mixer_1.png",
+  "ox": 20,
+  "oy": 32
+ },
+ "mixer_2": {
+  "file": "site/mixer_2.png",
+  "ox": 20,
+  "oy": 32
+ },
+ "mixer_3": {
+  "file": "site/mixer_3.png",
+  "ox": 20,
+  "oy": 32
+ },
+ "barrow_0_0": {
+  "file": "site/barrow_0_0.png",
+  "ox": 23,
+  "oy": 28
+ },
+ "barrow_0_1": {
+  "file": "site/barrow_0_1.png",
+  "ox": 23,
+  "oy": 28
+ },
+ "barrow_1_0": {
+  "file": "site/barrow_1_0.png",
+  "ox": 17,
+  "oy": 28
+ },
+ "barrow_1_1": {
+  "file": "site/barrow_1_1.png",
+  "ox": 17,
+  "oy": 28
+ },
+ "barrow_2_0": {
+  "file": "site/barrow_2_0.png",
+  "ox": 14,
+  "oy": 24
+ },
+ "barrow_2_1": {
+  "file": "site/barrow_2_1.png",
+  "ox": 14,
+  "oy": 24
+ },
+ "barrow_3_0": {
+  "file": "site/barrow_3_0.png",
+  "ox": 23,
+  "oy": 24
+ },
+ "barrow_3_1": {
+  "file": "site/barrow_3_1.png",
+  "ox": 23,
+  "oy": 24
+ },
+ "barrow_parked": {
+  "file": "site/barrow_parked.png",
+  "ox": 15,
+  "oy": 29
+ },
+ "light": {
+  "file": "site/light.png",
+  "ox": 10,
+  "oy": 47,
+  "glow": {
+   "y": -39,
+   "color": "ffe6a8",
+   "radius": 2.4,
+   "power": 0.55
+  }
+ },
+ "sawhorse": {
+  "file": "site/sawhorse.png",
+  "ox": 19,
+  "oy": 30
+ },
+ "bucket": {
+  "file": "site/bucket.png",
+  "ox": 10,
+  "oy": 13
+ },
+ "bags": {
+  "file": "site/bags.png",
+  "ox": 16,
+  "oy": 18
+ },
+ "rebar": {
+  "file": "site/rebar.png",
+  "ox": 18,
+  "oy": 17
+ },
+ "paint": {
+  "file": "site/paint.png",
+  "ox": 10,
+  "oy": 13
+ },
+ "parquet_0": {
+  "file": "site/parquet_0.png",
+  "ox": 16,
+  "oy": 11
+ },
+ "parquet_1": {
+  "file": "site/parquet_1.png",
+  "ox": 16,
+  "oy": 12
+ },
+ "parquet_2": {
+  "file": "site/parquet_2.png",
+  "ox": 16,
+  "oy": 14
+ },
+ "parquet_3": {
+  "file": "site/parquet_3.png",
+  "ox": 16,
+  "oy": 16
+ },
+ "blocks": {
+  "file": "site/blocks.png",
+  "ox": 13,
+  "oy": 17
+ },
+ "tape_x": {
+  "file": "site/tape_x.png",
+  "ox": 4,
+  "oy": 26
+ },
+ "tape_z": {
+  "file": "site/tape_z.png",
+  "ox": 20,
+  "oy": 26
+ },
+ "carry_block": {
+  "file": "site/carry_block.png",
+  "ox": 9,
+  "oy": 11
+ },
+ "carry_planks": {
+  "file": "site/carry_planks.png",
+  "ox": 11,
+  "oy": 9
+ },
+ "carry_bucket": {
+  "file": "site/carry_bucket.png",
+  "ox": 7,
+  "oy": 10
+ },
+ "carry_bag": {
+  "file": "site/carry_bag.png",
+  "ox": 9,
+  "oy": 9
+ },
+ "plank_x": {
+  "file": "site/plank_x.png",
+  "ox": 9,
+  "oy": 7
+ },
+ "plank_z": {
+  "file": "site/plank_z.png",
+  "ox": 9,
+  "oy": 7
+ }
+}

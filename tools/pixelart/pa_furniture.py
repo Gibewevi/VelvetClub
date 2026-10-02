@@ -9,7 +9,7 @@ import math
 import numpy as np
 
 from pa_core import ramp, hexrgb, mix, INK, save, write_json, preview
-from pa_iso import (Mat, box, boxc, cyl, ell, lathe, rod, rot_x, rot_y, rot_z, turn, render, finish, screen, dot, stroke,
+from pa_iso import (Mat, box, boxc, cyl, ell, triangle, lathe, rod, rot_x, rot_y, rot_z, turn, render, finish, screen, dot, stroke,
                     ray_t, V)
 from pa_draw2d import palm, heart_points, Pix, monstera, strelitzia_flowers, fairy_lights
 
@@ -172,6 +172,209 @@ def legs4(w, d, h, r, mat, inset=0.06):
         for z in (-d / 2 + inset, d / 2 - inset):
             out.append(cyl(x, 0, z, r, h, mat))
     return out
+
+
+def rounded_slab(cx, cy, cz, w, h, d, mat, radius=0.14, pattern=None):
+    """A solid with rounded footprint corners, painted on the native grid."""
+    r = min(radius, w / 2 - .01, d / 2 - .01)
+    group = object()
+    out = [boxc(cx, cy-h/2, cz, w-2*r, h, d, mat, group=group, pattern=pattern),
+           boxc(cx, cy-h/2, cz, w, h, d-2*r, mat, group=group, pattern=pattern)]
+    for x in (-w/2+r, w/2-r):
+        for z in (-d/2+r, d/2-r):
+            out.append(cyl(cx+x, cy-h/2, cz+z, r, h, mat, group=group, pattern=pattern))
+    return out
+
+
+def rounded_panel(cx, cy, cz, w, h, depth, radius, mat):
+    # Turn a rounded horizontal slab into an upholstered vertical panel.
+    return [p.transformed(rot_x(90)) for p in rounded_slab(cx, cz, -cy, w, depth, h, mat, radius)]
+
+
+def heart_upholstery(cx, cy):
+    def pattern(p,ln,w,n):
+        x,y = p[:,0]+cx,p[:,1]+cy
+        front = ln[:,2] > .5
+        tone = np.zeros(len(p),dtype=int)
+        for bx,by in [(-.53,1.23),(.53,1.23),(0,.91)]:
+            dx,dy = x-bx,y-by
+            nearby = dx*dx+(dy*.8)**2 < .085
+            # Large, quiet folds around the upholstery buttons, no noise.
+            crease = (np.abs(dx-1.1*dy)<.026) | (np.abs(dx+1.1*dy)<.026)
+            tone[front & nearby & crease] = -1
+            arc = (dx/.45)**2+((dy-.13)/.32)**2
+            tone[front & (arc>.72) & (arc<1.05) & (dy>.12)] = 1
+        return tone
+    return pattern
+
+
+def bed_head(used=False, heart=False):
+    if used:
+        wood = Mat("5c3b2a")
+        panel = rounded_panel(0, .38, -1.17, 1.86, .66, .12, .12, wood)
+        for p in panel: p.pattern = stains(22, .35)
+        return tag("head", *panel)
+    trim = Mat("682536")
+    velvet = Mat("ad2b42")
+    if not heart:
+        outer = rounded_panel(0, .70, -1.27, 2.18, 1.28, .18, .22, trim)
+        inset = rounded_panel(0, .83, -1.155, 1.97, .87, .065, .20, velvet)
+        for p in inset: p.pattern = tufts([-.62, 0, .62], [.0])
+        return tag("head", *(outer+inset))
+    # Extrude a heart profile as native-height strips sharing one outline group.
+    trim = Mat(tones=["301a27","461b2c","582231","6c2334","8b2e43","a73b4c"])
+    gold = Mat(tones=["5b3334","815335","b98340","dfa54f","f3ce7d","ffe6a4"])
+    velvet = Mat(tones=["5d192b","811b32","9f2437","bd2d42","d34253","e76565"])
+    profile = np.array(heart_points(0, 0, 1))
+    profile[:, 0] /= 16
+    profile[:, 1] = (profile[:, 1]-profile[:, 1].min()) / np.ptp(profile[:, 1])
+    out = []
+    for width, bottom, top, z, depth, mat in [(2.18,.32,1.78,-1.27,.20,trim), (2.04,.40,1.70,-1.152,.06,gold), (1.90,.47,1.64,-1.106,.04,velvet)]:
+        points = profile.copy()
+        points[:, 0] *= width/2
+        points[:, 1] = bottom+points[:, 1]*(top-bottom)
+        group = object()
+        step = 1/48
+        for y in np.arange(bottom, top, step):
+            ym = y+step/2
+            xs = []
+            for a, b in zip(points, np.roll(points,-1,axis=0)):
+                if (a[1] <= ym < b[1]) or (b[1] <= ym < a[1]):
+                    xs.append(a[0]+(b[0]-a[0])*(ym-a[1])/(b[1]-a[1]))
+            xs.sort()
+            for left, right in zip(xs[::2],xs[1::2]):
+                if right-left > .002:
+                    pat = heart_upholstery((left+right)/2,y+step/2) if mat is velvet else None
+                    out.append(box(left,y,z-depth/2,right,min(y+step,top),z+depth/2,mat,group=group,lit=False,pattern=pat))
+    out += [cyl(x,.06,-1.27,.06,.65,trim) for x in (-.48,.48)]
+    return tag("head", *out)
+
+
+def cloth_grid(rows, mat, group):
+    out = []
+    for row,next_row in zip(rows,rows[1:]):
+        for a,b,c,d in zip(row,row[1:],next_row,next_row[1:]):
+            out += [triangle(a,b,c,mat,group=group),triangle(b,d,c,mat,group=group)]
+    return out
+
+
+def heart_duvet():
+    # Broad folds and an uneven hanging hem, shaped as actual cloth instead
+    # of a rectangular slab. The final sprite still uses one native pixel grid.
+    red = Mat(tones=["481726","6a1d30","92243a","b52d42","ce4354","dd6065"],name="heart_cloth")
+    group = object()
+    xs = np.linspace(-1.045,1.045,17)
+    zs = np.linspace(-.29,1.25,15)
+    def height(x,z):
+        fold = .027*math.sin(x*7.5+z*2)+.016*math.sin(x*12-z*5)
+        gather = .055*math.exp(-((z-1.16)/.25)**2)*math.sin(x*8+1)
+        return max(.565,.63+fold+gather)
+    rows = [[(x,height(x,z),z) for x in xs] for z in zs]
+    out = cloth_grid(rows,red,group)
+    # The foot drapes in loose scallops; thicker folds gather at the corners.
+    front = [rows[-1]]
+    for t in [.35,.7,1.0]:
+        front.append([(x,height(x,1.25)*(1-t)+(.22+.075*math.cos(x*8+1))*t,1.25+.075*math.sin(t*math.pi/2)+.025*math.sin(x*8)*t) for x in xs])
+    out += cloth_grid(front,red,group)
+    for sign in [-1,1]:
+        side = [[(sign*1.045,height(sign*1.045,z),z) for z in zs]]
+        for t in [.35,.7,1.0]:
+            side.append([(sign*(1.045+.04*math.sin(t*math.pi/2)),height(sign*1.045,z)*(1-t)+(.24+.07*math.cos(z*9))*t,z) for z in zs])
+        out += cloth_grid(side,red,group)
+    # Rolled-back top edge, with a soft upper highlight.
+    out += rounded_slab(0,.63,-.285,2.05,.105,.20,Mat("bc3d51"),.09)
+    return out
+
+
+def heart_bed_details():
+    def dec(cv,T):
+        for x,y in [(-.53,1.23),(.53,1.23),(0,.91),(-.68,.81),(.68,.81)]:
+            dot(cv,T((x,y,-1.08)),(105,55,39,255),bias=.10)
+            dot(cv,T((x-.015,y+.045,-1.08)),(246,201,112,255),bias=.10)
+    return dec
+
+
+def luxury_heart_bed(original, made):
+    gold = Mat("d6a559",bias=1)
+    burgundy = Mat("542133")
+    base = rounded_slab(0,.18,.03,2.16,.22,2.56,burgundy,.18)
+    base += rounded_slab(0,.285,.03,2.17,.035,2.57,gold,.18)
+    base += rounded_slab(0,.095,.03,2.17,.03,2.57,gold,.18)
+    base += legs4(2.02,2.42,.12,.065,gold,.10)
+    if made:
+        ivory = Mat(tones=["665060","977d88","c6aba7","eadbca","f7efde","fff6e6"])
+        base += rounded_slab(0,.425,.035,2.03,.235,2.47,ivory,.18)
+        for x in [-.49,.49]:
+            pillow = rounded_slab(x,.56,-.91,.86,.11,.60,ivory,.14)
+            pillow.append(ell(x,.62,-.91,.44,.14,.31,ivory,group=object()))
+            base += pillow
+            red = Mat("b82940")
+            cushion = rounded_slab(x,.675,-.65,.49,.09,.31,red,.10)
+            cushion.append(ell(x,.70,-.65,.25,.095,.17,red))
+            base += cushion
+        base += heart_duvet()
+    else:
+        # Keep existing state-specific linen and its anchors, with the same
+        # upholstered base and headboard as the made model.
+        base += [p for p in original.prims if getattr(p,"part",None) != "head" and p.mat is not M["wood"] and p.mat is not M["dark"]]
+    original.prims = base+bed_head(heart=True)
+    original.decals = heart_bed_details()
+    return original
+
+
+def polish_bed(prims, used=False, heart=False):
+    """Soften the furniture geometry without changing its placement/anchors."""
+    result = bed_head(used,heart)
+    for p in prims:
+        if getattr(p,"part",None) == "head": continue
+        if not used:
+            if p.mat is M["pink"]: p.mat = Mat(tones=["421b29","642038","85273f","aa3045","bf4552","cc6068"],name="bed_duvet")
+            elif p.mat is M["rose"]: p.mat = Mat(tones=["65243a","7e2a3e","a43c50","be5360","d4777d","dfa09a"])
+        if p.kind != "box":
+            result.append(p)
+            continue
+        w, h, d = np.linalg.norm(p.A,axis=0)*2
+        # Leave small details and vertical draped fabric intact.
+        if w < .4 or d < .12 or h > .4:
+            result.append(p)
+            continue
+        pillow = w < 1.1 and d < .65 and h >= .09
+        mat = p.mat
+        if not used and h > .25 and d > .5 and w > 1.5 and mat.name == "bed_duvet":
+            # A thinner, draped duvet rather than a thick rectangular block.
+            if h > .25:
+                old_h = h
+                h = .20
+                p.T[1] += (old_h-h)/2
+        if pillow:
+            group = object()
+            soft = rounded_slab(0,-h*.20,0,w*.92,h*.3,d*.94,mat,.1,p.pattern)
+            soft.append(ell(0,0,0,w/2,h*.55,d/2,mat,group=group,pattern=p.pattern))
+            for piece in soft: piece.group = group
+        else:
+            soft = rounded_slab(0,0,0,w,h,d,mat,.21 if d > .5 else .07,p.pattern)
+        R = getattr(p,"R_total",np.eye(3))
+        for piece in soft:
+            piece = piece.transformed(R)
+            piece.T += p.T
+            result.append(piece)
+    return result
+
+
+def bed_details(heart=False):
+    def dec(cv,T):
+        # Upholstery buttons and tiny curved fabric creases. Depth-tested so
+        # details never paint over a pillow or a nearer piece of the bed.
+        buttons = [(0,1.02)] if heart else [(-.62,.83),(0,.83),(.62,.83)]
+        for x,y in buttons:
+            dot(cv,T((x,y,-1.118)),(115,43,76,255),bias=.12)
+            dot(cv,T((x-.015,y+.045,-1.118)),(192,92,103,255),bias=.12)
+        for x,z in [(-.67,.65),(.64,1.03)]:
+            points = [(x-.08,.622,z-.11),(x-.025,.622,z-.015),(x+.09,.622,z+.05)]
+            for a,b in zip(points,points[1:]): stroke(cv,T(a),T(b),(164,60,80,255),bias=.05)
+        # The hem breaks gently around the rounded foot corners.
+        stroke(cv,T((-.86,.49,1.325)),T((.86,.49,1.325)),(201,104,116,255),bias=.07)
+    return dec
 
 
 def bottle(x, y, z, mat, h=0.26, r=0.05):
@@ -403,6 +606,9 @@ def item(kind: str, r: int = 0) -> Item:
         mount = [box(-0.9, 1.5, -0.25, -0.86, 1.54, -0.23, m["chrome"]), box(0.84, 1.5, -0.25, 0.88, 1.54, -0.23, m["chrome"])]
         return Item(mount, (2, 0.5), decals=dec, shadow=False, extent=[(-1.0, 2.3, -0.25), (1.0, 1.2, -0.25), (-1.0, 1.2, -0.25), (1.0, 2.3, -0.25)],
                     lights=[dict(p=(0, 1.72, -0.15), color="ff4fa0", radius=2.4, power=1.1, wall=True)])
+    if kind == "heart_bed" or kind.startswith("heart_bed_"):
+        original = item(kind.replace("heart_bed", "bed", 1), r)
+        return luxury_heart_bed(original,kind == "heart_bed")
     if kind == "bed":
         head = combine(panels([-1.08, -0.36, 0.36, 1.08], 0.3, 1.26), tufts([-0.72, 0.0, 0.72], [0.8]))
         prims = [box(-1.08, 0.06, -1.24, 1.08, 0.3, 1.33, m["wood"]),
@@ -413,7 +619,7 @@ def item(kind: str, r: int = 0) -> Item:
         for x in (-0.5, 0.5):
             prims.append(box(x - 0.4, 0.5, -1.16, x + 0.4, 0.72, -0.72, m["white"]))
         prims += legs4(2.1, 2.6, 0.06, 0.05, m["dark"])
-        return Item(prims, (2.2, 2.7))
+        return Item(polish_bed(prims), (2.2, 2.7), decals=bed_details())
     if kind == "nightstand":
         prims = [box(-0.27, 0.06, -0.27, 0.27, 0.56, 0.27, m["wood"], pattern=panels([-0.27, 0.27], 0.08, 0.3)),
                  box(-0.3, 0.56, -0.3, 0.3, 0.62, 0.3, m["wood_top"])]
@@ -646,7 +852,7 @@ def item(kind: str, r: int = 0) -> Item:
         prims += [box(-0.6, 0.46, -1.05, -0.05, 0.56, -0.72, Mat("cfc5b0"), pattern=stains(9, 0.3)),
                  box(-0.85, 0.46, 0.45, 0.8, 0.52, 1.02, Mat("6a6e7a"), pattern=stains(10, 0.3))]
         prims += legs4(1.8, 2.2, 0.05, 0.04, m["dark"])
-        return Item(prims, (2.0, 2.4))
+        return Item(polish_bed(prims,used=True), (2.0, 2.4))
     if kind == "old_lamp":
         wood = Mat("5a3a2c")
         prims = [box(-0.22, 0.0, -0.22, 0.22, 0.48, 0.22, wood, pattern=combine(panels([-0.22, 0.22], 0.06, 0.42), stains(11, 0.35))),
@@ -799,7 +1005,7 @@ def item(kind: str, r: int = 0) -> Item:
                       box(-1.06, 0.5, 0.55, 0.95, 0.68, 1.34, m["pink"], pattern=stripes_y([0.58], 1)),
                       box(0.95, 0.12, 0.2, 1.14, 0.66, 1.3, m["pink"]),
                       ell(-0.3, 0.66, 0.75, 0.42, 0.1, 0.3, m["rose"])]
-        return Item(prims, (2.2, 2.7))
+        return Item(polish_bed(prims), (2.2, 2.7), decals=bed_details())
     if kind.startswith("old_bed_busy") or kind == "old_bed_unmade":
         frame = int(kind[-1]) if kind[-1].isdigit() else 0
         frame_w = Mat("5c3b2a")
@@ -819,7 +1025,7 @@ def item(kind: str, r: int = 0) -> Item:
             prims += [box(-0.6, 0.46, -1.05, -0.05, 0.56, -0.72, Mat("cfc5b0"), pattern=stains(9, 0.3)).transformed(rot_y(22), (-0.3, 0.46, -0.9)),
                       box(-0.85, 0.46, 0.55, 0.7, 0.6, 1.12, blanket, pattern=stains(10, 0.3)),
                       box(0.86, 0.1, 0.1, 1.0, 0.56, 1.05, blanket)]
-        return Item(prims, (2.0, 2.4))
+        return Item(polish_bed(prims,used=True), (2.0, 2.4))
     # ---------------------------------------------------- shower, dance floor
     if kind == "shower" or kind.startswith("shower_f"):
         # shower_f<n>: the glass door swinging open on its left hinge (0 shut .. 3 open)
@@ -1098,6 +1304,7 @@ KINDS = ["bar", "backbar", "stool", "table", "coffee", "chair", "sofa", "armchai
          "fern", "cactus", "aloe", "monstera", "strelitzia", "palm_small", "palm_lights", "palm_lights_f1", "palm_lights_f2",
          "shower_f1", "shower_f2", "shower_f3"]
 KINDS += [f"{k}_s{s}_f{f}" for k in ("dancefloor", "dance") for s in range(len(DANCE_SCHEMES)) for f in range(4)]
+KINDS += ["heart_bed", "heart_bed_unmade", "heart_bed_busy", "heart_bed_busy_1", "heart_bed_busy_2", "heart_bed_busy_3"]
 
 
 def part_names(prims):

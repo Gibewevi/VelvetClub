@@ -199,6 +199,24 @@ def floor_pattern(name, X, Z, seed=0):
         tone[broken & diag] = 1
         grime = vnoise(X, Z, 1.4, 74, P) > 0.7
         tone[grime & (tone == 3)] = 2
+    elif name == "concrete":
+        # freshly poured slab: fine grit, trowel sweeps, a few darker patches
+        h = np.vectorize(lambda a, b: hash01(a, b, 81))(np.floor(X * 16).astype(int) % (P * 16), np.floor(Z * 16).astype(int) % (P * 16))
+        tone[h > 0.9] = 2
+        tone[h < 0.05] = 4
+        sweep = (np.abs(vnoise(X, Z, 1.6, 82, P) - 0.5) < 0.02) & (h > 0.35)
+        tone[sweep & (tone == 3)] = 4
+        patch = vnoise(X, Z, 0.9, 83, P) > 0.72
+        tone[patch & (tone == 3)] = 2
+    elif name == "dirt":
+        # site ground: packed earth, clods and pebbles
+        h = np.vectorize(lambda a, b: hash01(a, b, 85))(np.floor(X * 16).astype(int) % (P * 16), np.floor(Z * 16).astype(int) % (P * 16))
+        clod = vnoise(X, Z, 2.2, 86, P)
+        tone[clod > 0.64] = 2
+        tone[clod < 0.22] = 4
+        tone[h > 0.95] = 4
+        tone[h > 0.985] = 5
+        tone[h < 0.04] = 1
     elif name == "grass":
         h = np.vectorize(lambda a, b: hash01(a, b, 43))(np.floor(X * 16).astype(int) % (P * 16), np.floor(Z * 16).astype(int) % (P * 16))
         tone[h > 0.7] = 2
@@ -225,7 +243,7 @@ def floor_texture(name):
 
 
 FLOOR_PATTERNS = ["boards", "boards_worn", "boards_damaged", "tile", "tile_dirty", "terrazzo", "plain", "carpet", "carpet_worn", "pavers",
-                  "asphalt", "grass", "asphalt_cracked", "slabs"]
+                  "asphalt", "grass", "asphalt_cracked", "slabs", "concrete", "dirt"]
 
 
 # ------------------------------------------------------------------ walls
@@ -618,13 +636,13 @@ def glow(radius, flat=False, bands=(1.0, 0.62, 0.32)):
     return img
 
 
-def puddle():
+def puddle(urine=False):
     """Blue water puddle like the one the janitor mops in the artwork."""
     w, h = 22, 11
     img = np.zeros((h, w, 4), dtype=np.uint8)
-    body = hexrgb("4f86d8")
-    light = hexrgb("8cc0f4")
-    edge = hexrgb("2c4c9a")
+    body = hexrgb("dcb937" if urine else "4f86d8")
+    light = hexrgb("ffe78a" if urine else "8cc0f4")
+    edge = hexrgb("94712b" if urine else "2c4c9a")
     for y in range(h):
         for x in range(w):
             u = (x + 0.5 - w / 2) / (w / 2)
@@ -632,11 +650,11 @@ def puddle():
             wob = 0.12 * math.sin(x * 1.3) + 0.1 * math.cos(y * 2.1 + x * 0.5)
             d = u * u + v * v + wob
             if d < 0.55:
-                img[y, x] = body + (150,)
+                img[y, x] = body + (220 if urine else 150,)
             elif d < 0.8:
-                img[y, x] = edge + (140,)
+                img[y, x] = edge + (205 if urine else 140,)
             if d < 0.55 and (x + y) % 7 == 0 and u < 0.2:
-                img[y, x] = light + (190,)
+                img[y, x] = light + (235 if urine else 190,)
     return img
 
 
@@ -726,8 +744,9 @@ def export():
     man["street"] = pa_street.export()
     import pa_parking
     man["street"].update(pa_parking.export())
-    man["fx"] = {"puddle": "fx/puddle.png"}
+    man["fx"] = {"puddle": "fx/puddle.png", "urine": "fx/urine.png"}
     save(puddle(), "fx/puddle.png")
+    save(puddle(urine=True), "fx/urine.png")
     write_json("tiles.json", man)
     return man
 

@@ -8,6 +8,7 @@ var astar = AStar2D.new()
 var area = Rect2i()
 var blocked: Dictionary = {}
 var room_of: Dictionary = {}
+var zone: Dictionary = {}     # point -> connected area: who can reach whom, without a search
 var model: BuildingModel
 
 func key(c: Vector2i) -> int:
@@ -26,14 +27,18 @@ func rebuild(building: BuildingModel, delivery_road: bool = false, extra_obstacl
 	room_of.clear()
 	var b = Rect2(-6,-6,12,12)
 	if not model.rooms.is_empty():
-		b = model.rect(model.rooms[0])
-		for room in model.rooms: b = b.merge(model.rect(room))
+		b = model.bounds(model.rooms[0])
+		for room in model.rooms: b = b.merge(model.bounds(room))
 	b = b.grow(7)
 	if delivery_road: b = b.merge(Rect2(-24,8,48,7))
 	var L = float(Iso.LOT)
 	b = b.intersection(Rect2(-L,-L,2*L,2*L))
 	area = Rect2i(floori(b.position.x/CELL),floori(b.position.y/CELL),ceili(b.size.x/CELL)+1,ceili(b.size.y/CELL)+1)
 	var obstacles: Array = extra_obstacles.duplicate()
+	# nobody but the site crew walks on a building site
+	for room in model.rooms:
+		if SitePlan.building(room):
+			for part in BuildingModel.parts_of(room): obstacles.append((part as Rect2).grow(0.01))
 	for item in model.furniture:
 		if item.get("delivery_pending",false): continue
 		# People walk around (or over) rugs and debris.
@@ -69,6 +74,21 @@ func rebuild(building: BuildingModel, delivery_road: bool = false, extra_obstacl
 				var s2 = a+Vector2i(0,d.y)
 				if astar.has_point(key(s1)) and astar.has_point(key(s2)) and passable(a,s1) and passable(s1,n) and passable(a,s2) and passable(s2,n):
 					astar.connect_points(key(a),key(n))
+	# Connected areas, once per layout: "can someone get there?" was a full
+	# path search each time (cleaners asked it for every puddle, every frame).
+	zone.clear()
+	var count = 0
+	for id in astar.get_point_ids():
+		if zone.has(id): continue
+		zone[id] = count
+		var stack: Array = [id]
+		while not stack.is_empty():
+			var q = stack.pop_back()
+			for n in astar.get_point_connections(q):
+				if not zone.has(n):
+					zone[n] = count
+					stack.append(n)
+		count += 1
 
 func passable(a: Vector2i, b: Vector2i) -> bool:
 	if room_of.get(a,0) == room_of.get(b,0): return true
@@ -125,4 +145,4 @@ func reachable(from: Vector2, to: Vector2) -> bool:
 	var a = start_cell(from)
 	var b = free_cell_near(to)
 	if a.x == 9999 or b.x == 9999: return false
-	return not astar.get_id_path(key(a),key(b)).is_empty()
+	return int(zone.get(key(a),-1)) == int(zone.get(key(b),-2))

@@ -13,7 +13,7 @@ const FLUSH = 0.35        # a back this close to a wall stands against it
 const REACH = 2.6         # how far an item looks for what it should face
 
 # back against a wall
-const WALL_BACKED = ["sofa","old_sofa","armchair","old_armchair","bed","old_bed","backbar","neon","sconce","mirror","frame",
+const WALL_BACKED = ["sofa","old_sofa","armchair","old_armchair","bed","heart_bed","old_bed","backbar","neon","sconce","mirror","frame",
 	"poster","boards","toilet","old_toilet","urinal","sink","old_sink","shelf","old_shelf","locker","old_locker","fridge",
 	"old_fridge","old_wardrobe","cabinet","coat_rack","cloak_locker","desk","shower","nightstand","crate"]
 # a counter: someone works behind it, so its back keeps a free strip
@@ -85,7 +85,7 @@ static func wall_gap(model: BuildingModel, item: Dictionary, back: Vector2) -> f
 	var room = model.room_at(Vector2(item.x,item.z))
 	if room.is_empty(): return INF
 	var r = model.item_rect(item)
-	var rr = model.rect(room)
+	var rr = model.part_at(room,Vector2(item.x,item.z))
 	if back.y < -0.5: return r.position.y-rr.position.y
 	if back.y > 0.5: return rr.end.y-r.end.y
 	if back.x < -0.5: return r.position.x-rr.position.x
@@ -96,7 +96,7 @@ static func door_behind(model: BuildingModel, item: Dictionary, back: Vector2) -
 	var room = model.room_at(Vector2(item.x,item.z))
 	if room.is_empty(): return false
 	var r = model.item_rect(item)
-	var rr = model.rect(room)
+	var rr = model.part_at(room,Vector2(item.x,item.z))
 	if absf(back.y) > 0.5:
 		var zw = int(rr.position.y if back.y < 0 else rr.end.y)
 		for cx in range(floori(r.position.x),ceili(r.end.x)):

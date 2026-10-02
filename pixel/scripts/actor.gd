@@ -3,7 +3,7 @@ extends Node2D
 
 # A character made of stacked 32 x 48 px layers sharing one palette.
 # World position is (x, z) in metres; the sprite anchor is the feet.
-const FPS = {"idle":2.0,"walk":8.0,"sit":1.0,"dance":6.0,"mop":5.0,"work":3.0,"stand":0.0,"kneel":0.0}
+const FPS = {"idle":2.0,"walk":8.0,"sit":1.0,"dance":6.0,"mop":5.0,"work":3.0,"stand":0.0,"kneel":1.5}
 var item_id = -1
 var brain: Dictionary = {}
 var kind = ""
@@ -102,12 +102,17 @@ func apply_frame() -> void:
 	# Flipped sprites mirror around the anchor column.
 	for s in layers: s.offset = Vector2(-16 if not flip else -16,-46)
 
-func _process(delta: float) -> void:
+func advance_animation(delta: float) -> void:
 	clock += delta*FPS.get(anim,2.0)
 	if clock >= 1.0:
+		var count = floori(clock)
 		clock = fmod(clock,1.0)
-		frame_i += 1
+		frame_i = (frame_i+count) % frames().size()
 		apply_frame()
+
+func _process(delta: float) -> void:
+	# The resting kneel follows simulation time, including pause and speed controls.
+	if anim != "kneel": advance_animation(delta)
 	if bubble != null:
 		bubble_time -= delta
 		bubble.position.y = -54-lift*0+sin(bubble_time*4.0)*1.0
@@ -118,6 +123,7 @@ func _process(delta: float) -> void:
 
 func step(delta: float, time_scale: float) -> bool:
 	# Advance along the path; returns true when the path is finished.
+	if anim == "kneel": advance_animation(delta*time_scale)
 	if path.is_empty():
 		moving = false
 		return true

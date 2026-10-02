@@ -1470,10 +1470,10 @@
     {
      "name": "base",
      "file": "furniture/bed_0_base.png",
-     "ox": 40,
-     "oy": 34,
-     "w": 78,
-     "h": 53,
+     "ox": 38,
+     "oy": 31,
+     "w": 76,
+     "h": 50,
      "rect": [
       -1.1,
       -1.35,
@@ -1484,15 +1484,15 @@
     {
      "name": "head",
      "file": "furniture/bed_0_head.png",
-     "ox": -1,
-     "oy": 52,
-     "w": 39,
-     "h": 50,
+     "ox": 0,
+     "oy": 51,
+     "w": 40,
+     "h": 47,
      "rect": [
-      -1.1,
-      -1.35,
-      1.1,
-      -1.2
+      -1.09,
+      -1.36,
+      1.09,
+      -1.123
      ]
     }
    ],
@@ -1509,10 +1509,10 @@
     {
      "name": "base",
      "file": "furniture/bed_1_base.png",
-     "ox": 40,
-     "oy": 35,
-     "w": 78,
-     "h": 54,
+     "ox": 38,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
      "rect": [
       -1.35,
       -1.1,
@@ -1523,15 +1523,15 @@
     {
      "name": "head",
      "file": "furniture/bed_1_head.png",
-     "ox": -2,
-     "oy": 32,
-     "w": 38,
-     "h": 51,
+     "ox": -1,
+     "oy": 31,
+     "w": 39,
+     "h": 49,
      "rect": [
-      1.2,
-      -1.1,
-      1.35,
-      1.1
+      1.123,
+      -1.09,
+      1.36,
+      1.09
      ]
     }
    ],
@@ -1549,9 +1549,9 @@
      "name": "base",
      "file": "furniture/bed_2_base.png",
      "ox": 38,
-     "oy": 35,
-     "w": 78,
-     "h": 54,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
      "rect": [
       -1.1,
       -1.35,
@@ -1563,14 +1563,14 @@
      "name": "head",
      "file": "furniture/bed_2_head.png",
      "ox": 40,
-     "oy": 32,
-     "w": 38,
-     "h": 51,
+     "oy": 31,
+     "w": 39,
+     "h": 49,
      "rect": [
-      -1.1,
-      1.2,
-      1.1,
-      1.35
+      -1.09,
+      1.122,
+      1.09,
+      1.36
      ]
     }
    ],
@@ -1588,9 +1588,9 @@
      "name": "base",
      "file": "furniture/bed_3_base.png",
      "ox": 38,
-     "oy": 34,
-     "w": 78,
-     "h": 53,
+     "oy": 31,
+     "w": 76,
+     "h": 50,
      "rect": [
       -1.35,
       -1.1,
@@ -1602,14 +1602,14 @@
      "name": "head",
      "file": "furniture/bed_3_head.png",
      "ox": 40,
-     "oy": 52,
-     "w": 39,
-     "h": 50,
+     "oy": 51,
+     "w": 40,
+     "h": 47,
      "rect": [
-      -1.35,
-      -1.1,
-      -1.2,
-      1.1
+      -1.36,
+      -1.09,
+      -1.122,
+      1.09
      ]
     }
    ],
@@ -2878,17 +2878,17 @@
   "0": {
    "file": "furniture/old_bed_0.png",
    "ox": 39,
-   "oy": 37,
+   "oy": 38,
    "w": 78,
-   "h": 58,
+   "h": 59,
    "lights": [],
    "parts": [
     {
      "name": "base",
      "file": "furniture/old_bed_0_base.png",
-     "ox": 35,
+     "ox": 34,
      "oy": 27,
-     "w": 70,
+     "w": 68,
      "h": 44,
      "rect": [
       -1.0,
@@ -2901,14 +2901,14 @@
      "name": "head",
      "file": "furniture/old_bed_0_head.png",
      "ox": -2,
-     "oy": 35,
-     "w": 33,
-     "h": 27,
+     "oy": 34,
+     "w": 34,
+     "h": 31,
      "rect": [
       -0.93,
-      -1.22,
+      -1.23,
       0.93,
-      -1.12
+      -1.11
      ]
     }
    ],
@@ -2925,10 +2925,10 @@
     {
      "name": "base",
      "file": "furniture/old_bed_1_base.png",
-     "ox": 35,
-     "oy": 28,
-     "w": 61,
-     "h": 45,
+     "ox": 34,
+     "oy": 27,
+     "w": 60,
+     "h": 44,
      "rect": [
       -1.2,
       -1.0,
@@ -2941,12 +2941,12 @@
      "file": "furniture/old_bed_1_head.png",
      "ox": -3,
      "oy": 16,
-     "w": 32,
-     "h": 33,
+     "w": 33,
+     "h": 32,
      "rect": [
-      1.12,
+      1.11,
       -0.93,
-      1.22,
+      1.23,
       0.93
      ]
     }
@@ -2964,10 +2964,10 @@
     {
      "name": "base",
      "file": "furniture/old_bed_2_base.png",
-     "ox": 27,
-     "oy": 28,
-     "w": 62,
-     "h": 45,
+     "ox": 26,
+     "oy": 27,
+     "w": 60,
+     "h": 44,
      "rect": [
       -1.0,
       -1.2,
@@ -2978,15 +2978,15 @@
     {
      "name": "head",
      "file": "furniture/old_bed_2_head.png",
-     "ox": 35,
+     "ox": 36,
      "oy": 16,
-     "w": 32,
-     "h": 33,
+     "w": 33,
+     "h": 32,
      "rect": [
       -0.93,
-      1.12,
+      1.11,
       0.93,
-      1.22
+      1.23
      ]
     }
    ],
@@ -2995,17 +2995,17 @@
   "3": {
    "file": "furniture/old_bed_3.png",
    "ox": 39,
-   "oy": 37,
+   "oy": 38,
    "w": 78,
-   "h": 58,
+   "h": 59,
    "lights": [],
    "parts": [
     {
      "name": "base",
      "file": "furniture/old_bed_3_base.png",
-     "ox": 35,
+     "ox": 34,
      "oy": 27,
-     "w": 70,
+     "w": 68,
      "h": 44,
      "rect": [
       -1.2,
@@ -3017,14 +3017,14 @@
     {
      "name": "head",
      "file": "furniture/old_bed_3_head.png",
-     "ox": 35,
-     "oy": 35,
-     "w": 33,
-     "h": 27,
+     "ox": 36,
+     "oy": 34,
+     "w": 34,
+     "h": 31,
      "rect": [
-      -1.22,
+      -1.23,
       -0.93,
-      -1.12,
+      -1.11,
       0.93
      ]
     }
@@ -4471,10 +4471,10 @@
     {
      "name": "base",
      "file": "furniture/bed_busy_0_base.png",
-     "ox": 40,
-     "oy": 34,
-     "w": 78,
-     "h": 53,
+     "ox": 38,
+     "oy": 33,
+     "w": 76,
+     "h": 52,
      "rect": [
       -1.1,
       -1.35,
@@ -4485,15 +4485,15 @@
     {
      "name": "head",
      "file": "furniture/bed_busy_0_head.png",
-     "ox": -1,
-     "oy": 52,
-     "w": 39,
-     "h": 50,
+     "ox": 0,
+     "oy": 51,
+     "w": 40,
+     "h": 47,
      "rect": [
-      -1.1,
-      -1.35,
-      1.1,
-      -1.2
+      -1.09,
+      -1.36,
+      1.09,
+      -1.123
      ]
     }
    ],
@@ -4510,10 +4510,10 @@
     {
      "name": "base",
      "file": "furniture/bed_busy_1_base.png",
-     "ox": 40,
-     "oy": 35,
-     "w": 78,
-     "h": 54,
+     "ox": 38,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
      "rect": [
       -1.35,
       -1.1,
@@ -4524,15 +4524,15 @@
     {
      "name": "head",
      "file": "furniture/bed_busy_1_head.png",
-     "ox": -2,
-     "oy": 32,
-     "w": 38,
-     "h": 51,
+     "ox": -1,
+     "oy": 31,
+     "w": 39,
+     "h": 49,
      "rect": [
-      1.2,
-      -1.1,
-      1.35,
-      1.1
+      1.123,
+      -1.09,
+      1.36,
+      1.09
      ]
     }
    ],
@@ -4550,9 +4550,9 @@
      "name": "base",
      "file": "furniture/bed_busy_2_base.png",
      "ox": 38,
-     "oy": 35,
-     "w": 78,
-     "h": 54,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
      "rect": [
       -1.1,
       -1.35,
@@ -4564,14 +4564,14 @@
      "name": "head",
      "file": "furniture/bed_busy_2_head.png",
      "ox": 40,
-     "oy": 32,
-     "w": 38,
-     "h": 51,
+     "oy": 31,
+     "w": 39,
+     "h": 49,
      "rect": [
-      -1.1,
-      1.2,
-      1.1,
-      1.35
+      -1.09,
+      1.122,
+      1.09,
+      1.36
      ]
     }
    ],
@@ -4589,9 +4589,9 @@
      "name": "base",
      "file": "furniture/bed_busy_3_base.png",
      "ox": 38,
-     "oy": 34,
-     "w": 78,
-     "h": 53,
+     "oy": 33,
+     "w": 76,
+     "h": 52,
      "rect": [
       -1.35,
       -1.1,
@@ -4603,14 +4603,14 @@
      "name": "head",
      "file": "furniture/bed_busy_3_head.png",
      "ox": 40,
-     "oy": 52,
-     "w": 39,
-     "h": 50,
+     "oy": 51,
+     "w": 40,
+     "h": 47,
      "rect": [
-      -1.35,
-      -1.1,
-      -1.2,
-      1.1
+      -1.36,
+      -1.09,
+      -1.122,
+      1.09
      ]
     }
    ],
@@ -4630,10 +4630,10 @@
     {
      "name": "base",
      "file": "furniture/bed_unmade_0_base.png",
-     "ox": 40,
-     "oy": 33,
-     "w": 78,
-     "h": 52,
+     "ox": 38,
+     "oy": 30,
+     "w": 76,
+     "h": 49,
      "rect": [
       -1.1,
       -1.35,
@@ -4644,15 +4644,15 @@
     {
      "name": "head",
      "file": "furniture/bed_unmade_0_head.png",
-     "ox": -1,
-     "oy": 52,
-     "w": 39,
-     "h": 50,
+     "ox": 0,
+     "oy": 51,
+     "w": 40,
+     "h": 47,
      "rect": [
-      -1.1,
-      -1.35,
-      1.1,
-      -1.2
+      -1.09,
+      -1.36,
+      1.09,
+      -1.123
      ]
     }
    ],
@@ -4670,9 +4670,9 @@
      "name": "base",
      "file": "furniture/bed_unmade_1_base.png",
      "ox": 40,
-     "oy": 37,
+     "oy": 36,
      "w": 78,
-     "h": 56,
+     "h": 55,
      "rect": [
       -1.35,
       -1.1,
@@ -4683,15 +4683,15 @@
     {
      "name": "head",
      "file": "furniture/bed_unmade_1_head.png",
-     "ox": -2,
-     "oy": 32,
-     "w": 38,
-     "h": 51,
+     "ox": -1,
+     "oy": 31,
+     "w": 39,
+     "h": 49,
      "rect": [
-      1.2,
-      -1.1,
-      1.35,
-      1.1
+      1.123,
+      -1.09,
+      1.36,
+      1.09
      ]
     }
    ],
@@ -4710,7 +4710,7 @@
      "file": "furniture/bed_unmade_2_base.png",
      "ox": 38,
      "oy": 36,
-     "w": 78,
+     "w": 76,
      "h": 55,
      "rect": [
       -1.1,
@@ -4723,14 +4723,14 @@
      "name": "head",
      "file": "furniture/bed_unmade_2_head.png",
      "ox": 40,
-     "oy": 32,
-     "w": 38,
-     "h": 51,
+     "oy": 31,
+     "w": 39,
+     "h": 49,
      "rect": [
-      -1.1,
-      1.2,
-      1.1,
-      1.35
+      -1.09,
+      1.122,
+      1.09,
+      1.36
      ]
     }
    ],
@@ -4762,14 +4762,14 @@
      "name": "head",
      "file": "furniture/bed_unmade_3_head.png",
      "ox": 40,
-     "oy": 52,
-     "w": 39,
-     "h": 50,
+     "oy": 51,
+     "w": 40,
+     "h": 47,
      "rect": [
-      -1.35,
-      -1.1,
-      -1.2,
-      1.1
+      -1.36,
+      -1.09,
+      -1.122,
+      1.09
      ]
     }
    ],
@@ -4781,17 +4781,17 @@
   "0": {
    "file": "furniture/old_bed_busy_0.png",
    "ox": 39,
-   "oy": 37,
+   "oy": 38,
    "w": 78,
-   "h": 58,
+   "h": 59,
    "lights": [],
    "parts": [
     {
      "name": "base",
      "file": "furniture/old_bed_busy_0_base.png",
-     "ox": 35,
+     "ox": 34,
      "oy": 29,
-     "w": 70,
+     "w": 68,
      "h": 46,
      "rect": [
       -1.0,
@@ -4804,14 +4804,14 @@
      "name": "head",
      "file": "furniture/old_bed_busy_0_head.png",
      "ox": -2,
-     "oy": 35,
-     "w": 33,
-     "h": 27,
+     "oy": 34,
+     "w": 34,
+     "h": 31,
      "rect": [
       -0.93,
-      -1.22,
+      -1.23,
       0.93,
-      -1.12
+      -1.11
      ]
     }
    ],
@@ -4828,10 +4828,10 @@
     {
      "name": "base",
      "file": "furniture/old_bed_busy_1_base.png",
-     "ox": 35,
-     "oy": 31,
-     "w": 61,
-     "h": 48,
+     "ox": 34,
+     "oy": 30,
+     "w": 60,
+     "h": 47,
      "rect": [
       -1.2,
       -1.0,
@@ -4844,12 +4844,12 @@
      "file": "furniture/old_bed_busy_1_head.png",
      "ox": -3,
      "oy": 16,
-     "w": 32,
-     "h": 33,
+     "w": 33,
+     "h": 32,
      "rect": [
-      1.12,
+      1.11,
       -0.93,
-      1.22,
+      1.23,
       0.93
      ]
     }
@@ -4867,10 +4867,10 @@
     {
      "name": "base",
      "file": "furniture/old_bed_busy_2_base.png",
-     "ox": 27,
-     "oy": 31,
-     "w": 62,
-     "h": 48,
+     "ox": 26,
+     "oy": 30,
+     "w": 60,
+     "h": 47,
      "rect": [
       -1.0,
       -1.2,
@@ -4881,15 +4881,15 @@
     {
      "name": "head",
      "file": "furniture/old_bed_busy_2_head.png",
-     "ox": 35,
+     "ox": 36,
      "oy": 16,
-     "w": 32,
-     "h": 33,
+     "w": 33,
+     "h": 32,
      "rect": [
       -0.93,
-      1.12,
+      1.11,
       0.93,
-      1.22
+      1.23
      ]
     }
    ],
@@ -4898,17 +4898,17 @@
   "3": {
    "file": "furniture/old_bed_busy_3.png",
    "ox": 39,
-   "oy": 37,
+   "oy": 38,
    "w": 78,
-   "h": 58,
+   "h": 59,
    "lights": [],
    "parts": [
     {
      "name": "base",
      "file": "furniture/old_bed_busy_3_base.png",
-     "ox": 35,
+     "ox": 34,
      "oy": 30,
-     "w": 70,
+     "w": 68,
      "h": 47,
      "rect": [
       -1.2,
@@ -4920,14 +4920,14 @@
     {
      "name": "head",
      "file": "furniture/old_bed_busy_3_head.png",
-     "ox": 35,
-     "oy": 35,
-     "w": 33,
-     "h": 27,
+     "ox": 36,
+     "oy": 34,
+     "w": 34,
+     "h": 31,
      "rect": [
-      -1.22,
+      -1.23,
       -0.93,
-      -1.12,
+      -1.11,
       0.93
      ]
     }
@@ -4940,17 +4940,17 @@
   "0": {
    "file": "furniture/old_bed_unmade_0.png",
    "ox": 39,
-   "oy": 37,
+   "oy": 38,
    "w": 78,
-   "h": 58,
+   "h": 59,
    "lights": [],
    "parts": [
     {
      "name": "base",
      "file": "furniture/old_bed_unmade_0_base.png",
-     "ox": 35,
+     "ox": 34,
      "oy": 27,
-     "w": 70,
+     "w": 68,
      "h": 44,
      "rect": [
       -1.0,
@@ -4963,14 +4963,14 @@
      "name": "head",
      "file": "furniture/old_bed_unmade_0_head.png",
      "ox": -2,
-     "oy": 35,
-     "w": 33,
-     "h": 27,
+     "oy": 34,
+     "w": 34,
+     "h": 31,
      "rect": [
       -0.93,
-      -1.22,
+      -1.23,
       0.93,
-      -1.12
+      -1.11
      ]
     }
    ],
@@ -4987,10 +4987,10 @@
     {
      "name": "base",
      "file": "furniture/old_bed_unmade_1_base.png",
-     "ox": 35,
-     "oy": 31,
-     "w": 61,
-     "h": 48,
+     "ox": 34,
+     "oy": 30,
+     "w": 60,
+     "h": 47,
      "rect": [
       -1.2,
       -1.0,
@@ -5003,12 +5003,12 @@
      "file": "furniture/old_bed_unmade_1_head.png",
      "ox": -3,
      "oy": 16,
-     "w": 32,
-     "h": 33,
+     "w": 33,
+     "h": 32,
      "rect": [
-      1.12,
+      1.11,
       -0.93,
-      1.22,
+      1.23,
       0.93
      ]
     }
@@ -5026,9 +5026,9 @@
     {
      "name": "base",
      "file": "furniture/old_bed_unmade_2_base.png",
-     "ox": 27,
+     "ox": 26,
      "oy": 31,
-     "w": 62,
+     "w": 60,
      "h": 48,
      "rect": [
       -1.0,
@@ -5040,15 +5040,15 @@
     {
      "name": "head",
      "file": "furniture/old_bed_unmade_2_head.png",
-     "ox": 35,
+     "ox": 36,
      "oy": 16,
-     "w": 32,
-     "h": 33,
+     "w": 33,
+     "h": 32,
      "rect": [
       -0.93,
-      1.12,
+      1.11,
       0.93,
-      1.22
+      1.23
      ]
     }
    ],
@@ -5057,17 +5057,17 @@
   "3": {
    "file": "furniture/old_bed_unmade_3.png",
    "ox": 39,
-   "oy": 37,
+   "oy": 38,
    "w": 78,
-   "h": 58,
+   "h": 59,
    "lights": [],
    "parts": [
     {
      "name": "base",
      "file": "furniture/old_bed_unmade_3_base.png",
-     "ox": 35,
+     "ox": 34,
      "oy": 27,
-     "w": 70,
+     "w": 68,
      "h": 44,
      "rect": [
       -1.2,
@@ -5079,14 +5079,14 @@
     {
      "name": "head",
      "file": "furniture/old_bed_unmade_3_head.png",
-     "ox": 35,
-     "oy": 35,
-     "w": 33,
-     "h": 27,
+     "ox": 36,
+     "oy": 34,
+     "w": 34,
+     "h": 31,
      "rect": [
-      -1.22,
+      -1.23,
       -0.93,
-      -1.12,
+      -1.11,
       0.93
      ]
     }
@@ -5107,10 +5107,10 @@
     {
      "name": "base",
      "file": "furniture/bed_busy_1_0_base.png",
-     "ox": 40,
-     "oy": 34,
-     "w": 78,
-     "h": 53,
+     "ox": 38,
+     "oy": 33,
+     "w": 76,
+     "h": 52,
      "rect": [
       -1.1,
       -1.35,
@@ -5121,15 +5121,15 @@
     {
      "name": "head",
      "file": "furniture/bed_busy_1_0_head.png",
-     "ox": -1,
-     "oy": 52,
-     "w": 39,
-     "h": 50,
+     "ox": 0,
+     "oy": 51,
+     "w": 40,
+     "h": 47,
      "rect": [
-      -1.1,
-      -1.35,
-      1.1,
-      -1.2
+      -1.09,
+      -1.36,
+      1.09,
+      -1.123
      ]
     }
    ],
@@ -5146,10 +5146,10 @@
     {
      "name": "base",
      "file": "furniture/bed_busy_1_1_base.png",
-     "ox": 40,
-     "oy": 35,
-     "w": 78,
-     "h": 54,
+     "ox": 38,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
      "rect": [
       -1.35,
       -1.1,
@@ -5160,15 +5160,15 @@
     {
      "name": "head",
      "file": "furniture/bed_busy_1_1_head.png",
-     "ox": -2,
-     "oy": 32,
-     "w": 38,
-     "h": 51,
+     "ox": -1,
+     "oy": 31,
+     "w": 39,
+     "h": 49,
      "rect": [
-      1.2,
-      -1.1,
-      1.35,
-      1.1
+      1.123,
+      -1.09,
+      1.36,
+      1.09
      ]
     }
    ],
@@ -5186,9 +5186,9 @@
      "name": "base",
      "file": "furniture/bed_busy_1_2_base.png",
      "ox": 38,
-     "oy": 35,
-     "w": 78,
-     "h": 54,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
      "rect": [
       -1.1,
       -1.35,
@@ -5200,14 +5200,14 @@
      "name": "head",
      "file": "furniture/bed_busy_1_2_head.png",
      "ox": 40,
-     "oy": 32,
-     "w": 38,
-     "h": 51,
+     "oy": 31,
+     "w": 39,
+     "h": 49,
      "rect": [
-      -1.1,
-      1.2,
-      1.1,
-      1.35
+      -1.09,
+      1.122,
+      1.09,
+      1.36
      ]
     }
    ],
@@ -5225,9 +5225,9 @@
      "name": "base",
      "file": "furniture/bed_busy_1_3_base.png",
      "ox": 38,
-     "oy": 34,
-     "w": 78,
-     "h": 53,
+     "oy": 33,
+     "w": 76,
+     "h": 52,
      "rect": [
       -1.35,
       -1.1,
@@ -5239,14 +5239,14 @@
      "name": "head",
      "file": "furniture/bed_busy_1_3_head.png",
      "ox": 40,
-     "oy": 52,
-     "w": 39,
-     "h": 50,
+     "oy": 51,
+     "w": 40,
+     "h": 47,
      "rect": [
-      -1.35,
-      -1.1,
-      -1.2,
-      1.1
+      -1.36,
+      -1.09,
+      -1.122,
+      1.09
      ]
     }
    ],
@@ -5266,10 +5266,10 @@
     {
      "name": "base",
      "file": "furniture/bed_busy_2_0_base.png",
-     "ox": 40,
-     "oy": 34,
-     "w": 78,
-     "h": 53,
+     "ox": 38,
+     "oy": 33,
+     "w": 76,
+     "h": 52,
      "rect": [
       -1.1,
       -1.35,
@@ -5280,15 +5280,15 @@
     {
      "name": "head",
      "file": "furniture/bed_busy_2_0_head.png",
-     "ox": -1,
-     "oy": 52,
-     "w": 39,
-     "h": 50,
+     "ox": 0,
+     "oy": 51,
+     "w": 40,
+     "h": 47,
      "rect": [
-      -1.1,
-      -1.35,
-      1.1,
-      -1.2
+      -1.09,
+      -1.36,
+      1.09,
+      -1.123
      ]
     }
    ],
@@ -5305,10 +5305,10 @@
     {
      "name": "base",
      "file": "furniture/bed_busy_2_1_base.png",
-     "ox": 40,
-     "oy": 35,
-     "w": 78,
-     "h": 54,
+     "ox": 38,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
      "rect": [
       -1.35,
       -1.1,
@@ -5319,15 +5319,15 @@
     {
      "name": "head",
      "file": "furniture/bed_busy_2_1_head.png",
-     "ox": -2,
-     "oy": 32,
-     "w": 38,
-     "h": 51,
+     "ox": -1,
+     "oy": 31,
+     "w": 39,
+     "h": 49,
      "rect": [
-      1.2,
-      -1.1,
-      1.35,
-      1.1
+      1.123,
+      -1.09,
+      1.36,
+      1.09
      ]
     }
    ],
@@ -5345,9 +5345,9 @@
      "name": "base",
      "file": "furniture/bed_busy_2_2_base.png",
      "ox": 38,
-     "oy": 35,
-     "w": 78,
-     "h": 54,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
      "rect": [
       -1.1,
       -1.35,
@@ -5359,14 +5359,14 @@
      "name": "head",
      "file": "furniture/bed_busy_2_2_head.png",
      "ox": 40,
-     "oy": 32,
-     "w": 38,
-     "h": 51,
+     "oy": 31,
+     "w": 39,
+     "h": 49,
      "rect": [
-      -1.1,
-      1.2,
-      1.1,
-      1.35
+      -1.09,
+      1.122,
+      1.09,
+      1.36
      ]
     }
    ],
@@ -5384,9 +5384,9 @@
      "name": "base",
      "file": "furniture/bed_busy_2_3_base.png",
      "ox": 38,
-     "oy": 34,
-     "w": 78,
-     "h": 53,
+     "oy": 33,
+     "w": 76,
+     "h": 52,
      "rect": [
       -1.35,
       -1.1,
@@ -5398,14 +5398,14 @@
      "name": "head",
      "file": "furniture/bed_busy_2_3_head.png",
      "ox": 40,
-     "oy": 52,
-     "w": 39,
-     "h": 50,
+     "oy": 51,
+     "w": 40,
+     "h": 47,
      "rect": [
-      -1.35,
-      -1.1,
-      -1.2,
-      1.1
+      -1.36,
+      -1.09,
+      -1.122,
+      1.09
      ]
     }
    ],
@@ -5425,10 +5425,10 @@
     {
      "name": "base",
      "file": "furniture/bed_busy_3_0_base.png",
-     "ox": 40,
-     "oy": 34,
-     "w": 78,
-     "h": 53,
+     "ox": 38,
+     "oy": 33,
+     "w": 76,
+     "h": 52,
      "rect": [
       -1.1,
       -1.35,
@@ -5439,15 +5439,15 @@
     {
      "name": "head",
      "file": "furniture/bed_busy_3_0_head.png",
-     "ox": -1,
-     "oy": 52,
-     "w": 39,
-     "h": 50,
+     "ox": 0,
+     "oy": 51,
+     "w": 40,
+     "h": 47,
      "rect": [
-      -1.1,
-      -1.35,
-      1.1,
-      -1.2
+      -1.09,
+      -1.36,
+      1.09,
+      -1.123
      ]
     }
    ],
@@ -5464,10 +5464,10 @@
     {
      "name": "base",
      "file": "furniture/bed_busy_3_1_base.png",
-     "ox": 40,
-     "oy": 35,
-     "w": 78,
-     "h": 54,
+     "ox": 38,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
      "rect": [
       -1.35,
       -1.1,
@@ -5478,15 +5478,15 @@
     {
      "name": "head",
      "file": "furniture/bed_busy_3_1_head.png",
-     "ox": -2,
-     "oy": 32,
-     "w": 38,
-     "h": 51,
+     "ox": -1,
+     "oy": 31,
+     "w": 39,
+     "h": 49,
      "rect": [
-      1.2,
-      -1.1,
-      1.35,
-      1.1
+      1.123,
+      -1.09,
+      1.36,
+      1.09
      ]
     }
    ],
@@ -5504,9 +5504,9 @@
      "name": "base",
      "file": "furniture/bed_busy_3_2_base.png",
      "ox": 38,
-     "oy": 35,
-     "w": 78,
-     "h": 54,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
      "rect": [
       -1.1,
       -1.35,
@@ -5518,14 +5518,14 @@
      "name": "head",
      "file": "furniture/bed_busy_3_2_head.png",
      "ox": 40,
-     "oy": 32,
-     "w": 38,
-     "h": 51,
+     "oy": 31,
+     "w": 39,
+     "h": 49,
      "rect": [
-      -1.1,
-      1.2,
-      1.1,
-      1.35
+      -1.09,
+      1.122,
+      1.09,
+      1.36
      ]
     }
    ],
@@ -5543,9 +5543,9 @@
      "name": "base",
      "file": "furniture/bed_busy_3_3_base.png",
      "ox": 38,
-     "oy": 34,
-     "w": 78,
-     "h": 53,
+     "oy": 33,
+     "w": 76,
+     "h": 52,
      "rect": [
       -1.35,
       -1.1,
@@ -5557,14 +5557,14 @@
      "name": "head",
      "file": "furniture/bed_busy_3_3_head.png",
      "ox": 40,
-     "oy": 52,
-     "w": 39,
-     "h": 50,
+     "oy": 51,
+     "w": 40,
+     "h": 47,
      "rect": [
-      -1.35,
-      -1.1,
-      -1.2,
-      1.1
+      -1.36,
+      -1.09,
+      -1.122,
+      1.09
      ]
     }
    ],
@@ -5576,17 +5576,17 @@
   "0": {
    "file": "furniture/old_bed_busy_1_0.png",
    "ox": 39,
-   "oy": 37,
+   "oy": 38,
    "w": 78,
-   "h": 58,
+   "h": 59,
    "lights": [],
    "parts": [
     {
      "name": "base",
      "file": "furniture/old_bed_busy_1_0_base.png",
-     "ox": 35,
+     "ox": 34,
      "oy": 29,
-     "w": 70,
+     "w": 68,
      "h": 46,
      "rect": [
       -1.0,
@@ -5599,14 +5599,14 @@
      "name": "head",
      "file": "furniture/old_bed_busy_1_0_head.png",
      "ox": -2,
-     "oy": 35,
-     "w": 33,
-     "h": 27,
+     "oy": 34,
+     "w": 34,
+     "h": 31,
      "rect": [
       -0.93,
-      -1.22,
+      -1.23,
       0.93,
-      -1.12
+      -1.11
      ]
     }
    ],
@@ -5623,10 +5623,10 @@
     {
      "name": "base",
      "file": "furniture/old_bed_busy_1_1_base.png",
-     "ox": 35,
-     "oy": 31,
-     "w": 61,
-     "h": 48,
+     "ox": 34,
+     "oy": 30,
+     "w": 60,
+     "h": 47,
      "rect": [
       -1.2,
       -1.0,
@@ -5639,12 +5639,12 @@
      "file": "furniture/old_bed_busy_1_1_head.png",
      "ox": -3,
      "oy": 16,
-     "w": 32,
-     "h": 33,
+     "w": 33,
+     "h": 32,
      "rect": [
-      1.12,
+      1.11,
       -0.93,
-      1.22,
+      1.23,
       0.93
      ]
     }
@@ -5662,10 +5662,10 @@
     {
      "name": "base",
      "file": "furniture/old_bed_busy_1_2_base.png",
-     "ox": 27,
-     "oy": 31,
-     "w": 62,
-     "h": 48,
+     "ox": 26,
+     "oy": 30,
+     "w": 60,
+     "h": 47,
      "rect": [
       -1.0,
       -1.2,
@@ -5676,15 +5676,15 @@
     {
      "name": "head",
      "file": "furniture/old_bed_busy_1_2_head.png",
-     "ox": 35,
+     "ox": 36,
      "oy": 16,
-     "w": 32,
-     "h": 33,
+     "w": 33,
+     "h": 32,
      "rect": [
       -0.93,
-      1.12,
+      1.11,
       0.93,
-      1.22
+      1.23
      ]
     }
    ],
@@ -5693,17 +5693,17 @@
   "3": {
    "file": "furniture/old_bed_busy_1_3.png",
    "ox": 39,
-   "oy": 37,
+   "oy": 38,
    "w": 78,
-   "h": 58,
+   "h": 59,
    "lights": [],
    "parts": [
     {
      "name": "base",
      "file": "furniture/old_bed_busy_1_3_base.png",
-     "ox": 35,
+     "ox": 34,
      "oy": 30,
-     "w": 70,
+     "w": 68,
      "h": 47,
      "rect": [
       -1.2,
@@ -5715,14 +5715,14 @@
     {
      "name": "head",
      "file": "furniture/old_bed_busy_1_3_head.png",
-     "ox": 35,
-     "oy": 35,
-     "w": 33,
-     "h": 27,
+     "ox": 36,
+     "oy": 34,
+     "w": 34,
+     "h": 31,
      "rect": [
-      -1.22,
+      -1.23,
       -0.93,
-      -1.12,
+      -1.11,
       0.93
      ]
     }
@@ -5735,17 +5735,17 @@
   "0": {
    "file": "furniture/old_bed_busy_2_0.png",
    "ox": 39,
-   "oy": 37,
+   "oy": 38,
    "w": 78,
-   "h": 58,
+   "h": 59,
    "lights": [],
    "parts": [
     {
      "name": "base",
      "file": "furniture/old_bed_busy_2_0_base.png",
-     "ox": 35,
+     "ox": 34,
      "oy": 29,
-     "w": 70,
+     "w": 68,
      "h": 46,
      "rect": [
       -1.0,
@@ -5758,14 +5758,14 @@
      "name": "head",
      "file": "furniture/old_bed_busy_2_0_head.png",
      "ox": -2,
-     "oy": 35,
-     "w": 33,
-     "h": 27,
+     "oy": 34,
+     "w": 34,
+     "h": 31,
      "rect": [
       -0.93,
-      -1.22,
+      -1.23,
       0.93,
-      -1.12
+      -1.11
      ]
     }
    ],
@@ -5782,9 +5782,9 @@
     {
      "name": "base",
      "file": "furniture/old_bed_busy_2_1_base.png",
-     "ox": 35,
+     "ox": 34,
      "oy": 31,
-     "w": 61,
+     "w": 60,
      "h": 48,
      "rect": [
       -1.2,
@@ -5798,12 +5798,12 @@
      "file": "furniture/old_bed_busy_2_1_head.png",
      "ox": -3,
      "oy": 16,
-     "w": 32,
-     "h": 33,
+     "w": 33,
+     "h": 32,
      "rect": [
-      1.12,
+      1.11,
       -0.93,
-      1.22,
+      1.23,
       0.93
      ]
     }
@@ -5821,10 +5821,10 @@
     {
      "name": "base",
      "file": "furniture/old_bed_busy_2_2_base.png",
-     "ox": 27,
-     "oy": 31,
-     "w": 62,
-     "h": 48,
+     "ox": 26,
+     "oy": 30,
+     "w": 60,
+     "h": 47,
      "rect": [
       -1.0,
       -1.2,
@@ -5835,15 +5835,15 @@
     {
      "name": "head",
      "file": "furniture/old_bed_busy_2_2_head.png",
-     "ox": 35,
+     "ox": 36,
      "oy": 16,
-     "w": 32,
-     "h": 33,
+     "w": 33,
+     "h": 32,
      "rect": [
       -0.93,
-      1.12,
+      1.11,
       0.93,
-      1.22
+      1.23
      ]
     }
    ],
@@ -5852,17 +5852,17 @@
   "3": {
    "file": "furniture/old_bed_busy_2_3.png",
    "ox": 39,
-   "oy": 37,
+   "oy": 38,
    "w": 78,
-   "h": 58,
+   "h": 59,
    "lights": [],
    "parts": [
     {
      "name": "base",
      "file": "furniture/old_bed_busy_2_3_base.png",
-     "ox": 35,
+     "ox": 34,
      "oy": 30,
-     "w": 70,
+     "w": 68,
      "h": 47,
      "rect": [
       -1.2,
@@ -5874,14 +5874,14 @@
     {
      "name": "head",
      "file": "furniture/old_bed_busy_2_3_head.png",
-     "ox": 35,
-     "oy": 35,
-     "w": 33,
-     "h": 27,
+     "ox": 36,
+     "oy": 34,
+     "w": 34,
+     "h": 31,
      "rect": [
-      -1.22,
+      -1.23,
       -0.93,
-      -1.12,
+      -1.11,
       0.93
      ]
     }
@@ -5894,17 +5894,17 @@
   "0": {
    "file": "furniture/old_bed_busy_3_0.png",
    "ox": 39,
-   "oy": 37,
+   "oy": 38,
    "w": 78,
-   "h": 58,
+   "h": 59,
    "lights": [],
    "parts": [
     {
      "name": "base",
      "file": "furniture/old_bed_busy_3_0_base.png",
-     "ox": 35,
+     "ox": 34,
      "oy": 29,
-     "w": 70,
+     "w": 68,
      "h": 46,
      "rect": [
       -1.0,
@@ -5917,14 +5917,14 @@
      "name": "head",
      "file": "furniture/old_bed_busy_3_0_head.png",
      "ox": -2,
-     "oy": 35,
-     "w": 33,
-     "h": 27,
+     "oy": 34,
+     "w": 34,
+     "h": 31,
      "rect": [
       -0.93,
-      -1.22,
+      -1.23,
       0.93,
-      -1.12
+      -1.11
      ]
     }
    ],
@@ -5941,10 +5941,10 @@
     {
      "name": "base",
      "file": "furniture/old_bed_busy_3_1_base.png",
-     "ox": 35,
-     "oy": 31,
-     "w": 61,
-     "h": 48,
+     "ox": 34,
+     "oy": 30,
+     "w": 60,
+     "h": 47,
      "rect": [
       -1.2,
       -1.0,
@@ -5957,12 +5957,12 @@
      "file": "furniture/old_bed_busy_3_1_head.png",
      "ox": -3,
      "oy": 16,
-     "w": 32,
-     "h": 33,
+     "w": 33,
+     "h": 32,
      "rect": [
-      1.12,
+      1.11,
       -0.93,
-      1.22,
+      1.23,
       0.93
      ]
     }
@@ -5980,10 +5980,10 @@
     {
      "name": "base",
      "file": "furniture/old_bed_busy_3_2_base.png",
-     "ox": 27,
-     "oy": 31,
-     "w": 62,
-     "h": 48,
+     "ox": 26,
+     "oy": 30,
+     "w": 60,
+     "h": 47,
      "rect": [
       -1.0,
       -1.2,
@@ -5994,15 +5994,15 @@
     {
      "name": "head",
      "file": "furniture/old_bed_busy_3_2_head.png",
-     "ox": 35,
+     "ox": 36,
      "oy": 16,
-     "w": 32,
-     "h": 33,
+     "w": 33,
+     "h": 32,
      "rect": [
       -0.93,
-      1.12,
+      1.11,
       0.93,
-      1.22
+      1.23
      ]
     }
    ],
@@ -6011,17 +6011,17 @@
   "3": {
    "file": "furniture/old_bed_busy_3_3.png",
    "ox": 39,
-   "oy": 37,
+   "oy": 38,
    "w": 78,
-   "h": 58,
+   "h": 59,
    "lights": [],
    "parts": [
     {
      "name": "base",
      "file": "furniture/old_bed_busy_3_3_base.png",
-     "ox": 35,
+     "ox": 34,
      "oy": 30,
-     "w": 70,
+     "w": 68,
      "h": 47,
      "rect": [
       -1.2,
@@ -6033,14 +6033,14 @@
     {
      "name": "head",
      "file": "furniture/old_bed_busy_3_3_head.png",
-     "ox": 35,
-     "oy": 35,
-     "w": 33,
-     "h": 27,
+     "ox": 36,
+     "oy": 34,
+     "w": 34,
+     "h": 31,
      "rect": [
-      -1.22,
+      -1.23,
       -0.93,
-      -1.12,
+      -1.11,
       0.93
      ]
     }
@@ -13609,6 +13609,960 @@
       -0.12,
       0.12,
       0.12
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "flat": false
+ },
+ "heart_bed": {
+  "0": {
+   "file": "furniture/heart_bed_0.png",
+   "ox": 43,
+   "oy": 63,
+   "w": 86,
+   "h": 86,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_0_base.png",
+     "ox": 39,
+     "oy": 35,
+     "w": 77,
+     "h": 54,
+     "rect": [
+      -1.1,
+      -1.35,
+      1.1,
+      1.35
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_0_head.png",
+     "ox": 0,
+     "oy": 60,
+     "w": 40,
+     "h": 39,
+     "rect": [
+      -1.09,
+      -1.37,
+      1.09,
+      -1.086
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "1": {
+   "file": "furniture/heart_bed_1.png",
+   "ox": 43,
+   "oy": 42,
+   "w": 86,
+   "h": 65,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_1_base.png",
+     "ox": 39,
+     "oy": 34,
+     "w": 77,
+     "h": 53,
+     "rect": [
+      -1.35,
+      -1.1,
+      1.35,
+      1.1
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_1_head.png",
+     "ox": -1,
+     "oy": 40,
+     "w": 39,
+     "h": 54,
+     "rect": [
+      1.086,
+      -1.09,
+      1.37,
+      1.09
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "2": {
+   "file": "furniture/heart_bed_2.png",
+   "ox": 43,
+   "oy": 42,
+   "w": 86,
+   "h": 65,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_2_base.png",
+     "ox": 38,
+     "oy": 34,
+     "w": 77,
+     "h": 53,
+     "rect": [
+      -1.1,
+      -1.35,
+      1.1,
+      1.35
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_2_head.png",
+     "ox": 40,
+     "oy": 40,
+     "w": 39,
+     "h": 54,
+     "rect": [
+      -1.09,
+      1.086,
+      1.09,
+      1.37
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "3": {
+   "file": "furniture/heart_bed_3.png",
+   "ox": 43,
+   "oy": 63,
+   "w": 86,
+   "h": 86,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_3_base.png",
+     "ox": 38,
+     "oy": 35,
+     "w": 77,
+     "h": 54,
+     "rect": [
+      -1.35,
+      -1.1,
+      1.35,
+      1.1
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_3_head.png",
+     "ox": 40,
+     "oy": 60,
+     "w": 40,
+     "h": 39,
+     "rect": [
+      -1.37,
+      -1.09,
+      -1.086,
+      1.09
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "flat": false
+ },
+ "heart_bed_unmade": {
+  "0": {
+   "file": "furniture/heart_bed_unmade_0.png",
+   "ox": 43,
+   "oy": 63,
+   "w": 86,
+   "h": 86,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_unmade_0_base.png",
+     "ox": 38,
+     "oy": 35,
+     "w": 76,
+     "h": 54,
+     "rect": [
+      -1.1,
+      -1.35,
+      1.1,
+      1.35
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_unmade_0_head.png",
+     "ox": 0,
+     "oy": 60,
+     "w": 40,
+     "h": 43,
+     "rect": [
+      -1.09,
+      -1.37,
+      1.09,
+      -1.086
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "1": {
+   "file": "furniture/heart_bed_unmade_1.png",
+   "ox": 43,
+   "oy": 42,
+   "w": 86,
+   "h": 65,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_unmade_1_base.png",
+     "ox": 40,
+     "oy": 36,
+     "w": 78,
+     "h": 55,
+     "rect": [
+      -1.35,
+      -1.1,
+      1.35,
+      1.1
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_unmade_1_head.png",
+     "ox": -1,
+     "oy": 40,
+     "w": 39,
+     "h": 54,
+     "rect": [
+      1.086,
+      -1.09,
+      1.37,
+      1.09
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "2": {
+   "file": "furniture/heart_bed_unmade_2.png",
+   "ox": 43,
+   "oy": 42,
+   "w": 86,
+   "h": 65,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_unmade_2_base.png",
+     "ox": 38,
+     "oy": 36,
+     "w": 76,
+     "h": 55,
+     "rect": [
+      -1.1,
+      -1.35,
+      1.1,
+      1.35
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_unmade_2_head.png",
+     "ox": 40,
+     "oy": 40,
+     "w": 39,
+     "h": 54,
+     "rect": [
+      -1.09,
+      1.086,
+      1.09,
+      1.37
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "3": {
+   "file": "furniture/heart_bed_unmade_3.png",
+   "ox": 43,
+   "oy": 63,
+   "w": 86,
+   "h": 86,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_unmade_3_base.png",
+     "ox": 38,
+     "oy": 35,
+     "w": 78,
+     "h": 54,
+     "rect": [
+      -1.35,
+      -1.1,
+      1.35,
+      1.1
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_unmade_3_head.png",
+     "ox": 40,
+     "oy": 60,
+     "w": 40,
+     "h": 42,
+     "rect": [
+      -1.37,
+      -1.09,
+      -1.086,
+      1.09
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "flat": false
+ },
+ "heart_bed_busy": {
+  "0": {
+   "file": "furniture/heart_bed_busy_0.png",
+   "ox": 43,
+   "oy": 63,
+   "w": 86,
+   "h": 86,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_busy_0_base.png",
+     "ox": 38,
+     "oy": 35,
+     "w": 76,
+     "h": 54,
+     "rect": [
+      -1.1,
+      -1.35,
+      1.1,
+      1.35
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_busy_0_head.png",
+     "ox": 0,
+     "oy": 60,
+     "w": 40,
+     "h": 40,
+     "rect": [
+      -1.09,
+      -1.37,
+      1.09,
+      -1.086
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "1": {
+   "file": "furniture/heart_bed_busy_1.png",
+   "ox": 43,
+   "oy": 42,
+   "w": 86,
+   "h": 65,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_busy_1_base.png",
+     "ox": 38,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
+     "rect": [
+      -1.35,
+      -1.1,
+      1.35,
+      1.1
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_busy_1_head.png",
+     "ox": -1,
+     "oy": 40,
+     "w": 39,
+     "h": 54,
+     "rect": [
+      1.086,
+      -1.09,
+      1.37,
+      1.09
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "2": {
+   "file": "furniture/heart_bed_busy_2.png",
+   "ox": 43,
+   "oy": 42,
+   "w": 86,
+   "h": 65,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_busy_2_base.png",
+     "ox": 38,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
+     "rect": [
+      -1.1,
+      -1.35,
+      1.1,
+      1.35
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_busy_2_head.png",
+     "ox": 40,
+     "oy": 40,
+     "w": 39,
+     "h": 54,
+     "rect": [
+      -1.09,
+      1.086,
+      1.09,
+      1.37
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "3": {
+   "file": "furniture/heart_bed_busy_3.png",
+   "ox": 43,
+   "oy": 63,
+   "w": 86,
+   "h": 86,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_busy_3_base.png",
+     "ox": 38,
+     "oy": 35,
+     "w": 76,
+     "h": 54,
+     "rect": [
+      -1.35,
+      -1.1,
+      1.35,
+      1.1
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_busy_3_head.png",
+     "ox": 40,
+     "oy": 60,
+     "w": 40,
+     "h": 40,
+     "rect": [
+      -1.37,
+      -1.09,
+      -1.086,
+      1.09
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "flat": false
+ },
+ "heart_bed_busy_1": {
+  "0": {
+   "file": "furniture/heart_bed_busy_1_0.png",
+   "ox": 43,
+   "oy": 63,
+   "w": 86,
+   "h": 86,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_busy_1_0_base.png",
+     "ox": 38,
+     "oy": 35,
+     "w": 76,
+     "h": 54,
+     "rect": [
+      -1.1,
+      -1.35,
+      1.1,
+      1.35
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_busy_1_0_head.png",
+     "ox": 0,
+     "oy": 60,
+     "w": 40,
+     "h": 40,
+     "rect": [
+      -1.09,
+      -1.37,
+      1.09,
+      -1.086
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "1": {
+   "file": "furniture/heart_bed_busy_1_1.png",
+   "ox": 43,
+   "oy": 42,
+   "w": 86,
+   "h": 65,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_busy_1_1_base.png",
+     "ox": 38,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
+     "rect": [
+      -1.35,
+      -1.1,
+      1.35,
+      1.1
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_busy_1_1_head.png",
+     "ox": -1,
+     "oy": 40,
+     "w": 39,
+     "h": 54,
+     "rect": [
+      1.086,
+      -1.09,
+      1.37,
+      1.09
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "2": {
+   "file": "furniture/heart_bed_busy_1_2.png",
+   "ox": 43,
+   "oy": 42,
+   "w": 86,
+   "h": 65,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_busy_1_2_base.png",
+     "ox": 38,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
+     "rect": [
+      -1.1,
+      -1.35,
+      1.1,
+      1.35
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_busy_1_2_head.png",
+     "ox": 40,
+     "oy": 40,
+     "w": 39,
+     "h": 54,
+     "rect": [
+      -1.09,
+      1.086,
+      1.09,
+      1.37
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "3": {
+   "file": "furniture/heart_bed_busy_1_3.png",
+   "ox": 43,
+   "oy": 63,
+   "w": 86,
+   "h": 86,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_busy_1_3_base.png",
+     "ox": 38,
+     "oy": 35,
+     "w": 76,
+     "h": 54,
+     "rect": [
+      -1.35,
+      -1.1,
+      1.35,
+      1.1
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_busy_1_3_head.png",
+     "ox": 40,
+     "oy": 60,
+     "w": 40,
+     "h": 40,
+     "rect": [
+      -1.37,
+      -1.09,
+      -1.086,
+      1.09
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "flat": false
+ },
+ "heart_bed_busy_2": {
+  "0": {
+   "file": "furniture/heart_bed_busy_2_0.png",
+   "ox": 43,
+   "oy": 63,
+   "w": 86,
+   "h": 86,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_busy_2_0_base.png",
+     "ox": 38,
+     "oy": 35,
+     "w": 76,
+     "h": 54,
+     "rect": [
+      -1.1,
+      -1.35,
+      1.1,
+      1.35
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_busy_2_0_head.png",
+     "ox": 0,
+     "oy": 60,
+     "w": 40,
+     "h": 40,
+     "rect": [
+      -1.09,
+      -1.37,
+      1.09,
+      -1.086
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "1": {
+   "file": "furniture/heart_bed_busy_2_1.png",
+   "ox": 43,
+   "oy": 42,
+   "w": 86,
+   "h": 65,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_busy_2_1_base.png",
+     "ox": 38,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
+     "rect": [
+      -1.35,
+      -1.1,
+      1.35,
+      1.1
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_busy_2_1_head.png",
+     "ox": -1,
+     "oy": 40,
+     "w": 39,
+     "h": 54,
+     "rect": [
+      1.086,
+      -1.09,
+      1.37,
+      1.09
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "2": {
+   "file": "furniture/heart_bed_busy_2_2.png",
+   "ox": 43,
+   "oy": 42,
+   "w": 86,
+   "h": 65,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_busy_2_2_base.png",
+     "ox": 38,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
+     "rect": [
+      -1.1,
+      -1.35,
+      1.1,
+      1.35
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_busy_2_2_head.png",
+     "ox": 40,
+     "oy": 40,
+     "w": 39,
+     "h": 54,
+     "rect": [
+      -1.09,
+      1.086,
+      1.09,
+      1.37
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "3": {
+   "file": "furniture/heart_bed_busy_2_3.png",
+   "ox": 43,
+   "oy": 63,
+   "w": 86,
+   "h": 86,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_busy_2_3_base.png",
+     "ox": 38,
+     "oy": 35,
+     "w": 76,
+     "h": 54,
+     "rect": [
+      -1.35,
+      -1.1,
+      1.35,
+      1.1
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_busy_2_3_head.png",
+     "ox": 40,
+     "oy": 60,
+     "w": 40,
+     "h": 40,
+     "rect": [
+      -1.37,
+      -1.09,
+      -1.086,
+      1.09
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "flat": false
+ },
+ "heart_bed_busy_3": {
+  "0": {
+   "file": "furniture/heart_bed_busy_3_0.png",
+   "ox": 43,
+   "oy": 63,
+   "w": 86,
+   "h": 86,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_busy_3_0_base.png",
+     "ox": 38,
+     "oy": 35,
+     "w": 76,
+     "h": 54,
+     "rect": [
+      -1.1,
+      -1.35,
+      1.1,
+      1.35
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_busy_3_0_head.png",
+     "ox": 0,
+     "oy": 60,
+     "w": 40,
+     "h": 40,
+     "rect": [
+      -1.09,
+      -1.37,
+      1.09,
+      -1.086
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "1": {
+   "file": "furniture/heart_bed_busy_3_1.png",
+   "ox": 43,
+   "oy": 42,
+   "w": 86,
+   "h": 65,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_busy_3_1_base.png",
+     "ox": 38,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
+     "rect": [
+      -1.35,
+      -1.1,
+      1.35,
+      1.1
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_busy_3_1_head.png",
+     "ox": -1,
+     "oy": 40,
+     "w": 39,
+     "h": 54,
+     "rect": [
+      1.086,
+      -1.09,
+      1.37,
+      1.09
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "2": {
+   "file": "furniture/heart_bed_busy_3_2.png",
+   "ox": 43,
+   "oy": 42,
+   "w": 86,
+   "h": 65,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_busy_3_2_base.png",
+     "ox": 38,
+     "oy": 34,
+     "w": 76,
+     "h": 53,
+     "rect": [
+      -1.1,
+      -1.35,
+      1.1,
+      1.35
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_busy_3_2_head.png",
+     "ox": 40,
+     "oy": 40,
+     "w": 39,
+     "h": 54,
+     "rect": [
+      -1.09,
+      1.086,
+      1.09,
+      1.37
+     ]
+    }
+   ],
+   "split": "pixels"
+  },
+  "3": {
+   "file": "furniture/heart_bed_busy_3_3.png",
+   "ox": 43,
+   "oy": 63,
+   "w": 86,
+   "h": 86,
+   "lights": [],
+   "parts": [
+    {
+     "name": "base",
+     "file": "furniture/heart_bed_busy_3_3_base.png",
+     "ox": 38,
+     "oy": 35,
+     "w": 76,
+     "h": 54,
+     "rect": [
+      -1.35,
+      -1.1,
+      1.35,
+      1.1
+     ]
+    },
+    {
+     "name": "head",
+     "file": "furniture/heart_bed_busy_3_3_head.png",
+     "ox": 40,
+     "oy": 60,
+     "w": 40,
+     "h": 40,
+     "rect": [
+      -1.37,
+      -1.09,
+      -1.086,
+      1.09
      ]
     }
    ],

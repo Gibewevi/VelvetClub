@@ -7,6 +7,7 @@ var model = BuildingModel.new()
 var view: WorldView
 var sim: ClubSim
 var deliveries: Deliveries
+var construction: Construction
 var hud: Hud
 var container: SubViewportContainer
 var viewport: SubViewport
@@ -48,15 +49,20 @@ func _ready() -> void:
 	var args = OS.get_cmdline_user_args()
 	test_mode = "--smoke-test" in args or "--ui-test" in args or "--sim-test" in args or "--delivery-test" in args
 	# Screenshots always start from the fresh club and never write a save.
+	var profile_save = ""
 	for arg in args:
 		if arg.begins_with("--capture="): test_mode = true
+		# replay a copy of a player's save, never writing it
+		if arg.begins_with("--profile-save="): profile_save = arg.trim_prefix("--profile-save=")
+	if profile_save != "": test_mode = true
 	if test_mode: save_path = "user://pixel_test.json"
 	var bad_save = false
 	var club_data = {}
 	var delivery_data = {}
 	model.starter()
-	if not test_mode and FileAccess.file_exists(save_path):
-		var data = JSON.parse_string(FileAccess.get_file_as_string(save_path))
+	var load_path = profile_save if profile_save != "" else ("" if test_mode else save_path)
+	if load_path != "" and FileAccess.file_exists(load_path):
+		var data = JSON.parse_string(FileAccess.get_file_as_string(load_path))
 		if data is Dictionary and model.load_checked(data.get("model")):
 			club_data = data.get("club",{})
 			if data.get("deliveries") is Dictionary: delivery_data = data.deliveries
@@ -100,10 +106,21 @@ func _ready() -> void:
 	add_child(deliveries)
 	deliveries.setup(self,delivery_data)
 	deliveries.updated.connect(hud.refresh_deliveries)
+	construction = Construction.new()
+	add_child(construction)
+	construction.setup(self)
+	# sites in progress in the save: crew and equipment back on the plan
+	view.rebuild()
 	sim.stats_changed.connect(hud.refresh_stats)
+	sim.open_changed.connect(func(value):
+		view.set_club_open(value)
+		request_save())
 	sim.debris_cleaned.connect(on_debris_cleaned)
+	sim.debris_dropped.connect(func(id):
+		if not view.add_item_quick(model.item_by_id(id)): view.request_rebuild()
+		request_save())
 	sim.world_changed.connect(func():
-		view.rebuild()
+		view.request_rebuild()
 		refresh()
 		request_save())
 	view.set_club_open(sim.open)
@@ -132,13 +149,78 @@ func _ready() -> void:
 	if "--sim-test" in args: sim_test.call_deferred()
 	if "--ui-test" in args: ui_test.call_deferred()
 	if "--delivery-test" in args: delivery_test.call_deferred()
+	if profile_save != "": profile_run.call_deferred()
+	elif not test_mode: perf_open()
 	for arg in args:
 		if arg.begins_with("--capture="): capture.call_deferred(arg.trim_prefix("--capture="))
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and initialized:
 		if not test_mode: save_game()
+		perf_write("=== fermeture normale")
 		get_tree().quit()
+
+# ------------------------------------------------------------------ keeping the hand
+
+var slow_for = 0.0        # seconds of long frames in a row (speeding)
+var stalled_for = 0.0     # seconds of very long frames in a row (normal speed)
+var perf_log: FileAccess  # user://perf.log: a short record to understand a slowdown
+var perf_frames = 0
+var perf_time = 0.0
+
+func _process(delta: float) -> void:
+	if not initialized or test_mode: return
+	guard(delta)
+	black_box(delta)
+
+func guard(delta: float) -> void:
+	# When frames get long, slow the game down rather than let it snowball:
+	# first back to normal speed, then a pause if even that is too much.
+	if sim.speed <= 0 or sim.paused_for_report:
+		slow_for = 0.0
+		stalled_for = 0.0
+		return
+	slow_for = slow_for+delta if delta > 0.12 else maxf(0.0,slow_for-delta*2.0)
+	stalled_for = stalled_for+delta if delta > 0.3 else maxf(0.0,stalled_for-delta*2.0)
+	if sim.speed > 1 and slow_for > 2.0:
+		slow_for = 0.0
+		set_speed(1)
+		hud.toast("Le jeu peinait en accéléré : vitesse ramenée à ×1.",6.0)
+		perf_write("vitesse ramenée à ×1 (images trop lentes)")
+	elif sim.speed == 1 and stalled_for > 3.0:
+		stalled_for = 0.0
+		set_speed(0)
+		hud.toast("Le jeu peinait trop : pause automatique. Reprenez quand vous voulez (Espace).",8.0)
+		perf_write("pause automatique (images très lentes)")
+
+func perf_open() -> void:
+	# A small rolling record, kept across sessions: if the game ever freezes
+	# again, its last lines say what it was doing.
+	var path = "user://perf.log"
+	if FileAccess.file_exists(path) and FileAccess.open(path,FileAccess.READ).get_length() > 400000:
+		DirAccess.rename_absolute(ProjectSettings.globalize_path(path),ProjectSettings.globalize_path("user://perf.old.log"))
+	perf_log = FileAccess.open(path,FileAccess.READ_WRITE) if FileAccess.file_exists(path) else FileAccess.open(path,FileAccess.WRITE)
+	if perf_log == null: return
+	perf_log.seek_end()
+	Prof.enabled = true
+	perf_write("=== démarrage %s · %s" % [Time.get_datetime_string_from_system(),ProjectSettings.get_setting("application/config/name")])
+
+func perf_write(text: String) -> void:
+	if perf_log == null: return
+	perf_log.store_line("%s %s" % [Time.get_time_string_from_system(),text])
+	perf_log.flush()
+
+func black_box(delta: float) -> void:
+	if perf_log == null: return
+	perf_frames += 1
+	perf_time += delta
+	if delta > 0.4: perf_write("image lente %d ms · %s" % [int(delta*1000),Prof.frame_text()])
+	Prof.frame.clear()
+	if perf_time >= 30.0:
+		perf_write("%.0f img/s · mémoire %.0f Mo · %d clients · vitesse ×%d · jour %d %s · %s" % [perf_frames/perf_time,
+			Performance.get_monitor(Performance.MEMORY_STATIC)/1048576.0,sim.clients.size(),sim.speed,sim.day,sim.clock_text(),Prof.report(perf_frames)])
+		perf_frames = 0
+		perf_time = 0.0
 
 func quit() -> void:
 	_notification(NOTIFICATION_WM_CLOSE_REQUEST)
@@ -201,6 +283,25 @@ func toggle_open() -> void:
 		hud.toast("Club fermé : plus personne n'entre, les clients présents s'en vont.")
 	request_save()
 
+func set_staff_schedule(id: int, schedule: Dictionary) -> void:
+	var item = model.item_by_id(id)
+	if item.is_empty() or not Catalog.is_character(item.kind) or not ClubCalendar.valid(schedule): return
+	item.work_schedule = ClubCalendar.normalized(schedule)
+	sim.refresh_schedule_state()
+	hud.refresh_context()
+	hud.refresh_stats()
+	if hud.active == "staff": hud.fill_drawer()
+	hud.toast("Planning enregistré pour "+Catalog.ITEMS[item.kind].name.to_lower()+".")
+	request_save()
+
+func set_opening_hours(schedule: Dictionary) -> void:
+	if not ClubCalendar.valid(schedule,true): return
+	sim.set_opening_hours(schedule)
+	hud.refresh_stats()
+	if hud.active in ["staff","settings"]: hud.fill_drawer()
+	hud.toast("Horaires automatiques enregistrés." if schedule.enabled else "Ouverture manuelle activée.")
+	request_save()
+
 func toggle_priority(id: int) -> void:
 	var item = model.item_by_id(id)
 	if item.is_empty(): return
@@ -215,7 +316,7 @@ func on_debris_cleaned(id: int) -> void:
 		for snap in stack:
 			snap.furniture = snap.furniture.filter(func(i): return int(i.id) != id)
 	if selected_item == id: clear_selection()
-	view.rebuild()
+	if not view.remove_item_quick(id): view.request_rebuild()
 	refresh()
 	if model.debris().is_empty(): hud.toast("Plus aucun déchet : le local est propre !")
 	request_save()
@@ -236,6 +337,11 @@ func clear_selection() -> void:
 	drag = {}
 
 func refresh() -> void:
+	var p0 = Prof.t("main.refresh")
+	_timed_refresh()
+	Prof.add("main.refresh",p0)
+
+func _timed_refresh() -> void:
 	hud.show_hover("",Vector2.ZERO)
 	view.selection(selected_item,model.room_by_id(selected_room),selected_edge,model.parking_by_id(selected_parking))
 	hud.refresh_context()
@@ -255,7 +361,7 @@ func set_mode(value: String) -> void:
 	elif not hud.active == "build": view.grid.visible = false
 	view.show_street_line(mode in ["parking","parking_lane"])
 	refresh()
-	hud.toast({"select":"Cliquez un meuble, une personne, une ouverture ou le sol d'une pièce.","room":"Cliquez-glissez pour tracer une pièce (2 × 2 m minimum).","door":"Cliquez un mur pour y placer une porte.","window":"Cliquez un mur pour y placer une fenêtre.","furniture":"Cliquez pour placer · orientation automatique · R : tourner à la main · Maj : en série · Échap : annuler",
+	hud.toast({"select":"Cliquez un meuble, une personne, une ouverture ou le sol d'une pièce.","room":"Glissez depuis le terrain libre : nouvelle pièce (2 × 2 m minimum). Depuis un mur ou le sol d'une pièce : elle s'agrandit.","door":"Cliquez un mur pour y placer une porte.","window":"Cliquez un mur pour y placer une fenêtre.","furniture":"Cliquez pour placer · orientation automatique · R : tourner à la main · Maj : en série · Échap : annuler",
 		"parking":"Cliquez pour une place · glissez pour une rangée · R : tourner. Les rangées voisines se raccordent.","parking_lane":"Tracez l'allée à côté des places et jusqu'au trottoir. Une largeur de 6 m facilite les manœuvres."}.get(mode,""))
 
 func set_room_type(t: int) -> void:
@@ -353,6 +459,13 @@ func set_price(key: String, value: int) -> void:
 	sim.prices[key] = value
 	request_save()
 
+func buy_sanitary_upgrade(id: int, key: String) -> void:
+	var item = model.item_by_id(id)
+	if item.is_empty() or item.get("delivery_pending",false) or not key in Sanitation.upgrades_for(item.kind) or item.get(key,false): return
+	var before = model.snapshot()
+	item[key] = true
+	commit(before,Sanitation.UPGRADES[key].name+" installé.")
+
 # ------------------------------------------------------------------ changes, money, history
 
 func commit(before: Dictionary, message: String) -> bool:
@@ -382,6 +495,17 @@ func changed_view() -> void:
 	sim.layout_changed()
 	refresh()
 
+func site_finished(room: Dictionary, joined: int = -1) -> void:
+	# The works are over: the room is drawn finished and becomes usable. An
+	# extension has joined its room, the wall between them is gone.
+	if joined >= 0 and selected_room == int(room.id): selected_room = joined
+	changed_view()
+	var whole = model.room_by_id(joined)
+	if not whole.is_empty(): hud.toast("Agrandissement terminé : %s, %d m² d'un seul tenant." % [Catalog.ROOMS[int(whole.type)],BuildingModel.area_of(whole)])
+	else: hud.toast("Chantier terminé : %s prête (%d m²)." % [Catalog.ROOMS[int(room.type)],BuildingModel.area_of(room)])
+	view.puff(model.shape(room).get_center(),"heart",1.6)
+	request_save()
+
 func delivery_installed(key: String, id: int) -> void:
 	# Delivery progress survives construction undo/redo without another charge.
 	for stack in [undo_stack,redo_stack]:
@@ -392,6 +516,7 @@ func delivery_installed(key: String, id: int) -> void:
 	var item = model.item_by_id(id)
 	if not item.is_empty():
 		view.puff(Vector2(item.x,item.z),"heart",1.3)
+		view.place_dust(item)
 		hud.toast(Catalog.ITEMS[item.kind].name+" livré et installé.")
 	request_save()
 
@@ -403,6 +528,29 @@ func request_save() -> void:
 func restore_to(data: Dictionary, message: String) -> void:
 	var old = BuildingModel.new()
 	old.restore(model.snapshot())
+	# Construction history must not undo wear, a repair or cleaning already completed.
+	for saved_item in data.get("furniture",[]):
+		var live = model.item_by_id(int(saved_item.id))
+		if live.is_empty(): continue
+		for field in ["soil","wear","leaking","leak_timer","work_schedule","profile_id"]:
+			if live.has(field): saved_item[field] = live[field]
+			else: saved_item.erase(field)
+	# Nor does it split an extension that has joined its room since.
+	for live_room in model.rooms:
+		for ext_id in live_room.get("merged",[]):
+			var saved_target: Dictionary = {}
+			for saved_room in data.get("rooms",[]):
+				if int(saved_room.id) == int(live_room.id): saved_target = saved_room
+			data.rooms = data.rooms.filter(func(q): return int(q.id) != int(ext_id))
+			if not saved_target.is_empty():
+				saved_target.parts = live_room.parts.duplicate(true)
+				saved_target.merged = live_room.merged.duplicate()
+	# Nor does it undo work already done on a building site.
+	for saved_room in data.get("rooms",[]):
+		var live_room = model.room_by_id(int(saved_room.id))
+		if live_room.is_empty() or not SitePlan.building(saved_room): continue
+		if SitePlan.building(live_room): saved_room.build = SitePlan.merge(live_room.build,saved_room.build)
+		else: saved_room.erase("build")
 	model.restore(data)
 	sim.money -= model.cost()-old.cost()
 	clear_selection()
@@ -483,7 +631,8 @@ func rotate_item() -> void:
 	var item = model.item_by_id(selected_item)
 	if item.is_empty() or Catalog.is_debris(item.kind): return
 	var before = model.snapshot()
-	if model.move_item(selected_item,item.x,item.z,int(item.rot)+1): commit(before,"Objet tourné de 90°.")
+	if model.move_item(selected_item,item.x,item.z,int(item.rot)+1):
+		if commit(before,"Objet tourné de 90°."): view.place_dust(model.item_by_id(selected_item),true)
 	else: hud.toast(model.error)
 
 func placement_rot(at: Vector2) -> int:
@@ -527,6 +676,11 @@ func next_night() -> void:
 # ------------------------------------------------------------------ save
 
 func save_game() -> void:
+	var p0 = Prof.t("save")
+	_timed_save_game()
+	Prof.add("save",p0)
+
+func _timed_save_game() -> void:
 	var data = {"model":model.snapshot(),"club":sim.to_dict(),"deliveries":deliveries.to_dict(),"view":{"zoom":zoom,"walls":view.wall_mode}}
 	var temp = save_path+".tmp"
 	var file = FileAccess.open(temp,FileAccess.WRITE)
@@ -559,7 +713,13 @@ func reset_club() -> void:
 	sim.money = ClubSim.START_MONEY
 	sim.rating = 1.0
 	sim.day = 1
-	sim.minute = 1320.0
+	sim.minute = 1080.0
+	sim.opening_hours = ClubCalendar.default_opening()
+	sim.opening_override = -1
+	sim.rain_strength = 0.0
+	sim.weather_remaining = 180.0
+	sim.wage_remainder = 0.0
+	view.rain.step(0,0)
 	sim.set_open(false)
 	view.set_club_open(false)
 	sim.history.clear()
@@ -672,7 +832,8 @@ func begin_action(screen: Vector2) -> void:
 		update_preview(screen)
 		return
 	if mode == "room":
-		drag = {"kind":mode,"start":p.floor()}
+		var grow = growth_start(screen)
+		drag = {"kind":mode,"start":grow.get("start",p.floor()),"extend":int(grow.get("room",-1))}
 		update_preview(screen)
 		return
 	if mode == "furniture":
@@ -697,7 +858,9 @@ func begin_action(screen: Vector2) -> void:
 			view.clear_preview()
 			selected_item = id
 		var pending = model.item_by_id(id).get("delivery_pending",false)
-		if commit(before,(name+" déplacé." if moved else name+(" commandé · emplacement réservé." if pending else " installé."))) and not keep: refresh()
+		if commit(before,(name+" déplacé." if moved else name+(" commandé · emplacement réservé." if pending else " installé."))):
+			view.place_dust(model.item_by_id(id))
+			if not keep: refresh()
 		return
 	if mode in ["door","window"]:
 		var key = view.nearest_edge(wp)
@@ -740,6 +903,61 @@ func begin_action(screen: Vector2) -> void:
 				var pk = model.parking_at(p)
 				if not pk.is_empty(): selected_parking = int(pk.id)
 	refresh()
+
+const WALL_REACH = 0.3   # a drawing this close to a wall starts from it
+
+func growth_start(screen: Vector2) -> Dictionary:
+	# Where a drawing starts says what the player means, without a choice to
+	# make: from a room's floor or one of its walls, the room grows (an
+	# extension); from open ground, it is a new room, even if it ends up
+	# against another one. Returns {room, start cell, edge} or {}.
+	var p = ground_at(screen)
+	var here = model.room_at(p)
+	if not here.is_empty(): return {"room":int(here.id),"start":p.floor(),"edge":""}
+	var walls = model.edges()
+	var key = view.pick_wall(world_px(screen))
+	var best_d = WALL_REACH
+	if key == "" or not walls.has(key):
+		key = ""
+		for k in walls:
+			var e: Dictionary = walls[k]
+			var a = Vector2(e.x,e.z)
+			var b = a+(Vector2(1,0) if e.axis == "x" else Vector2(0,1))
+			var d = Geometry2D.get_closest_point_to_segment(p,a,b).distance_to(p)
+			if d < best_d:
+				best_d = d
+				key = k
+	if key == "": return {}
+	var e: Dictionary = walls[key]
+	# the free cell on the far side of the wall is where the new ground starts
+	var cells = [Vector2i(e.x,e.z-1),Vector2i(e.x,e.z)] if e.axis == "x" else [Vector2i(e.x-1,e.z),Vector2i(e.x,e.z)]
+	var rooms_on = []
+	for c in cells: rooms_on.append(model.room_at(Vector2(c)+Vector2(0.5,0.5)))
+	if rooms_on[0].is_empty() == rooms_on[1].is_empty(): return {}
+	var free_cell: Vector2i = cells[0] if rooms_on[0].is_empty() else cells[1]
+	var target: Dictionary = rooms_on[1] if rooms_on[0].is_empty() else rooms_on[0]
+	return {"room":int(target.id),"start":Vector2(free_cell),"edge":key}
+
+func extension_preview(r: Dictionary) -> Dictionary:
+	# What an extension drawing would add, and whether it can be built.
+	var target = model.room_by_id(int(drag.get("extend",-1)))
+	var area = Rect2(r.x,r.z,r.w,r.h)
+	var pieces = model.extension_parts(target,area)
+	var out = {"target":target,"pieces":pieces,"valid":false,"error":"","price":0,"area":0}
+	if pieces.is_empty():
+		out.error = "Tirez au-delà du mur pour agrandir."
+		return out
+	var probe = BuildingModel.new()
+	probe.restore(model.snapshot())
+	probe.strict = model.strict
+	var id = probe.add_extension(int(target.id),area)
+	if id == -1:
+		out.error = probe.error
+		return out
+	out.valid = true
+	out.area = BuildingModel.area_of(probe.room_by_id(id))
+	out.price = probe.cost()-model.cost()
+	return out
 
 func room_candidate(screen: Vector2) -> Dictionary:
 	var p = ground_at(screen)
@@ -798,12 +1016,31 @@ func update_preview(screen: Vector2) -> void:
 	parking_pointer = screen
 	var hovered_ui = get_viewport().gui_get_hovered_control() != null
 	if not drag.is_empty():
+		if drag.kind == "room" and int(drag.get("extend",-1)) >= 0:
+			var ext = extension_preview(room_candidate(screen))
+			var name = Catalog.ROOMS[int(ext.target.type)] if not ext.target.is_empty() else ""
+			view.preview_parts(ext.pieces,ext.valid,ext.target)
+			if ext.valid: hud.toast("Agrandir : %s · +%d m² · %s $ · Relâchez pour valider" % [name,int(ext.area),UiKit.money(int(ext.price))],1.5)
+			else: hud.toast("Agrandir : %s · %s" % [name,ext.error],1.5)
+			return
 		if drag.kind in ["room","resize"]:
 			var r = room_candidate(screen)
 			var valid = model.valid_room(r,selected_room if drag.kind == "resize" else -1)
 			view.preview_room(r,valid)
-			var price = int(r.w*r.h)*Catalog.ROOM_PRICE if drag.kind == "room" else 0
-			hud.toast("%d × %d m%s · %s" % [r.w,r.h,(" · %s $" % UiKit.money(price)) if price > 0 else "","Relâchez pour valider" if valid else model.error],1.5)
+			var price = 0
+			if drag.kind == "room":
+				var fresh = Finishes.defaults(room_type)
+				fresh.merge(r,true)
+				price = int(r.w*r.h)*Catalog.ROOM_PRICE+Finishes.value(fresh)
+			var price_text = (" · %s $" % UiKit.money(price)) if price > 0 else ""
+			if drag.kind == "resize":
+				# only the difference is charged (or refunded): area and finishes
+				var grown = drag.original.duplicate()
+				grown.merge(r,true)
+				var diff = int(r.w*r.h-drag.original.w*drag.original.h)*Catalog.ROOM_PRICE+Finishes.value(grown)-Finishes.value(drag.original)
+				if diff > 0: price_text = " · +%s $" % UiKit.money(diff)
+				elif diff < 0: price_text = " · %s $ remboursés" % UiKit.money(-diff)
+			hud.toast("%d × %d m%s · %s" % [r.w,r.h,price_text,"Relâchez pour valider" if valid else model.error],1.5)
 		elif drag.kind in ["parking","parking_lane"]:
 			show_parking_preview(parking_candidate(drag,screen))
 		elif drag.kind == "move" and screen.distance_to(drag.screen) > 6:
@@ -824,8 +1061,18 @@ func update_preview(screen: Vector2) -> void:
 	elif mode in ["parking","parking_lane"]:
 		show_parking_preview(parking_candidate({},screen))
 	elif mode == "room":
-		var c = ground_at(screen).floor()
-		view.preview_room({"x":c.x,"z":c.y,"w":1,"h":1},true)
+		var grow = growth_start(screen)
+		if grow.is_empty():
+			var c = ground_at(screen).floor()
+			view.preview_room({"x":c.x,"z":c.y,"w":1,"h":1},true)
+			view.show_edge("")
+			hud.show_hover("Nouvelle pièce : "+Catalog.ROOMS[room_type],screen)
+		else:
+			var target = model.room_by_id(int(grow.room))
+			var c: Vector2 = grow.start
+			view.preview_parts([] if grow.edge == "" else [Rect2(c.x,c.y,1,1)],true,target)
+			view.show_edge(grow.edge,Color("7dffa8"))
+			hud.show_hover("Agrandir : "+Catalog.ROOMS[int(target.type)]+(" (depuis ce mur)" if grow.edge != "" else ""),screen)
 	elif mode == "select":
 		var hit = view.pick(wp)
 		var text = ""
@@ -845,7 +1092,10 @@ func update_preview(screen: Vector2) -> void:
 				hover_id = int(item.id)
 		else:
 			var room = model.room_at(ground_at(screen))
-			if not room.is_empty(): text = Catalog.ROOMS[int(room.type)]
+			if not room.is_empty():
+				text = Catalog.ROOMS[int(room.type)]
+				var works = construction.status(room)
+				if not works.is_empty(): text = "Chantier · %s · %d %%" % [text,int(works.percent)]
 			else:
 				var pk = model.parking_at(ground_at(screen))
 				if not pk.is_empty():
@@ -860,14 +1110,31 @@ func finish_drag(screen: Vector2) -> void:
 	var d = drag
 	drag = {}
 	view.clear_preview()
-	if d.kind == "room":
+	if d.kind == "room" and int(d.get("extend",-1)) >= 0:
+		var r = room_candidate_from(d,screen)
+		var target = model.room_by_id(int(d.extend))
+		view.show_edge("")
+		var id = model.add_extension(int(d.extend),Rect2(r.x,r.z,r.w,r.h))
+		if id == -1:
+			hud.toast(model.error)
+			refresh()
+			return
+		# the new ground is built first, then joins the room
+		model.room_by_id(id).build = SitePlan.start()
+		if commit(before,"Agrandissement : %s +%d m² · chantier ouvert." % [Catalog.ROOMS[int(target.type)],BuildingModel.area_of(model.room_by_id(id))]):
+			selected_room = id
+			mode = "select"
+			refresh()
+	elif d.kind == "room":
 		var r = room_candidate_from(d,screen)
 		var id = model.add_room(r.x,r.z,r.w,r.h,room_type)
 		if id == -1:
 			hud.toast(model.error)
 			refresh()
 			return
-		if commit(before,Catalog.ROOMS[room_type]+" construite."):
+		# the room starts as a building site; a crew of three builds it
+		model.room_by_id(id).build = SitePlan.start()
+		if commit(before,"Chantier ouvert : "+Catalog.ROOMS[room_type]+" · 3 ouvriers au travail."):
 			selected_room = id
 			mode = "select"
 			refresh()
@@ -886,7 +1153,7 @@ func finish_drag(screen: Vector2) -> void:
 		drag = d
 		var r = room_candidate(screen)
 		drag = {}
-		if model.resize_room(selected_room,r): commit(before,"Pièce redimensionnée.")
+		if model.resize_room(selected_room,r): commit(before,"Chantier modifié : nouvelles cases ajoutées aux travaux." if SitePlan.building(model.room_by_id(selected_room)) else "Pièce redimensionnée.")
 		else:
 			hud.toast(model.error)
 			refresh()
@@ -895,7 +1162,8 @@ func finish_drag(screen: Vector2) -> void:
 			drag = d
 			var r = moved_candidate(screen)
 			drag = {}
-			if model.move_item(int(d.id),r.x,r.z,int(r.rot)): commit(before,"Objet déplacé.")
+			if model.move_item(int(d.id),r.x,r.z,int(r.rot)):
+				if commit(before,"Objet déplacé."): view.place_dust(model.item_by_id(int(d.id)))
 			else:
 				hud.toast(model.error)
 				refresh()
@@ -922,6 +1190,18 @@ func capture(path: String) -> void:
 		if arg == "--setup=orient": capture_orient()
 		if arg == "--setup=parking_modular": capture_modular_parking()
 		if arg == "--setup=delivery": capture_delivery()
+		if arg == "--setup=needs": capture_needs(false)
+		if arg == "--setup=toilets": capture_needs(true)
+		if arg == "--setup=sanitation": capture_sanitation()
+		if arg == "--setup=plumbing": capture_plumbing()
+		if arg == "--setup=hygiene": capture_hygiene()
+		if arg == "--setup=planning": capture_planning()
+		if arg == "--setup=weather": capture_weather()
+		if arg == "--setup=beds": capture_beds()
+		if arg == "--setup=profiles": capture_profiles()
+		if arg == "--setup=site": capture_site()
+		if arg == "--setup=extension": capture_extension()
+		if arg == "--setup=dust": capture_dust()
 		if arg == "--open": toggle_open()
 	hud.toast_time = 0
 	center_camera()
@@ -935,6 +1215,7 @@ func capture(path: String) -> void:
 		if arg == "--pause": set_speed(0)
 		if arg.begins_with("--escorts="): capture_escorts(int(arg.trim_prefix("--escorts=")))
 	hud.toast_time = 0
+	if capture_pointer != Vector2.INF: update_preview(screen_of(capture_pointer.x,capture_pointer.y))
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--until="):
 			# wait for a room phase (undress / dance / action) to show it
@@ -944,7 +1225,7 @@ func capture(path: String) -> void:
 			var shown = func():
 				if phase == "stage": return sim.staff.values().any(func(e): return is_instance_valid(e) and e.brain.get("state","") == "dancing" and e.path.is_empty())
 				if phase == "shower_door": return view.shower_doors.values().any(func(d): return d.open and int(d.shown) == 0)
-				if phase == "paid": return view.overlay.get_children().any(func(l): return l is Label and l.text.contains("Prestation"))
+				if phase == "paid": return view.overlay.get_children().any(func(l): return l is Label and l.text.begins_with("+"))
 				return sim.clients.any(func(c): return is_instance_valid(c) and c.brain.has("service") and c.brain.service.get("phase","") == phase and (phase != "dance" or c.brain.service.escort.path.is_empty()))
 			while waited < 120.0 and not shown.call():
 				await get_tree().process_frame
@@ -957,6 +1238,20 @@ func capture(path: String) -> void:
 			if is_instance_valid(c) and c.brain.has("service"):
 				var e = c.brain.service.get("escort")
 				print("SERVICE client %s at %s vis %s anim %s phase %s | escort %s at %s vis %s anim %s" % [c.brain.state,str(c.world),str(c.visible),c.anim,c.brain.service.get("phase",""),e.brain.state if e else "-",str(e.world) if e else "-",str(e.visible) if e else "-",e.anim if e else "-"])
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--site-sequence="):
+			# the same site photographed from the first stake to the last coat
+			var n = int(arg.trim_prefix("--site-sequence="))
+			var id = int(model.rooms[-1].id)
+			set_speed(1)
+			for i in range(n):
+				site_to(id,float(i)/float(n-1))
+				await get_tree().create_timer(1.2).timeout
+				await RenderingServer.frame_post_draw
+				get_viewport().get_texture().get_image().save_png(path.replace(".png","_%02d.png" % i))
+			print("CAPTURE_SAVED %d frames" % n)
+			get_tree().quit()
+			return
 	var frames = 0
 	var ghost = -1
 	for arg in OS.get_cmdline_user_args():
@@ -1005,11 +1300,13 @@ func capture(path: String) -> void:
 		print("CAPTURE_SAVED %d frames" % n)
 		get_tree().quit()
 		return
+	if capture_action.is_valid(): capture_action.call()
 	if frames > 0:
 		# a short sequence, e.g. someone stepping into the shower
 		var delivery_motion = Array(OS.get_cmdline_user_args()).any(func(a): return a.begins_with("--delivery-motion="))
 		set_speed(1)
 		for i in range(frames):
+			if "--setup=weather" in OS.get_cmdline_user_args(): view.rain.step(.09,sim.rain_strength)
 			if delivery_motion and i > 0:
 				# Fixed simulation steps make the full arrival/departure reviewable
 				# without screen capture timing changing the braking distance.
@@ -1026,6 +1323,335 @@ func capture(path: String) -> void:
 	get_viewport().get_texture().get_image().save_png(path)
 	print("CAPTURE_SAVED "+path)
 	get_tree().quit()
+
+func capture_site() -> void:
+	# Documentation: a bedroom site beside the club, stopped at a given
+	# stage (--site-progress=0..1); the crew keeps working on the spot.
+	var before = model.snapshot()
+	var id = model.add_room(14,-6,5,4,1)
+	if id == -1:
+		print("SITE_SKIP ",model.error)
+		return
+	model.room_by_id(id).build = SitePlan.start()
+	commit(before,"chantier")
+	construction.frozen = true
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--site-progress="): site_to(id,float(arg.trim_prefix("--site-progress=")))
+	if "--site-enlarge" in OS.get_cmdline_user_args():
+		# stretched by two metres during the works, as with the handles
+		before = model.snapshot()
+		var r = model.room_by_id(id)
+		if model.resize_room(id,{"x":r.x,"z":r.z,"w":int(r.w)+2,"h":r.h}): commit(before,"Chantier modifié")
+	if not "--no-select" in OS.get_cmdline_user_args(): select_room(id)
+
+var capture_pointer = Vector2.INF   # captures: where the mouse would be (floor point)
+var capture_action: Callable         # captures: done just before the pictures are taken
+
+func capture_dust() -> void:
+	# Documentation: a sofa set down and a plant moved in a lounge, photographed
+	# while the little puffs of dust play (--frames=N).
+	var before = model.snapshot()
+	model.add_room(14,-7,5,4,0)
+	commit(before,"salle")
+	before = model.snapshot()
+	var plant = model.add_item("plant",18.4,-3.6,0)
+	commit(before,"plante")
+	capture_action = func():
+		choose_item("sofa")
+		rotation_manual = true
+		placement_rotation = 0
+		begin_action(screen_of(16.5,-6.4))
+		select_item(plant)
+		start_move()
+		begin_action(screen_of(14.6,-3.6))
+		hud.toast_time = 0
+
+func capture_extension() -> void:
+	# Documentation: a bedroom grown from its front wall into an L
+	# (--ext-stage=hover | drag | works | done), or a new room drawn from open
+	# ground against it (--ext-stage=new).
+	var stage = "works"
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--ext-stage="): stage = arg.trim_prefix("--ext-stage=")
+		if arg.begins_with("--focus="):
+			var parts = arg.trim_prefix("--focus=").split(",")
+			camera.position = (Iso.to_screen(float(parts[0]),float(parts[1]))-Vector2(viewport.size)/2.0).round()
+	var before = model.snapshot()
+	var a = model.add_room(14,-7,5,4,1)
+	commit(before,"chambre")
+	set_mode("room")
+	room_type = 0
+	hud.toast_time = 0
+	if stage == "hover":
+		capture_pointer = Vector2(16.5,-2.85)
+		return
+	if stage == "new":
+		# from open ground, ending against the bedroom: a room of its own
+		room_type = 3
+		begin_action(screen_of(23.5,-5.5))
+		finish_drag(screen_of(19.5,-4.5))
+		construction.frozen = true
+		site_to(int(model.rooms[-1].id),0.3)
+		select_room(int(model.rooms[-1].id))
+		return
+	begin_action(screen_of(17.5,-4.5))
+	if stage == "drag":
+		capture_pointer = Vector2(20.5,-1.5)
+		return
+	finish_drag(screen_of(20.5,-1.5))
+	var ext = int(model.rooms[-1].id)
+	construction.frozen = true
+	site_to(ext,1.0 if stage == "done" else 0.45)
+	if stage == "done": select_room(a)
+	else: select_room(ext)
+
+func site_to(id: int, target: float) -> void:
+	var room = model.room_by_id(id)
+	var s = construction.site_of(id)
+	while SitePlan.building(room) and not s.is_empty() and SitePlan.progress(room.build,s.els) < target:
+		construction.fast_forward(id,0.5)
+	for w in s.get("workers",[]):
+		w.tasks.clear()
+		w.task = {}
+		w.path = []
+
+func profile_run() -> void:
+	# Plays the loaded club open at full speed and prints, every few
+	# seconds: frame times, memory, object counts and the time each system
+	# takes. --profile-seconds=N, --profile-drawers opens the side panels in
+	# turn (clients, staff, reports) during the run.
+	var seconds = 180.0
+	var drawers = "--profile-drawers" in OS.get_cmdline_user_args()
+	if "--profile-static-drawers" in OS.get_cmdline_user_args(): hud.drawer_live = false
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--profile-seconds="): seconds = float(arg.trim_prefix("--profile-seconds="))
+	await get_tree().process_frame
+	if not sim.open: toggle_open()
+	set_speed(3)
+	Prof.enabled = true
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--profile-trace="): Prof.trace = FileAccess.open(arg.trim_prefix("--profile-trace="),FileAccess.WRITE)
+	var start = Time.get_ticks_usec()
+	var beat = start
+	var window = start
+	var last = start
+	var frames = 0
+	var worst = 0
+	var slow = 0
+	var shown = ""
+	while float(Time.get_ticks_usec()-start)/1e6 < seconds:
+		await get_tree().process_frame
+		var now = Time.get_ticks_usec()
+		var d = now-last
+		last = now
+		frames += 1
+		worst = maxi(worst,d)
+		if d > 50000: slow += 1
+		var t = float(now-start)/1e6
+		if now-beat >= 1000000:
+			beat = now
+			Prof.note("HB t=%d mem=%.0fMB clients=%d speed=%d" % [int(t),Performance.get_monitor(Performance.MEMORY_STATIC)/1048576.0,sim.clients.size(),sim.speed])
+		if drawers:
+			var want = ""
+			if t > seconds*0.45 and t < seconds*0.6: want = "clients"
+			elif t >= seconds*0.6 and t < seconds*0.75: want = "staff"
+			elif t >= seconds*0.75 and t < seconds*0.9: want = "reports"
+			if want != shown:
+				if want == "": hud.close_drawer()
+				else: hud.toggle_drawer(want)
+				shown = want
+		if now-window >= 5000000:
+			var span = float(now-window)/1e6
+			print("PROFILE t=%3d fps=%5.1f worst=%5.1fms slow=%d mem=%6.1fMB vmem=%6.1fMB objects=%d nodes=%d orphans=%d resources=%d draws=%d | clients=%d actors=%d statics=%d dirt=%d puffs=%d drawer=%s day=%d %s | %s" % [
+				int(t),frames/span,worst/1000.0,slow,Performance.get_monitor(Performance.MEMORY_STATIC)/1048576.0,
+				Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)/1048576.0,Performance.get_monitor(Performance.OBJECT_COUNT),
+				Performance.get_monitor(Performance.OBJECT_NODE_COUNT),Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT),
+				Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT),Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+				sim.clients.size(),view.actors.size(),view.statics.size(),sim.dirt.size(),view.puffs.size(),shown,sim.day,sim.clock_text(),Prof.report(frames)])
+			window = now
+			frames = 0
+			worst = 0
+			slow = 0
+	print("PROFILE_DONE")
+	get_tree().quit()
+
+func capture_beds() -> void:
+	sim.active = false
+	model.rooms.clear()
+	model.furniture.clear()
+	model.openings.clear()
+	model.parkings.clear()
+	model.add_room(-7,-8,14,12,1)
+	for row in range(2):
+		for rotation in range(4):
+			model.add_item("bed" if row == 0 else "heart_bed",-5.1+rotation*3.4,-5.5+row*5.7,rotation)
+	changed_view()
+	hud.refresh_stats()
+
+func capture_weather() -> void:
+	sim.active = false
+	capture_modular_parking()
+	sim.rain_strength = .85
+	view.rain_ground.wetness = .7
+	for arg in OS.get_cmdline_user_args():
+		if arg == "--weather=clear": sim.rain_strength = 0
+		if arg.begins_with("--wetness="): view.rain_ground.wetness = clampf(float(arg.trim_prefix("--wetness=")),0,1)
+	view.rain.step(0,sim.rain_strength)
+	hud.refresh_stats()
+
+func capture_sanitation() -> void:
+	capture_needs(true)
+	var waiters: Array = []
+	for index in range(3):
+		sim.spawn_client()
+		var a: Actor = sim.clients.back()
+		sim.queue.erase(a)
+		a.set_world(Vector2(-1+index,2))
+		a.path = []
+		a.brain.merge({"paid":true,"state":"busy","activity":"look","timer":100.0,"sat":85.0,"bladder":86.0 if index == 0 else 70.0,"digestion":0.0,"wc_patience":100.0,"wc_risk":true},true)
+		ClientNeeds.seek(sim,a)
+		waiters.append(a)
+	for tick in range(200):
+		for a in waiters: sim.client_ai(a,.02)
+	for a in waiters: a.emote("wc_urgent" if a.brain.bladder >= 85 else "wc",100)
+	var sinks = model.furniture.filter(func(i): return i.kind in Sanitation.SINKS)
+	if not sinks.is_empty():
+		sinks[0].soap = true
+		view.rebuild()
+		sim.spawn_client()
+		var a: Actor = sim.clients.back()
+		sim.queue.erase(a)
+		a.set_world(Vector2(-2,-1))
+		a.brain.merge({"paid":true,"state":"choose","bladder":0.0,"sat":90.0},true)
+		Sanitation.wash(sim,a)
+		for tick in range(250):
+			sim.client_ai(a,.02)
+			if a.brain.state == "washing_hands": break
+		a.emote("wash",100)
+	view.depth_sort()
+	hud.refresh_stats()
+
+func capture_planning() -> void:
+	sim.active = false
+	for c in sim.clients.duplicate(): sim.remove_client(c)
+	model.furniture = model.furniture.filter(func(i): return i.kind in ClientNeeds.FIXTURES or i.kind in Sanitation.SINKS)
+	var maid_id = model.add_item("maid",-2,2.8,0)
+	var tech_id = model.add_item("janitor",-3,2.5,0)
+	var desk_id = model.add_item("receptionist",-.7,1.4,0)
+	if maid_id >= 0: model.item_by_id(maid_id).work_schedule = {"days":127,"start":360,"end":840}
+	if tech_id >= 0: model.item_by_id(tech_id).work_schedule = {"days":48,"start":1080,"end":360}
+	if desk_id >= 0: model.item_by_id(desk_id).work_schedule = {"days":127,"start":1140,"end":300}
+	sim.day = 5
+	sim.minute = 1230
+	sim.rain_strength = 0.0 if "--weather=clear" in OS.get_cmdline_user_args() else .8
+	changed_view()
+	sim.set_opening_hours({"days":127,"start":1200,"end":240,"enabled":true})
+	view.rain.step(0,sim.rain_strength)
+	hud.toggle_drawer("staff")
+	hud.fill_drawer()
+	hud.refresh_stats()
+	for arg in OS.get_cmdline_user_args():
+		if arg == "--plan=club": hud.show_schedule(-1)
+		if arg == "--plan=employee" and tech_id >= 0: hud.show_schedule(tech_id)
+
+func capture_hygiene() -> void:
+	capture_needs(true)
+	for a in sim.clients.duplicate(): sim.remove_client(a)
+	for item in model.furniture:
+		if item.kind == "old_toilet":
+			item.soil = 100.0
+			selected_item = int(item.id)
+		elif item.kind == "urinal": item.soil = 42.0
+	changed_view()
+	for item in model.furniture:
+		if item.kind in ClientNeeds.FIXTURES: Plumbing.ensure_overflow(sim,item)
+	hud.refresh_context()
+	view.depth_sort()
+
+func capture_plumbing() -> void:
+	capture_needs(true)
+	for a in sim.clients.duplicate(): sim.remove_client(a)
+	var tech_id = model.add_item("janitor",-3,2.5,0)
+	var leaking: Dictionary = {}
+	for item in model.furniture:
+		if item.kind == "old_toilet":
+			item.soil = 85.0
+			item.wear = 70.0
+			leaking = item
+		elif item.kind == "urinal": item.soil = 45.0
+		elif item.kind in Sanitation.SINKS: item.soil = 25.0
+	changed_view()
+	if not leaking.is_empty():
+		Plumbing.start_leak(sim,leaking)
+		Plumbing.tick(sim,32.0)
+	for item in model.furniture:
+		if item.kind == "urinal": Plumbing.urine_trace(sim,item)
+	if tech_id != -1:
+		var technician: Actor = sim.staff[tech_id]
+		for i in range(400):
+			sim.staff_ai(technician,.04)
+			if technician.brain.state == "repairing": break
+		technician.emote("repair",100)
+	for a in sim.staff.values():
+		if a.kind != "maid": continue
+		for i in range(400):
+			sim.staff_ai(a,.04)
+			if a.brain.state == "mopping": break
+	view.depth_sort()
+	hud.refresh_stats()
+
+func capture_profiles() -> void:
+	sim.active = false
+	var maid_id = model.add_item("maid",-2,2.8,0)
+	changed_view()
+	sim.spawn_client()
+	if not sim.clients.is_empty():
+		var client: Actor = sim.clients.back()
+		var p = sim.profiles.get_profile(client.brain.profile_id)
+		sim.profiles.remember(p.id,sim.day,"Bon accueil à la réception.")
+		hud.show_profile(p.id,0)
+	else:
+		hud.show_profile(str(model.item_by_id(maid_id).get("profile_id","")),0)
+	for arg in OS.get_cmdline_user_args():
+		if arg == "--profile-staff": hud.show_profile(str(model.item_by_id(maid_id).get("profile_id","")),0)
+		if arg == "--profile-follow" and not sim.clients.is_empty(): hud.show_profile(str(sim.clients.back().brain.profile_id),2)
+
+func capture_needs(with_toilets: bool) -> void:
+	# Reproducible gameplay examples of an actual accident/cleaning task and
+	# occupied sanitary spots. This setup only runs in the isolated capture mode.
+	sim.active = false
+	model.furniture = model.furniture.filter(func(i): return not Catalog.is_debris(i.kind) and i.kind not in ["old_sofa","old_table"] and (with_toilets or i.kind != "old_toilet"))
+	model.add_item("bar",-1.6,.3,0)
+	model.add_item("bartender",-1.6,-.5,0)
+	var maid_id = model.add_item("maid",-2,2.8,0)
+	if with_toilets: model.add_item("urinal",-2.3,-3.7,0)
+	changed_view()
+	var demo: Array = []
+	for body in [0,1]:
+		sim.spawn_client()
+		var a: Actor = sim.clients.back()
+		sim.queue.erase(a)
+		a.configure(Characters.defaults("woman" if body == 0 else "man"))
+		a.set_world(Vector2(-1.1+float(body)*1.5,2.6+float(body)*.7))
+		a.path = []
+		a.brain.merge({"paid":true,"state":"busy","activity":"look","timer":80.0,"sat":60.0,"bladder":80.0 if with_toilets else 99.99,"digestion":35.0,"drinks":2},true)
+		demo.append(a)
+	if with_toilets:
+		for a in demo:
+			for tick in range(300):
+				sim.client_ai(a,.03)
+				if a.brain.state == "toilet_use": break
+	else:
+		demo[1].brain.bladder = 25.0
+		sim.client_ai(demo[0],.1)
+		var maid: Actor = sim.staff[maid_id]
+		for tick in range(100):
+			sim.staff_ai(maid,.05)
+			for a in demo:
+				if is_instance_valid(a) and a in sim.clients: sim.client_ai(a,.05)
+			if maid.brain.state == "mopping": break
+	view.depth_sort()
+	hud.refresh_stats()
 
 func capture_reception() -> void:
 	# Documentation set-up: a reception desk with its receptionist near the
@@ -1210,6 +1836,33 @@ func smoke_test() -> void:
 	var tech = model.add_item("janitor",-2.0,4.0,0)
 	check(tech != -1 and commit(before,"hire"),"A technician is hired")
 	check(sim.staff.size() == 1,"The technician got an actor")
+	var hygiene_wc = model.furniture.filter(func(i): return i.kind == "old_toilet")[0]
+	var hygiene_cash = sim.money
+	buy_sanitary_upgrade(int(hygiene_wc.id),"easy_clean")
+	check(model.item_by_id(int(hygiene_wc.id)).get("easy_clean",false) and sim.money == hygiene_cash-120,"Sanitary improvement is installed and charged once")
+	buy_sanitary_upgrade(int(hygiene_wc.id),"easy_clean")
+	check(sim.money == hygiene_cash-120,"Installed sanitary improvement cannot be purchased twice")
+	model.item_by_id(int(hygiene_wc.id)).soil = 77.0
+	undo()
+	check(not model.item_by_id(int(hygiene_wc.id)).get("easy_clean",false) and sim.money == hygiene_cash,"Undo refunds the improvement")
+	check(model.item_by_id(int(hygiene_wc.id)).get("soil",0) == 77.0,"Construction undo preserves live sanitary condition")
+	redo()
+	check(model.item_by_id(int(hygiene_wc.id)).get("easy_clean",false) and sim.money == hygiene_cash-120,"Redo charges and restores the improvement")
+	selected_item = int(hygiene_wc.id)
+	hud.refresh_context()
+	check(is_instance_valid(hud.hygiene_gauge) and hud.hygiene_gauge.value == 77,"Selected sanitary shows its current dirt gauge")
+	model.item_by_id(selected_item).soil = 100
+	hud.live_refresh = 0
+	hud._process(.6)
+	check(hud.hygiene_gauge.value == 100 and hud.hygiene_label.text.contains("100 %"),"Dirt gauge and label refresh live at saturation")
+	model.item_by_id(selected_item).soil = 77
+	selected_item = -1
+	hud.refresh_context()
+	var saved_cash = sim.money
+	sim.money = 0
+	buy_sanitary_upgrade(tech,"cleaning_kit")
+	check(not model.item_by_id(tech).get("cleaning_kit",false) and sim.money == 0,"Insufficient funds prevent buying a cleaning upgrade")
+	sim.money = saved_cash
 	apply_appearance(tech,{"skin":"8a5a44","hair":"e2b25a","outfit":"3a78c8","hairstyle":3,"outfit_style":1,"face":1,"body":1,"glasses":0})
 	check(sim.staff[tech].appearance.outfit == "3a78c8","Staff actor wears the new outfit")
 	# Cleaning removes debris for good, even from the undo history.
@@ -1254,9 +1907,201 @@ func smoke_test() -> void:
 	depth_checks()
 	parking_checks()
 	orient_checks()
+	await site_checks()
+	await extension_ui_checks()
+	dust_checks()
 	print("SMOKE_TEST_RESULT: %d failures" % failures)
 	if failures == 0: print("SMOKE_TEST_PASSED")
 	get_tree().quit(1 if failures > 0 else 0)
+
+func site_shown_work(s: Dictionary) -> float:
+	# The work the picture shows: poured cells, laid courses, painted
+	# strips, laid floor cells.
+	var shown = 0.0
+	for c in s.cells:
+		if s.vis.slab[c].visible: shown += SitePlan.SLAB
+		if s.vis.floor[c].visible: shown += SitePlan.FLOOR
+	for key in s.vis.walls:
+		var v: Dictionary = s.vis.walls[key]
+		shown += maxf(float(v.rows),0.0)*SitePlan.ROW
+		if v.paint.visible: shown += v.paint.region_rect.size.x/v.paint.texture.get_size().x*(SitePlan.PAINT_FULL if v.seg.full else SitePlan.PAINT_LOW)
+	return shown
+
+func site_checks() -> void:
+	# A drawn room is a building site first: a crew of three, the slab, the
+	# block walls, the paint, the floor, then a usable room.
+	var start = model.snapshot()
+	var keep_undo = undo_stack.duplicate()
+	var rich = sim.money
+	sim.money = 100000
+	var before = model.snapshot()
+	var id = model.add_room(15,-20,4,3,1)
+	check(id != -1,"A site fits behind the club (%s)" % model.error)
+	model.room_by_id(id).build = SitePlan.start()
+	check(commit(before,"chantier"),"Opening a site is committed")
+	var fresh = Finishes.defaults(1)
+	fresh.merge({"x":15,"z":-20,"w":4,"h":3},true)
+	check(100000-sim.money == 12*Catalog.ROOM_PRICE+Finishes.value(fresh),"A site costs its area and finishes, paid once (%d)" % (100000-sim.money))
+	var room = model.room_by_id(id)
+	var s = construction.site_of(id)
+	check(not s.is_empty() and s.workers.size() == 3,"Three workers come on the site")
+	check(s.workers.all(func(w): return is_instance_valid(w) and w.get_parent() == view.sorted and s.rect.has_point(w.world)),"The workers stand on the site")
+	check(s.vis.tape.size() == 14 and s.vis.tape.values().all(func(t): return t.visible),"The zone is taped off at once")
+	var st = construction.status(room)
+	check(int(st.percent) == 0 and st.phase == "slab","The site starts with the concrete slab at 0 %")
+	check(not sim.nav.walkable(Vector2(16.5,-18.5)),"Clients and staff cannot walk on the site")
+	check(model.add_item("bed",16.5,-18.5,0) == -1,"Nothing is furnished during the works")
+	select_room(id)
+	await get_tree().process_frame
+	check(hud.context.visible and hud.context.title.text == "Chantier" and is_instance_valid(hud.site_label),"Clicking a site shows its progress")
+	construction.fast_forward(id,SitePlan.SLAB*3.5)
+	check(s.vis.slab.values().filter(func(q): return q.visible).size() == 3,"Concrete cells appear one by one")
+	check(s.vis.slab[Vector2i(15,-20)].material != s.vis.slab[Vector2i(18,-18)].material,"Fresh concrete looks wet")
+	site_to(id,0.32)
+	check(construction.status(room).phase == "walls","The walls rise after the slab")
+	var t = SitePlan.totals(room.build,s.els)
+	check(absf(site_shown_work(s)-t.x) <= SitePlan.ROW*s.segs.size()+0.01,"The percentage matches the courses shown (%.1f / %.1f)" % [site_shown_work(s),t.x])
+	hud.update_site()
+	check(hud.site_label.text == "Avancement : %d %%" % int(construction.status(room).percent),"The panel shows the same percentage")
+	var back_wall: Dictionary = s.vis.walls["x:15:-20"]
+	check(int(back_wall.rows) > 0 and back_wall.block.texture != null,"Block courses are drawn on the walls")
+	# enlarge during the works: only the difference is paid, the work stays
+	var rows_before = int(back_wall.rows)
+	var progress_before = float(construction.status(room).progress)
+	before = model.snapshot()
+	var money_before = sim.money
+	check(model.resize_room(id,{"x":15,"z":-20,"w":5,"h":3}) and commit(before,"agrandi"),"A site can be enlarged during the works")
+	var grown = model.room_by_id(id)
+	var was = grown.duplicate()
+	was.w = 4
+	check(money_before-sim.money == 3*Catalog.ROOM_PRICE+Finishes.value(grown)-Finishes.value(was),"Only the added area is charged (%d)" % (money_before-sim.money))
+	room = model.room_by_id(id)
+	s = construction.site_of(id)
+	check(construction.status(room).phase == "slab" and float(construction.status(room).progress) < progress_before,"New cells go back to the slab, the percentage is worked out again")
+	check(s.vis.slab[Vector2i(15,-20)].visible and int(s.vis.walls["x:15:-20"].rows) == rows_before,"Concrete and walls already built stay in place")
+	check(s.vis.slab.has(Vector2i(19,-18)) and not s.vis.slab[Vector2i(19,-18)].visible,"The new cells join the works")
+	# undo restores the older plan, never older work
+	site_to(id,0.4)
+	var rows_now = SitePlan.rows(room.build,{"key":"x:15:-20","rows":SitePlan.FULL_ROWS})
+	undo()
+	room = model.room_by_id(id)
+	check(int(room.w) == 4 and SitePlan.rows(room.build,{"key":"x:15:-20","rows":SitePlan.FULL_ROWS}) == rows_now,"Undo keeps the work done since")
+	redo()
+	room = model.room_by_id(id)
+	s = construction.site_of(id)
+	site_to(id,0.7)
+	check(construction.status(room).phase in ["paint","floor"],"Then the walls are painted")
+	check(s.vis.walls.values().any(func(v): return v.paint.visible),"Painted strips cover the blocks")
+	check(absf(site_shown_work(s)-SitePlan.totals(room.build,s.els).x) <= SitePlan.PAINT_FULL+SitePlan.FLOOR+0.01,"The picture still follows the percentage")
+	var copy = BuildingModel.new()
+	check(copy.load_checked(JSON.parse_string(JSON.stringify(model.snapshot()))) and SitePlan.building(copy.room_by_id(id)),"A site in progress is saved")
+	site_to(id,1.0)
+	check(not SitePlan.building(model.room_by_id(id)),"Enough time finishes the site")
+	check(construction.site_of(id).is_empty() and not view.actors.any(func(a): return is_instance_valid(a) and a is SiteWorker),"Workers and equipment leave")
+	check(sim.nav.walkable(Vector2(16.5,-18.5)),"The finished room is open")
+	check(model.valid_item({"kind":"bed","x":16.5,"z":-18.5,"rot":0}),"The finished room can be furnished")
+	model.restore(start)
+	undo_stack = keep_undo
+	redo_stack.clear()
+	sim.money = rich
+	clear_selection()
+	changed_view()
+
+func dust_checks() -> void:
+	# A small puff of dust when an object is set down, moved or turned; it
+	# plays in real time (even paused) and leaves nothing behind.
+	var start = model.snapshot()
+	var keep_undo = undo_stack.duplicate()
+	var rich = sim.money
+	sim.money = 100000
+	var before = model.snapshot()
+	model.add_room(15,-20,5,4,0)
+	commit(before,"salle")
+	view.dust_back.clear()
+	view.dust_front.clear()
+	choose_item("plant")
+	begin_action(screen_of(17.5,-18.5))
+	var placed = view.dust_back.puffs.size()+view.dust_front.puffs.size()
+	check(placed >= 4,"Setting an object down raises a little puff of dust (%d)" % placed)
+	check(view.dust_front.puffs.size() > 0 and view.dust_back.puffs.size() > 0,"Puffs go both in front of and behind the object")
+	var plant = selected_item
+	view.rebuild()
+	check(view.dust_back.puffs.size()+view.dust_front.puffs.size() == placed,"A redraw of the building does not cut the puff short")
+	for i in range(20):
+		view.dust_back._process(0.05)
+		view.dust_front._process(0.05)
+	check(view.dust_back.puffs.is_empty() and view.dust_front.puffs.is_empty() and view.dust_front.get_children().all(func(n): return n.is_queued_for_deletion()),"The puff is gone within a second")
+	select_item(plant)
+	start_move()
+	begin_action(screen_of(18.5,-17.5))
+	check(view.dust_front.puffs.size()+view.dust_back.puffs.size() > 0,"Moving it raises another puff")
+	view.dust_back.clear()
+	view.dust_front.clear()
+	select_item(plant)
+	rotate_item()
+	var turned = view.dust_front.puffs.size()+view.dust_back.puffs.size()
+	check(turned > 0 and turned < placed,"Turning it on the spot raises only a few flecks")
+	view.dust_back.clear()
+	view.dust_front.clear()
+	model.restore(start)
+	undo_stack = keep_undo
+	redo_stack.clear()
+	sim.money = rich
+	set_mode("select")
+	clear_selection()
+	changed_view()
+
+func screen_of(x: float, z: float) -> Vector2:
+	return (Iso.to_screen(x,z)-camera.position)*float(zoom)
+
+func extension_ui_checks() -> void:
+	# The room tool reads the player's intent from where the drawing starts.
+	var start = model.snapshot()
+	var keep_undo = undo_stack.duplicate()
+	var rich = sim.money
+	sim.money = 100000
+	var before = model.snapshot()
+	var a = model.add_room(15,-20,4,3,1)
+	commit(before,"pièce")
+	set_mode("room")
+	room_type = 0
+	check(int(growth_start(screen_of(17.5,-16.85)).get("room",-1)) == a,"Starting right by a wall extends that room")
+	check(int(growth_start(screen_of(16.5,-19.5)).get("room",-1)) == a,"Starting on a room's floor extends it")
+	check(growth_start(screen_of(17.5,-15.5)).is_empty(),"Starting on open ground makes a new room")
+	# draw from the front wall outwards
+	begin_action(screen_of(17.5,-16.85))
+	check(int(drag.get("extend",-1)) == a and drag.start == Vector2(17,-17),"The drawing starts on the free side of the wall")
+	finish_drag(screen_of(18.5,-15.5))
+	var ext = model.rooms[-1]
+	check(int(ext.get("merge_into",-1)) == a and int(ext.w) == 2 and int(ext.h) == 2 and SitePlan.building(ext),"The new ground is a site that will join the room")
+	check(int(ext.type) == 1 and model.room_by_id(a).wall_finish == ext.wall_finish,"Without asking, it takes the room's kind")
+	check(view.statics.any(func(e): return e.get("key","") == "x:17:-17" and e.kind == "wall"),"The room keeps its wall during the works")
+	check(construction.site_of(int(ext.id)).workers.size() == 3,"A crew builds the extension")
+	site_to(int(ext.id),1.0)
+	var room = model.room_by_id(a)
+	check(model.room_by_id(int(ext.id)).is_empty() and BuildingModel.area_of(room) == 16,"When finished, the extension merges into the room")
+	check(not model.edges().has("x:17:-17") and not view.statics.any(func(e): return e.get("key","") == "x:17:-17"),"The wall between them disappears")
+	check(sim.nav.reachable(Vector2(17.5,-17.6),Vector2(17.5,-16.4)),"One can walk straight through")
+	check(model.valid_item({"kind":"sofa","x":18.0,"z":-17.0,"rot":1}),"The bigger room can be furnished across the old wall (%s)" % model.error)
+	undo()
+	room = model.room_by_id(a)
+	check(BuildingModel.area_of(room) == 16 and model.rooms.all(func(r): return int(r.get("merge_into",-1)) != a),"Undo never splits a finished extension again")
+	# a new room drawn from open ground, ending against the room
+	var count = model.rooms.size()
+	set_mode("room")
+	room_type = 3
+	begin_action(screen_of(22.5,-19.5))
+	check(int(drag.get("extend",-1)) == -1,"From open ground the drawing is a new room")
+	finish_drag(screen_of(19.5,-18.5))
+	var added = model.rooms[-1]
+	check(model.rooms.size() == count+1 and not added.has("merge_into") and int(added.type) == 3 and int(added.x) == 19,"It stays a separate room even against the other one")
+	model.restore(start)
+	undo_stack = keep_undo
+	redo_stack.clear()
+	sim.money = rich
+	set_mode("select")
+	clear_selection()
+	changed_view()
 
 func parking_checks() -> void:
 	# The car park tool: the street line shows, a zone against the sidewalk
@@ -1328,7 +2173,7 @@ func depth_checks() -> void:
 	var z: Dictionary = {}
 	var total = 0
 	var people_count = 0
-	for batch in [["sofa","old_sofa","chair","armchair","old_armchair","stool"],["bed","old_bed","dance","shower"]]:
+	for batch in [["sofa","old_sofa","chair","armchair","old_armchair","stool"],["bed","old_bed","dance","shower"],["heart_bed"]]:
 		var placed: Array = []
 		var x = -21.8
 		var zz = -21.0
@@ -1395,7 +2240,7 @@ func depth_checks() -> void:
 			check(ms < 6.0,"Depth sorting stays cheap (%.2f ms)" % ms)
 		for pr in pairs: view.remove_actor(pr[0])
 		for id in placed: model.remove_item(id)
-	check(total == 40,"Every seat, bed, stage and shower fits the spare room in its four rotations (%d)" % total)
+	check(total == 44,"Every seat, bed, stage and shower fits the spare room in its four rotations (%d)" % total)
 	check(wrong.is_empty(),"Everyone on a seat, bed, stage or in a shower is drawn in the right order against each part (%s)" % ", ".join(wrong))
 	var ahead = func(key: String, part: String) -> bool: return z.has(key) and z[key].has(part) and z[key].people.all(func(v): return v > z[key][part])
 	var hidden = func(key: String, part: String) -> bool: return z.has(key) and z[key].has(part) and z[key].people.all(func(v): return v < z[key][part])
@@ -1403,6 +2248,7 @@ func depth_checks() -> void:
 	check(hidden.call("sofa:2","back") and ahead.call("sofa:2","base"),"On a sofa turned away the backrest hides them, the seat stays under them")
 	check(hidden.call("chair:1","back") and ahead.call("chair:0","back"),"A chair turned away hides its sitter's back")
 	check(ahead.call("bed:0","head") and hidden.call("bed:2","head"),"The headboard is behind the couple, or in front when the bed is turned")
+	check(ahead.call("heart_bed:0","head") and hidden.call("heart_bed:2","head"),"Heart headboard sorts correctly around seated characters in either direction")
 	check(ahead.call("dance:0","pole") and hidden.call("dance:2","pole"),"The dancer is in front of the pole or behind it, as the stage turns")
 	check(ahead.call("shower:0","tiles_a") and ahead.call("shower:0","tiles_b") and hidden.call("shower:0","door") and hidden.call("shower:0","side"),"Inside a shower: in front of the tiles, behind the glass")
 	check(ahead.call("shower:3","tiles_a") and hidden.call("shower:3","door") and hidden.call("shower:3","tiles_b"),"…whichever way the shower is turned")
@@ -1419,14 +2265,23 @@ func run_sim(steps: int, watch: Callable = Callable()) -> void:
 		sim._process(0.1)
 		if watch.is_valid(): watch.call()
 
+func sim_test_totals() -> Dictionary:
+	# This integration scenario now spans calendar days and daily reports.
+	var total = sim.night.duplicate(true)
+	for report in sim.history:
+		for key in total:
+			if total[key] is int or total[key] is float: total[key] += report.get(key,0)
+	return total
+
 func sim_test() -> void:
 	# The derelict club with a fixed seed: closed, cleaned, opened without a
 	# reception (the line grows outside), then with a receptionist and a bar.
 	await get_tree().process_frame
 	sim.speed = 1
-	sim.minute = 0.0
+	sim.minute = 1200.0
+	sim.day = 5
 	run_sim(600)
-	check(sim.clients.is_empty() and int(sim.night.clients) == 0,"Nobody enters while the club is closed")
+	check(sim.clients.is_empty() and int(sim_test_totals().clients) == 0,"Nobody enters while the club is closed")
 	var debris0 = model.debris().size()
 	var before = model.snapshot()
 	model.add_item("janitor",-2.0,4.0,0)
@@ -1444,7 +2299,7 @@ func sim_test() -> void:
 	var money0 = sim.money
 	var rating0 = sim.rating
 	# 1. Open without any reception: the line grows outside, nobody gets in.
-	sim.minute = 90.0
+	sim.minute = 1290.0
 	toggle_open()
 	var longest = [0]
 	var outside = [true]
@@ -1457,15 +2312,15 @@ func sim_test() -> void:
 			if not c.brain.paid and c.brain.state in ["choose","walk","busy"]: sneaked[0] = true)
 	check(longest[0] >= 4,"Without a reception the line grows in front of the club (%d)" % longest[0])
 	check(outside[0],"The line waits outside, in the street")
-	check(int(sim.night.entry) == 0 and not sneaked[0],"Nobody gets in without paying")
-	check(int(sim.night.impatient) >= 2,"Clients lose patience and walk away (%d)" % int(sim.night.impatient))
+	check(int(sim_test_totals().entry) == 0 and not sneaked[0],"Nobody gets in without paying")
+	check(int(sim_test_totals().impatient) >= 2,"Clients lose patience and walk away (%d)" % int(sim_test_totals().impatient))
 	check(sim.rating < rating0,"Impatient clients hurt the reputation (%.2f -> %.2f)" % [rating0,sim.rating])
 	# 2. A desk alone is not enough: someone has to be there to take the money.
 	before = model.snapshot()
 	var desk = model.add_item("reception",1.3,3.0,0)
 	commit(before,"desk")
 	run_sim(300)
-	check(desk != -1 and int(sim.night.entry) == 0,"A desk without a receptionist takes no entrance")
+	check(desk != -1 and int(sim_test_totals().entry) == 0,"A desk without a receptionist takes no entrance")
 	# 3. A receptionist at the desk, a bar and its bartender: the line moves.
 	before = model.snapshot()
 	var receptionist = model.add_item("receptionist",1.3,1.6,0)
@@ -1482,9 +2337,10 @@ func sim_test() -> void:
 	check(receptionist != -1 and bar_room != -1 and bar != -1 and bartender != -1,"Receptionist, bar room, bar and bartender are set up")
 	check(shower != -1,"A shower fits in the bedroom")
 	var bed_id = int(model.furniture.filter(func(i): return i.kind == "old_bed")[0].id)
-	sim.minute = 90.0
-	var impatient_before = int(sim.night.impatient)
-	var entries_before = int(sim.night.clients)
+	sim.minute = 1290.0
+	sim.day = 6
+	var impatient_before = int(sim_test_totals().impatient)
+	var entries_before = int(sim_test_totals().clients)
 	var most = [0]
 	var company = [false]
 	var unpaid_inside = [false]
@@ -1499,7 +2355,7 @@ func sim_test() -> void:
 	var shower_door = Catalog.local_to_world(shower_item,ClubSim.SHOWER_DOOR)
 	var shower_center = Vector2(shower_item.x,shower_item.z)
 	var last_at: Dictionary = {}
-	var served0 = int(sim.night.served)
+	var served0 = int(sim_test_totals().served)
 	var watch = func():
 		var e = sim.staff.get(vip)
 		if e != null and is_instance_valid(e):
@@ -1559,18 +2415,18 @@ func sim_test() -> void:
 		for c in sim.clients:
 			if is_instance_valid(c) and not c.brain.paid and c.brain.state in ["choose","walk","busy"]: unpaid_inside[0] = true
 	run_sim(4000,watch)
-	var impatient_after = int(sim.night.impatient)-impatient_before
-	var arrivals = int(sim.night.clients)-entries_before
+	var impatient_after = int(sim_test_totals().impatient)-impatient_before
+	var arrivals = int(sim_test_totals().clients)-entries_before
 	run_sim(4000,watch)
 	check(working[0],"The receptionist works at her desk")
-	check(int(sim.night.entry) > 0,"Clients pay the entrance at the desk (%d $)" % int(sim.night.entry))
+	check(int(sim_test_totals().entry) > 0,"Clients pay the entrance at the desk (%d $)" % int(sim_test_totals().entry))
 	check(not unpaid_inside[0],"Every client inside has paid")
 	check(most[0] >= 2,"Several clients were inside at once (%d)" % most[0])
-	check(int(sim.night.bar) > 0,"The bartender serves drinks (%d $)" % int(sim.night.bar))
+	check(int(sim_test_totals().bar) > 0,"The bartender serves drinks (%d $)" % int(sim_test_totals().bar))
 	check(company[0] or seen.chat,"The escort joins clients in the lounge")
-	check(seen.chat and int(sim.night.met) >= 1,"An escort meets a client and they talk (%d meetings)" % int(sim.night.met))
-	check(int(sim.night.agreed) >= 1 and int(sim.night.served) > served0,"They agree and go up to a bedroom (%d deals, %d refusals)" % [int(sim.night.agreed),int(sim.night.refused)])
-	check(int(sim.night.private) > 0,"Services are paid (%d $)" % int(sim.night.private))
+	check(seen.chat and int(sim_test_totals().met) >= 1,"An escort meets a client and they talk (%d meetings)" % int(sim_test_totals().met))
+	check(int(sim_test_totals().agreed) >= 1 and int(sim_test_totals().served) > served0,"They agree and go up to a bedroom (%d deals, %d refusals)" % [int(sim_test_totals().agreed),int(sim_test_totals().refused)])
+	check(int(sim_test_totals().private) > 0,"Services are paid (%d $)" % int(sim_test_totals().private))
 	check(seen.busy,"The couple disappears under the covers")
 	check(seen.flirt and seen.action,"They flirt on the edge of the bed, then dive under the covers")
 	check(seen.clothes and not seen.clothes_out,"Clothes land on the bedroom floor, inside the room")
@@ -1584,15 +2440,16 @@ func sim_test() -> void:
 	print("SIM_SHOWER through the door %d, elsewhere %d, door shut %d" % [seen.door_ways,seen.wall_ways,seen.shut_ways])
 	check(seen.door_frames.has(1) and seen.door_frames.has(2) and seen.door_frames.has(3),"The shower door swings open and shut (%s)" % str(seen.door_frames.keys()))
 	check(seen.unmade and seen.remade,"The bed is left unmade, then the maid makes it")
-	check(seen.tissues or int(sim.night.served)-served0 < 3,"Used tissues are left behind for the cleaners")
-	check(int(sim.night.tips) > 0,"Generous clients tip the escort on the dance floor (%d $)" % int(sim.night.tips))
-	check(int(sim.night.floor_dates) >= 1,"A generous client takes her upstairs straight from the dance floor (%d)" % int(sim.night.floor_dates))
-	check(int(sim.night.stage_tips) > 0,"Generous watchers tip the pole dancer (%d $)" % int(sim.night.stage_tips))
-	check(int(sim.night.stage_dates) >= 1,"A generous watcher takes her upstairs straight from the stage (%d)" % int(sim.night.stage_dates))
-	print("SIM_FLOOR tips %d $ (stage %d $), dates from the floor %d, from the stage %d" % [int(sim.night.tips),int(sim.night.stage_tips),int(sim.night.floor_dates),int(sim.night.stage_dates)])
-	print("SIM_SERVICES met %d, agreed %d, refused %d, served %d (quick %d, classic %d, full %d), income %d $, showers %d, beds made %d, infections %d" % [int(sim.night.met),int(sim.night.agreed),int(sim.night.refused),int(sim.night.served)-served0,int(sim.night.tier_0),int(sim.night.tier_1),int(sim.night.tier_2),int(sim.night.private),int(sim.night.showers),int(sim.night.beds_made),int(sim.night.infections)])
-	check(int(sim.night.wages) > 0,"Wages were paid")
-	check(impatient_after <= 2,"With a receptionist at the desk the line keeps moving (%d impatient out of %d)" % [impatient_after,arrivals])
+	check(seen.tissues or int(sim_test_totals().served)-served0 < 3,"Used tissues are left behind for the cleaners")
+	check(int(sim_test_totals().tips) > 0,"Generous clients tip the escort on the dance floor (%d $)" % int(sim_test_totals().tips))
+	check(int(sim_test_totals().floor_dates) >= 1,"A generous client takes her upstairs straight from the dance floor (%d)" % int(sim_test_totals().floor_dates))
+	check(int(sim_test_totals().stage_tips) > 0,"Generous watchers tip the pole dancer (%d $)" % int(sim_test_totals().stage_tips))
+	check(int(sim_test_totals().stage_dates) >= 1,"A generous watcher takes her upstairs straight from the stage (%d)" % int(sim_test_totals().stage_dates))
+	print("SIM_FLOOR tips %d $ (stage %d $), dates from the floor %d, from the stage %d" % [int(sim_test_totals().tips),int(sim_test_totals().stage_tips),int(sim_test_totals().floor_dates),int(sim_test_totals().stage_dates)])
+	print("SIM_SERVICES met %d, agreed %d, refused %d, served %d (quick %d, classic %d, full %d), income %d $, showers %d, beds made %d, infections %d" % [int(sim_test_totals().met),int(sim_test_totals().agreed),int(sim_test_totals().refused),int(sim_test_totals().served)-served0,int(sim_test_totals().tier_0),int(sim_test_totals().tier_1),int(sim_test_totals().tier_2),int(sim_test_totals().private),int(sim_test_totals().showers),int(sim_test_totals().beds_made),int(sim_test_totals().infections)])
+	check(int(sim_test_totals().wages) > 0,"Wages were paid")
+	# The new Saturday peak deliberately stresses a single receptionist.
+	check(impatient_after <= maxi(2,ceili(arrivals*.2)),"Reception serves most peak-hour arrivals (%d impatient out of %d)" % [impatient_after,arrivals])
 	print("SIM_PHASE3 arrivals %d, impatient %d, longest line %d" % [arrivals,impatient_after,line[0]])
 	# Health: a service caught without hygiene makes an escort ill; she rests, then comes back.
 	var sick_e = sim.staff.get(vip)
@@ -1607,10 +2464,10 @@ func sim_test() -> void:
 	run_sim(1200)
 	check(sim.clients.is_empty() and sim.queue.is_empty(),"Clients and the line left after closing (%d)" % sim.clients.size())
 	check(sim.busy_beds.is_empty() and sim.staff.values().all(func(a): return is_instance_valid(a) and a.visible),"Nobody is left hidden in a bed")
-	var entries = int(sim.night.clients)
+	var entries = int(sim_test_totals().clients)
 	run_sim(800)
-	check(int(sim.night.clients) == entries,"Nobody else comes in once closed")
-	print("SIM_REPORT money %d -> %d, rating %.2f -> %.2f, clients %d, longest line %d, impatient %d, entry %d $, bar %d $, debris %d -> %d" % [money0,sim.money,rating0,sim.rating,entries,longest[0],int(sim.night.impatient),int(sim.night.entry),int(sim.night.bar),debris0,model.debris().size()])
+	check(int(sim_test_totals().clients) == entries,"Nobody else comes in once closed")
+	print("SIM_REPORT money %d -> %d, rating %.2f -> %.2f, clients %d, longest line %d, impatient %d, entry %d $, bar %d $, debris %d -> %d" % [money0,sim.money,rating0,sim.rating,entries,longest[0],int(sim_test_totals().impatient),int(sim_test_totals().entry),int(sim_test_totals().bar),debris0,model.debris().size()])
 	print("SIM_TEST_RESULT: %d failures" % failures)
 	if failures == 0: print("SIM_TEST_PASSED")
 	get_tree().quit(1 if failures > 0 else 0)
@@ -1771,6 +2628,41 @@ func parking_ui_checks(dir: String) -> void:
 	set_mode("select")
 	camera.position = previous_camera
 
+func schedule_ui_click(text: String) -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var buttons = hud.modal.find_children("*","Button",true,false).filter(func(b): return b.text == text)
+	check(not buttons.is_empty(),"Schedule control is visible: "+text)
+	if not buttons.is_empty(): await ui_click(buttons[0])
+
+func calendar_ui_checks(dir: String) -> void:
+	var id = model.add_item("maid",-2,4,0)
+	check(id >= 0,"Scheduling UI test hires a maid")
+	if id < 0: return
+	changed_view()
+	hud.show_schedule(id)
+	await schedule_ui_click("Ven–Sam")
+	await schedule_ui_click("Nuit 19–05")
+	await ui_capture(dir,"planning-employe.png")
+	await schedule_ui_click("Enregistrer")
+	var schedule: Dictionary = model.item_by_id(id).get("work_schedule",{})
+	check(schedule.get("days") == 48 and schedule.get("start") == 1140 and schedule.get("end") == 300,"UI presets save employee weekdays and overnight hours")
+	check(sim.staff[id].brain.state == "off_shift","Saved employee schedule immediately updates presence")
+	hud.show_schedule(-1)
+	await schedule_ui_click("Ouverture automatique : non")
+	await schedule_ui_click("Ven–Sam")
+	await ui_capture(dir,"horaires-club.png")
+	await schedule_ui_click("Enregistrer")
+	check(sim.opening_hours.enabled and sim.opening_hours.days == 48,"UI saves automatic club opening and selected days")
+	var saved = sim.opening_hours.duplicate()
+	hud.show_schedule(-1)
+	await schedule_ui_click("Lu")
+	await schedule_ui_click("Annuler")
+	check(sim.opening_hours == saved,"Cancelling draft days preserves the live club timetable")
+	sim.set_opening_hours(ClubCalendar.default_opening())
+	model.remove_item(id)
+	changed_view()
+
 func ui_test() -> void:
 	var dir = ""
 	for arg in OS.get_cmdline_user_args():
@@ -1812,6 +2704,7 @@ func ui_test() -> void:
 	check(win.position != before_pos,"Windows move when their title bar is dragged")
 	await ui_capture(dir,"02-help-window.png")
 	hud.close_modal()
+	await calendar_ui_checks(dir)
 	# Place a stool through the decoration panel, then undo.
 	hud.toggle_drawer("decor")
 	await get_tree().process_frame
@@ -1850,6 +2743,24 @@ func ui_test() -> void:
 	check(sim.staff.values().all(func(a): return is_instance_valid(a) and a.get_parent() == view.sorted),"Staff survive a rebuild of the view")
 	check(hud.context.visible,"Selection shows the context panel")
 	await ui_capture(dir,"03-selection.png")
+	var basin = model.furniture.filter(func(i): return i.kind == "old_sink")[0]
+	select_item(int(basin.id))
+	await get_tree().process_frame
+	var soap_buttons = hud.context_body.get_children().filter(func(n): return n is Button and n.text.begins_with("Distributeur de savon"))
+	check(soap_buttons.size() == 1,"Sink selection offers the soap upgrade")
+	if not soap_buttons.is_empty():
+		var cash = sim.money
+		await ui_click(soap_buttons[0])
+		check(model.item_by_id(int(basin.id)).get("soap",false) and sim.money == cash-60,"Clicking the soap button buys the upgrade")
+		check(hud.context.get_global_rect().end.x <= hud.get_viewport_rect().size.x,"Sanitary upgrade panel stays inside the window")
+		await ui_capture(dir,"03-sanitary-upgrade.png")
+	Plumbing.start_leak(sim,model.item_by_id(int(basin.id)))
+	hud.refresh_context()
+	await get_tree().process_frame
+	check(hud.hygiene_label.text.contains("recrutez un technicien"),"Faulty fixture explains that a technician must be hired")
+	await ui_capture(dir,"03-sanitary-leak.png")
+	model.item_by_id(int(basin.id)).leaking = false
+	view.refresh_sanitary(model.item_by_id(int(basin.id)),sim.maintenance_clock)
 	# Room selection and finish editor
 	var lounge = model.rooms[0]
 	select_room(int(lounge.id))

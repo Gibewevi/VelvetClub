@@ -55,7 +55,9 @@ class Prim:
         self.shadow = shadow
 
     def corners(self):
-        if self.kind == "box":
+        if self.kind == "tri":
+            base = [(0,0,0),(1,0,0),(0,1,0)]
+        elif self.kind == "box":
             base = [(x, y, z) for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)]
         elif self.kind == "cyl":
             base = [(x, y, z) for x in (-1, 1) for y in (0, 1) for z in (-1, 1)]
@@ -90,6 +92,15 @@ def cyl(cx, y0, cz, r, h, mat, rz=None, **kw):
 
 def ell(cx, cy, cz, rx, ry, rz, mat, ylim=None, **kw):
     return Prim("sph", np.diag([rx, ry, rz]), (cx, cy, cz), mat, ylim=ylim, **kw)
+
+
+def triangle(a, b, c, mat, **kw):
+    """A cloth surface: one ray per final pixel, no smoothing/downsampling."""
+    a,b,c = (np.array(p,dtype=float) for p in (a,b,c))
+    u,v = b-a,c-a
+    n = np.cross(u,v)
+    n /= np.linalg.norm(n)
+    return Prim("tri",np.column_stack([u,v,n]),a,mat,**kw)
 
 
 def lathe(cx, y0, cz, profile, mat, step=1.0 / PX_PER_M_Y, rz_scale=1.0, **kw):
@@ -153,7 +164,17 @@ def _intersect(p: Prim, O: np.ndarray):
     d = Ainv @ V
     n = O.shape[0]
     normal = np.zeros((n, 3))
-    if p.kind == "box":
+    if p.kind == "tri":
+        if abs(d[2]) < 1e-12:
+            t = np.full(n,NEG)
+            local = np.zeros((n,3))
+        else:
+            distance = -o[:,2]/d[2]
+            local = o+distance[:,None]*d
+            hit = (local[:,0] >= -1e-8) & (local[:,1] >= -1e-8) & (local[:,0]+local[:,1] <= 1+1e-8)
+            t = np.where(hit,distance,NEG)
+        normal[:,2] = 1 if d[2] >= 0 else -1
+    elif p.kind == "box":
         lo = np.full(n, -np.inf)
         hi = np.full(n, np.inf)
         axis = np.zeros(n, dtype=int)

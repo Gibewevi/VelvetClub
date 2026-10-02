@@ -13,7 +13,9 @@
   "asphalt": "tiles/floor_asphalt.png",
   "grass": "tiles/floor_grass.png",
   "asphalt_cracked": "tiles/floor_asphalt_cracked.png",
-  "slabs": "tiles/floor_slabs.png"
+  "slabs": "tiles/floor_slabs.png",
+  "concrete": "tiles/floor_concrete.png",
+  "dirt": "tiles/floor_dirt.png"
  },
  "walls": {
   "brick:x:full:0": {
@@ -2793,6 +2795,7 @@
   }
  },
  "fx": {
-  "puddle": "fx/puddle.png"
+  "puddle": "fx/puddle.png",
+  "urine": "fx/urine.png"
  }
 }

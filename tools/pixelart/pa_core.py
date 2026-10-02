@@ -9,6 +9,7 @@ from __future__ import annotations
 import colorsys
 import json
 import os
+import time
 from pathlib import Path
 
 import numpy as np
@@ -133,10 +134,25 @@ def crop_alpha(img: np.ndarray, margin: int = 0):
     return img[y0:y1, x0:x1], (x0, y0)
 
 
+def replace_complete(temporary: Path, path: Path) -> None:
+    # Windows live importers/virus scanners can briefly hold a picture open.
+    for attempt in range(12):
+        try:
+            os.replace(temporary,path)
+            return
+        except PermissionError:
+            if attempt == 11: raise
+            time.sleep(.1)
+
+
 def save(img: np.ndarray, rel: str) -> Path:
     path = OUT / rel
     path.parent.mkdir(parents=True, exist_ok=True)
-    Image.fromarray(img).save(path)
+    # Replace only a complete picture, so live imports cannot read a half-
+    # written sprite (or keep a handle open while Pillow truncates it).
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    Image.fromarray(img).save(temporary, format="PNG")
+    replace_complete(temporary, path)
     return path
 
 
@@ -153,7 +169,9 @@ def preview(img: np.ndarray, path, scale: int = 4, bg=(40, 36, 52)) -> None:
 def write_json(rel: str, data) -> None:
     path = OUT / rel
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=1, ensure_ascii=False), encoding="utf-8")
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(json.dumps(data, indent=1, ensure_ascii=False), encoding="utf-8")
+    replace_complete(temporary,path)
 
 
 def rng(seed: int) -> np.random.Generator:

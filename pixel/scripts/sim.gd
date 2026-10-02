@@ -14,12 +14,13 @@ signal stats_changed
 signal night_over(report: Dictionary)
 signal notice(text: String)
 signal debris_cleaned(item_id: int)
+signal open_changed(value: bool)
 
 # lounge_company: escorts keep the lounge clients company (flirt, hearts).
 # reception: clients queue outside and pay at the desk; bar: drinks served by a bartender;
 # private: escorts meet clients in the public room, agree on a service and take them to a bedroom.
 const FEATURES = {"reception":true,"bar":true,"stage":true,"lounge_company":true,"private":true,
-	"toilets":false,"client_mess":false,"night_cycle":false,"staff_roles":false,"services":false}
+	"toilets":true,"client_mess":false,"night_cycle":false,"staff_roles":false,"services":false}
 # Which feature switches each staff role on (cleaners always work).
 const ROLE_FEATURE = {"receptionist":"reception","bartender":"bar","escort":"lounge_company","security":"staff_roles"}
 const QUEUE_MAX = 12
@@ -28,18 +29,35 @@ const QUICK_KNEEL_GAP = 0.4
 const OPEN_MINUTES = 480
 const DAY_MINUTES = 1440
 const MINUTES_PER_SECOND = 2.5
+# Simulated time per frame is capped: when the computer cannot keep up, the
+# game slows down instead of simulating ever more per frame (which made each
+# frame longer still, until the window stopped answering).
+const MAX_FRAME = 0.1
 const NAMES = ["Alex","Bastien","Chloé","David","Élodie","Farid","Gaël","Hugo","Inès","Jules","Karim","Léa","Marc","Nadia","Olivier","Paul","Quentin","Rémi","Sofia","Théo","Ugo","Victor","Wassim","Yanis","Zoé","Mehdi","Lucas","Nathan","Hélène","Manon"]
-const ACTIVITY = {"look":"Fait le tour","entering":"Entre","bar":"Au bar","lounge":"Au salon","dance":"Danse","stage":"Devant la scène","private":"En chambre","toilet":"Aux toilettes","checkin":"À la réception","queue":"Fait la queue","enter":"Arrive","leave":"S'en va","walk":"Se déplace"}
+const ACTIVITY = {"look":"Fait le tour","entering":"Entre","bar":"Au bar","lounge":"Au salon","dance":"Danse","stage":"Devant la scène","private":"En chambre","toilet":"Aux toilettes","toilet_seek":"Cherche les toilettes","toilet_wait":"Attend un sanitaire libre","wash_hands":"Se lave les mains","wash_wait":"Attend un lavabo","checkin":"À la réception","queue":"Fait la queue","enter":"Arrive","leave":"S'en va","walk":"Se déplace"}
 
 var model: BuildingModel
 var view: WorldView
 var nav = ClubNav.new()
 var rng = RandomNumberGenerator.new()
+var profiles = CharacterProfiles.new()
+var maintenance_rng = RandomNumberGenerator.new()
+var maintenance_clock = 0.0
 # TEMPORARY for testing: a huge starting budget, to be rebalanced later.
 const START_MONEY = 1000000
 var money = START_MONEY
 var day = 1
-var minute = 1320.0
+var minute = 1080.0
+var opening_hours = ClubCalendar.default_opening()
+var opening_override = -1
+var override_window = false
+var weather_rng = RandomNumberGenerator.new()
+var rain_strength = 0.0
+var weather_remaining = 180.0
+var wage_remainder = 0.0
+var saved_weather_state = ""
+var saved_weather_ground: Dictionary = {}
+var saved_night: Dictionary = {}
 var speed = 1
 var rating = 1.0
 var open = false
@@ -50,6 +68,9 @@ var history: Array = []
 var staff: Dictionary = {}
 var clients: Array = []
 var dirt: Array = []
+var saved_dirt: Array = []
+var sanitary_queue: Array = []
+var sanitary_saturated_until = 0.0
 var reserved: Dictionary = {}
 var spawn_timer = 0.0
 var recent_satisfaction: Array = []
@@ -65,23 +86,49 @@ var beds_taken: Dictionary = {}  # bed id -> cleaner making it
 var elapsed = 0.0                # game minutes since the start (never wraps)
 var hints: Dictionary = {}       # notice key -> elapsed minute it may show again
 signal world_changed
+signal debris_dropped(id: int)
 
 func setup(building: BuildingModel, world: WorldView) -> void:
 	model = building
 	view = world
 	rng.seed = 20260928
+	maintenance_rng.seed = 20260951
+	weather_rng.seed = 20260955
+	if saved_weather_state.is_valid_int(): weather_rng.state = saved_weather_state.to_int()
 	reset_night()
+	restore_night(saved_night)
+	saved_night.clear()
 	layout_changed()
+	restore_dirt()
+	refresh_schedule_state()
+	view.rain_ground.from_dict(saved_weather_ground)
+	view.rain.phase = view.rain_ground.phase
+	view.rain.step(0,rain_strength)
 
 func reset_night() -> void:
 	night = {"entry":0,"bar":0,"dance":0,"private":0,"wages":0,"clients":0,"served":0,"satisfaction":[],"day":day,"impatient":0,
-		"met":0,"agreed":0,"refused":0,"tips":0,"floor_dates":0,"stage_tips":0,"stage_dates":0,"tier_0":0,"tier_1":0,"tier_2":0,"infections":0,"sick":0,"showers":0,"beds_made":0}
+		"met":0,"agreed":0,"refused":0,"tips":0,"floor_dates":0,"stage_tips":0,"stage_dates":0,"tier_0":0,"tier_1":0,"tier_2":0,"infections":0,"sick":0,"showers":0,"beds_made":0,"accidents":0,"toilet_visits":0,"dirt_cleaned":0}
+
+func restore_night(data: Dictionary) -> void:
+	for key in night:
+		var value = data.get(key)
+		if key == "satisfaction" and value is Array:
+			night[key] = value.filter(func(n): return (n is int or n is float) and is_finite(float(n)) and n >= 0 and n <= 100).slice(0,1000)
+		elif key != "day" and (value is int or value is float) and is_finite(float(value)):
+			night[key] = clampi(int(value),0,1000000000)
+	night.day = day
 
 func to_dict() -> Dictionary:
-	return {"money":money,"day":day,"minute":minute,"rating":rating,"open":open,"prices":prices.duplicate(),"history":history.duplicate(true)}
+	for client in clients:
+		if is_instance_valid(client): profiles.sync_spending(client)
+	var spills: Array = []
+	for d in dirt: spills.append({"x":d.pos.x,"z":d.pos.y,"kind":d.get("kind","water"),"load":d.get("load",1.0),"work":d.get("work",6.0),"fixture":d.get("fixture",-1),"origin_x":d.get("origin",d.pos).x,"origin_z":d.get("origin",d.pos).y})
+	return {"money":money,"day":day,"minute":minute,"rating":rating,"open":open,"prices":prices.duplicate(),"history":history.duplicate(true),"dirt":spills,"calendar_version":1,"opening_hours":opening_hours.duplicate(),"opening_override":opening_override,"override_window":override_window,
+		"weather":{"rain":rain_strength,"remaining":weather_remaining,"rng_state":str(weather_rng.state),"ground":view.rain_ground.to_dict() if view != null else saved_weather_ground.duplicate()},"wage_remainder":wage_remainder,"night":night.duplicate(true),"characters":profiles.to_dict()}
 
 func from_dict(data: Variant) -> void:
 	if not data is Dictionary: return
+	profiles.from_dict(data.get("characters",{}))
 	for key in ["money","day","minute","rating"]:
 		var v = data.get(key)
 		if (v is int or v is float) and is_finite(float(v)): set(key,v)
@@ -89,7 +136,40 @@ func from_dict(data: Variant) -> void:
 	day = maxi(1,int(day))
 	minute = clampf(float(minute),0,DAY_MINUTES-1)
 	rating = clampf(float(rating),0,5)
+	# Preserve the visible hour of older saves, which measured from 20:00.
+	if not data.has("calendar_version") and (data.get("minute") is int or data.get("minute") is float):
+		var legacy_minute = minute
+		minute = fposmod(legacy_minute+1200.0,DAY_MINUTES)
+		if legacy_minute >= 240.0: day += 1
 	open = data.get("open",false) == true
+	if ClubCalendar.valid(data.get("opening_hours"),true): opening_hours = ClubCalendar.normalized(data.opening_hours)
+	var manual = data.get("opening_override",-1)
+	if manual in [-1,0,1] and data.get("override_window",false) is bool:
+		opening_override = int(manual)
+		override_window = data.get("override_window",false)
+	var weather = data.get("weather",{})
+	saved_weather_ground = {}
+	if weather is Dictionary:
+		if weather.get("ground") is Dictionary: saved_weather_ground = weather.ground.duplicate()
+		for key in ["rain","remaining"]:
+			var n = weather.get(key)
+			if (n is int or n is float) and is_finite(float(n)):
+				if key == "rain": rain_strength = clampf(float(n),0,1)
+				else: weather_remaining = clampf(float(n),.01,360)
+		if weather.get("rng_state","") is String: saved_weather_state = weather.get("rng_state","")
+	var remainder = data.get("wage_remainder",0)
+	if (remainder is int or remainder is float) and is_finite(float(remainder)): wage_remainder = clampf(float(remainder),0,.999999)
+	if model != null:
+		if saved_weather_state.is_valid_int(): weather_rng.state = saved_weather_state.to_int()
+		refresh_schedule_state()
+		view.rain_ground.from_dict(saved_weather_ground)
+		view.rain.phase = view.rain_ground.phase
+		view.rain.step(0,rain_strength)
+	if data.get("night") is Dictionary:
+		saved_night = data.night.duplicate(true)
+		if not night.is_empty():
+			restore_night(saved_night)
+			saved_night.clear()
 	var p = data.get("prices",{})
 	if p is Dictionary:
 		for k in prices:
@@ -97,15 +177,57 @@ func from_dict(data: Variant) -> void:
 			if (v is int or v is float) and is_finite(float(v)): prices[k] = clampi(int(v),0,999)
 	var h = data.get("history",[])
 	if h is Array: history = h.slice(maxi(0,h.size()-14))
+	saved_dirt.clear()
+	var spills = data.get("dirt",[])
+	if spills is Array:
+		for d in spills.slice(0,Plumbing.MAX_PUDDLES):
+			if not d is Dictionary or not d.get("kind","water") in ["water","urine"]: continue
+			var x = d.get("x")
+			var z = d.get("z")
+			if not (x is int or x is float) or not (z is int or z is float): continue
+			if not is_finite(float(x)) or not is_finite(float(z)) or absf(float(x)) > Iso.LOT or absf(float(z)) > Iso.LOT: continue
+			var amount = d.get("load",1.0)
+			var work = d.get("work",6.0)
+			if not (amount is int or amount is float) or not (work is int or work is float): continue
+			if not is_finite(float(amount)) or not is_finite(float(work)) or amount <= 0 or work <= 0: continue
+			var spill = {"x":float(x),"z":float(z),"kind":d.get("kind","water"),"load":clampf(amount,.1,3),"work":clampf(work,.1,60)}
+			var source = d.get("fixture",-1)
+			var ox = d.get("origin_x",x)
+			var oz = d.get("origin_z",z)
+			if (source is int or source is float) and is_finite(float(source)) and source == floor(source) and source >= 0 and source < 2147483647 and (ox is int or ox is float) and (oz is int or oz is float) and is_finite(float(ox)) and is_finite(float(oz)) and absf(ox) <= Iso.LOT and absf(oz) <= Iso.LOT:
+				spill.merge({"fixture":int(source),"origin":Vector2(ox,oz)})
+			saved_dirt.append(spill)
+	if view != null: restore_dirt()
 
 # ------------------------------------------------------------------ layout
 
 func layout_changed() -> void:
+	var p0 = Prof.t("sim.layout")
+	_timed_layout_changed()
+	Prof.add("sim.layout",p0)
+
+func _timed_layout_changed() -> void:
+	sanitary_queue.clear()
 	nav.rebuild(model)
 	find_entrance()
 	sync_staff()
+	for a in staff.values():
+		if is_instance_valid(a) and a.brain.state in ["to_fixture","cleaning_fixture","to_repair","repairing"]:
+			release(a)
+			a.path = []
+			a.brain.state = "post"
+		if is_instance_valid(a) and a.brain.get("role","") == "cleaner" and a.brain.has("dirt"):
+			release_dirt_task(a)
+			a.path = []
+			a.brain.state = "post"
+	for d in dirt.duplicate():
+		validate_fixture_dirt(d)
+		if model.room_at(d.pos).is_empty():
+			d.node.queue_free()
+			dirt.erase(d)
 	for c in clients.duplicate():
 		if not is_instance_valid(c): continue
+		Sanitation.forget(self,c)
 		if c.brain.has("service"): end_service(c,true)
 		c.path = []
 		release(c)
@@ -132,6 +254,7 @@ func find_entrance() -> void:
 		if not pos_room.is_empty() and not neg_room.is_empty(): continue
 		if pos_room.is_empty() and neg_room.is_empty(): continue
 		var room = pos_room if not pos_room.is_empty() else neg_room
+		if SitePlan.building(room): continue
 		var score = 10 if int(room.type) == 5 else (5 if int(room.type) == 0 else 1)
 		if score <= best_score: continue
 		var door = Vector2(x+0.5,z) if axis == "x" else Vector2(x,z+0.5)
@@ -147,6 +270,7 @@ func sync_staff() -> void:
 		if item.get("delivery_pending",false): continue
 		if not Catalog.is_character(item.kind): continue
 		var id = int(item.id)
+		var profile = profiles.ensure_employee(item,day)
 		seen[id] = true
 		var a: Actor = staff.get(id)
 		if a == null or not is_instance_valid(a):
@@ -172,11 +296,14 @@ func sync_staff() -> void:
 				a.brain.state = "post"
 			a.brain.post = post
 			a.kind = item.kind
+		a.brain.profile_id = profile.id
+		a.brain.name = profile.name
 	for id in staff.keys():
 		if not seen.has(id):
 			var a = staff[id]
 			if is_instance_valid(a):
 				release(a)
+				release_dirt_task(a)
 				view.remove_actor(a)
 			staff.erase(id)
 
@@ -297,6 +424,10 @@ func shower_step(a: Actor, arrived: bool, gm: float) -> bool:
 			if arrived:
 				view.set_shower_door(id,false)
 				a.brain.erase("wash")
+				var fixture = model.item_by_id(id)
+				if not fixture.is_empty():
+					Sanitation.soil(fixture,10)
+					Plumbing.after_use(self,fixture)
 				return true
 	return false
 
@@ -318,69 +449,179 @@ func settle(actor: Actor) -> void:
 # ------------------------------------------------------------------ time
 
 func clock_text() -> String:
-	var m = int(minute)+20*60
-	return "%02d:%02d" % [(m/60)%24,m%60]
+	return ClubCalendar.time_text(int(minute))
+
+func staff_planned(a: Actor) -> bool:
+	var item = model.item_by_id(a.item_id)
+	return not item.is_empty() and ClubCalendar.covers(item.get("work_schedule",ClubCalendar.default_shift()),day,minute)
+
+func staff_committed(a: Actor) -> bool:
+	# Finish an actual task already underway, then stop before taking another.
+	return a.brain.has("client") or a.brain.state in ["mopping","cleaning_fixture","repairing","clearing","making_bed"]
+
+func staff_available(a: Actor) -> bool:
+	return is_instance_valid(a) and staff_planned(a) and a.brain.get("state","") != "off_shift"
+
+func reconcile_staff(a: Actor) -> bool:
+	var planned = staff_planned(a)
+	if not planned and staff_committed(a):
+		a.brain.overtime = true
+		return true
+	a.brain.overtime = false
+	if not planned:
+		if a.brain.state != "off_shift":
+			release(a)
+			release_dirt_task(a)
+			release_debris(a)
+			release_bed_task(a)
+			a.path = []
+			a.lift = 0
+			a.set_world(a.brain.post)
+			a.play("idle")
+			a.brain.state = "off_shift"
+		a.visible = false
+		return false
+	if a.brain.state == "off_shift":
+		a.visible = true
+		a.brain.state = "post"
+		a.set_world(a.brain.post)
+		a.play("idle")
+	return true
+
+func refresh_schedule_state() -> void:
+	if opening_hours.enabled:
+		var expected = ClubCalendar.covers(opening_hours,day,minute)
+		if opening_override >= 0 and expected != override_window: opening_override = -1
+		var wanted = expected if opening_override < 0 else opening_override == 1
+		if open != wanted: set_open(wanted,false)
+	for a in staff.values():
+		if is_instance_valid(a): reconcile_staff(a)
+
+func set_opening_hours(schedule: Dictionary) -> void:
+	if not ClubCalendar.valid(schedule,true): return
+	opening_hours = ClubCalendar.normalized(schedule)
+	opening_override = -1
+	refresh_schedule_state()
+	stats_changed.emit()
+
+func next_clock_step(remaining: float) -> float:
+	var step = minf(remaining,60.0-fposmod(minute,60.0))
+	step = minf(step,weather_remaining)
+	var schedules: Array = [opening_hours]
+	for item in model.furniture:
+		if Catalog.is_character(item.kind): schedules.append(item.get("work_schedule",ClubCalendar.default_shift()))
+	for schedule in schedules:
+		for key in ["start","end"]:
+			var until = float(schedule[key])-minute
+			if until > .00001: step = minf(step,until)
+	return maxf(.00001,step)
+
+func weather_tick(minutes: float) -> void:
+	weather_remaining -= minutes
+	if weather_remaining <= .00001:
+		rain_strength = weather_rng.randf_range(.4,1.0) if weather_rng.randf() < .35 else 0.0
+		weather_remaining = weather_rng.randf_range(120.0,360.0)
+
+func accrue_wages(minutes: float) -> void:
+	var total = 0.0
+	for a in staff.values():
+		if is_instance_valid(a) and a.brain.state != "off_shift":
+			total += float(Catalog.ITEMS[a.kind].get("wage",0))*minutes/60.0
+	wage_remainder += total
+	var amount = floori(wage_remainder+.0000001)
+	wage_remainder = maxf(0,wage_remainder-amount)
+	money -= amount
+	night.wages += amount
+
+func record_calendar_day() -> void:
+	var report = night.duplicate(true)
+	var avg = satisfaction()
+	if not night.satisfaction.is_empty():
+		avg = 0.0
+		for value in night.satisfaction: avg += float(value)
+		avg /= night.satisfaction.size()
+	report.satisfaction = int(round(avg))
+	report.rating = rating
+	report.income = int(night.entry)+int(night.bar)+int(night.dance)+int(night.private)
+	report.net = report.income-int(night.wages)
+	report.money = money
+	history.append(report)
+	if history.size() > 14: history.pop_front()
 
 func _process(delta: float) -> void:
+	var p0 = Prof.t("sim")
+	_timed_process(delta)
+	Prof.add("sim",p0)
+
+func _timed_process(delta: float) -> void:
+	# only the engine's frames are capped; a deliberate jump of time (tests,
+	# skipping ahead) is simulated in full
+	if is_equal_approx(delta,get_process_delta_time()): delta = minf(delta,MAX_FRAME)
 	if not active or paused_for_report or speed == 0: return
-	var dt = delta*speed
-	view.step_shower_doors(dt)
-	minute += dt*MINUTES_PER_SECOND
-	elapsed += dt*MINUTES_PER_SECOND
-	if FEATURES.night_cycle:
-		var hour = int(minute/60.0)
-		if hour != last_hour:
-			last_hour = hour
-			pay_wages_hour()
-		if minute >= OPEN_MINUTES-30 and not closing:
-			closing = true
-			notice.emit("03:30 : dernière tournée, le club ferme bientôt.")
-		if minute >= OPEN_MINUTES:
-			end_night()
-			return
-	else:
-		if minute >= DAY_MINUTES:
-			minute -= DAY_MINUTES
+	var remaining = delta*speed*MINUTES_PER_SECOND
+	while remaining > .00001:
+		refresh_schedule_state()
+		var gm = next_clock_step(remaining)
+		var dt = gm/MINUTES_PER_SECOND
+		accrue_wages(gm)
+		view.step_shower_doors(dt)
+		elapsed += gm
+		Plumbing.tick(self,gm)
+		if open and FEATURES.reception: queue_hint(gm)
+		if open and not closing:
+			spawn_timer -= gm
+			if spawn_timer <= 0:
+				spawn_timer = spawn_interval()
+				spawn_client()
+		for a in staff.values():
+			if is_instance_valid(a): staff_ai(a,dt)
+		for c in clients.duplicate():
+			if is_instance_valid(c): client_ai(c,dt)
+		view.rain.step(dt,rain_strength)
+		weather_tick(gm)
+		minute += gm
+		if minute >= DAY_MINUTES-.00001:
+			record_calendar_day()
+			minute = maxf(0,minute-DAY_MINUTES)
 			day += 1
-		var hour = int(minute/60.0)
-		if hour != last_hour:
-			last_hour = hour
-			pay_wages_hour()
-	if open and FEATURES.reception: queue_hint(dt*MINUTES_PER_SECOND)
-	if open and not closing:
-		spawn_timer -= dt*MINUTES_PER_SECOND
-		if spawn_timer <= 0:
-			spawn_timer = spawn_interval()
-			spawn_client()
-	for id in staff:
-		var a = staff[id]
-		if is_instance_valid(a): staff_ai(a,dt)
-	for c in clients.duplicate():
-		if is_instance_valid(c): client_ai(c,dt)
+			reset_night()
+		remaining -= gm
+	refresh_schedule_state()
 	stats_changed.emit()
 
 func hour_of_day() -> float:
-	return fposmod(minute/60.0+20.0,24.0)
+	return minute/60.0
 
-func set_open(value: bool) -> void:
+func set_open(value: bool, manual: bool = true) -> void:
+	if manual and opening_hours.enabled:
+		opening_override = 1 if value else 0
+		override_window = ClubCalendar.covers(opening_hours,day,minute)
 	open = value
+	closing = not open
 	spawn_timer = 1.0
 	if not open:
 		for c in clients.duplicate():
 			if is_instance_valid(c) and c.brain.state != "leave": leave(c)
+	open_changed.emit(open)
 	stats_changed.emit()
 
-func spawn_interval() -> float:
-	# Busiest late in the evening; reputation and prices move the flow.
-	var hd = hour_of_day()
-	var curve = 0.25
-	if hd >= 18.0 or hd < 3.0: curve = 0.6
-	if hd >= 21.5 or hd < 2.0: curve = 1.0
+func demand_factors() -> Dictionary:
+	var hour = hour_of_day()
 	var price_factor = clampf(1.25-(prices.entry-20)/80.0-(prices.drink-12)/60.0,0.45,1.5)
-	var rate = (0.3+rating/4.0)*curve*price_factor
-	var capacity = maxi(6,free_capacity()+6)
-	if inside_count() >= capacity: return 12.0
-	return clampf(9.0/maxf(rate,0.05),4.0,40.0)*rng.randf_range(0.7,1.3)
+	var factors = {"hour":ClubCalendar.time_factor(hour),"day":ClubCalendar.day_factor(day,hour),"reputation":.3+rating/4.0,"weather":1.0-.3*rain_strength,"price":price_factor}
+	factors.rate = factors.hour*factors.day*factors.reputation*factors.weather*factors.price
+	return factors
+
+func spawn_interval() -> float:
+	var factors = demand_factors()
+	var interval = clampf(9.0/maxf(factors.rate,.05),4.0,120.0)
+	if inside_count() >= maxi(6,free_capacity()+6): interval = maxf(interval,12.0)
+	return interval*rng.randf_range(.7,1.3)
+
+func demand_text() -> String:
+	var factors = demand_factors()
+	var level = "Faible" if factors.rate < .4 else ("Modérée" if factors.rate < .9 else ("Forte" if factors.rate < 1.6 else "Très forte"))
+	return "Affluence : "+level+" · "+("Pluie" if rain_strength > 0 else "Temps sec")
 
 func free_capacity() -> int:
 	var n = 0
@@ -389,14 +630,10 @@ func free_capacity() -> int:
 	return n
 
 func pay_wages_hour() -> void:
-	var total = 0
-	for item in model.furniture:
-		if item.get("delivery_pending",false): continue
-		if Catalog.is_character(item.kind): total += int(Catalog.ITEMS[item.kind].get("wage",0))
-	money -= total
-	night.wages += total
+	accrue_wages(60.0)
 
 func earn(amount: int, category: String, actor: Actor = null) -> void:
+	if actor != null and actor.kind == "client": profiles.spend(actor,amount)
 	money += amount
 	night[category] = int(night.get(category,0))+amount
 	if actor != null: actor.emote("dollar",2.0)
@@ -418,6 +655,8 @@ func end_night() -> void:
 	report.money = money
 	history.append(report.duplicate())
 	if history.size() > 14: history.pop_front()
+	for a in staff.values():
+		if is_instance_valid(a): release_dirt_task(a)
 	for d in dirt: d.node.queue_free()
 	dirt.clear()
 	paused_for_report = true
@@ -425,7 +664,7 @@ func end_night() -> void:
 
 func start_next_night() -> void:
 	day += 1
-	minute = 0.0
+	minute = 1200.0
 	last_hour = -1
 	closing = false
 	paused_for_report = false
@@ -472,21 +711,82 @@ func client_count() -> int:
 
 # ------------------------------------------------------------------ dirt
 
-func add_dirt(p: Vector2) -> void:
-	if dirt.size() > 14: return
+func add_dirt(p: Vector2, kind: String = "water", amount: float = 1.0) -> void:
+	if model.room_at(p).is_empty(): return
 	var c = nav.free_cell_near(p)
 	if c.x == 9999: return
-	var pos = nav.center(c)+Vector2(rng.randf_range(-0.15,0.15),rng.randf_range(-0.15,0.15))
+	for d in dirt:
+		if d.kind == kind and int(d.get("fixture",-1)) < 0 and nav.cell_of(d.pos) == c:
+			d.load = minf(3,float(d.get("load",1))+amount)
+			d.work = minf(60,float(d.get("work",6))+6*amount)
+			refresh_dirt(d)
+			return
+	if dirt.size() < Plumbing.MAX_PUDDLES: place_dirt(nav.center(c),kind,amount,6*amount)
+
+func add_fixture_dirt(item: Dictionary, amount: float) -> void:
+	var spot = Plumbing.service_spot(item)
+	if spot.is_empty(): return
+	var cell = nav.free_cell_near(spot.pos)
+	if cell.x == 9999 or model.room_at(nav.center(cell)) != model.room_at(Vector2(item.x,item.z)): return
+	var spills = Sanitation.fixture_spills(self,item)
+	if not spills.is_empty():
+		var d: Dictionary = spills[0]
+		d.load = minf(3,float(d.load)+amount)
+		d.work = minf(60,float(d.work)+6*amount)
+		refresh_dirt(d)
+		return
+	if dirt.size() >= Plumbing.MAX_PUDDLES: return
+	place_dirt(nav.center(cell),"urine",amount,6*amount)
+	var d: Dictionary = dirt.back()
+	d.fixture = int(item.id)
+	d.origin = Vector2(item.x,item.z)
+	refresh_dirt(d)
+
+func validate_fixture_dirt(d: Dictionary) -> void:
+	if int(d.get("fixture",-1)) < 0: return
+	var item = model.item_by_id(int(d.fixture))
+	# Moving/selling the fixture leaves its old spill as ordinary floor cleaning.
+	if item.is_empty() or not item.kind in ClientNeeds.FIXTURES or Vector2(item.x,item.z) != d.get("origin",Vector2.INF):
+		d.erase("fixture")
+		d.erase("origin")
+	refresh_dirt(d)
+
+func place_dirt(pos: Vector2, kind: String, amount: float = 1.0, work: float = 6.0) -> void:
 	var s = Sprite2D.new()
-	s.texture = Art.tex(Art.tiles.fx.puddle) if Art.tiles.has("fx") and Art.tiles.fx.has("puddle") else null
 	s.position = Iso.pixel(pos.x,pos.y)
+	s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	view.dirt_layer.add_child(s)
-	dirt.append({"pos":pos,"node":s,"taken":null})
+	var d = {"pos":pos,"kind":kind,"node":s,"taken":null,"load":amount,"work":work}
+	dirt.append(d)
+	refresh_dirt(d)
+
+func refresh_dirt(d: Dictionary) -> void:
+	var at: Vector2 = d.pos
+	if int(d.get("fixture",-1)) >= 0:
+		# Draw under the base; retain the reachable service position for pathfinding.
+		at = d.origin.lerp(d.pos,.65)
+	d.node.position = Iso.pixel(at.x,at.y).round()
+	var level = 0 if float(d.get("load",1)) < .6 else (1 if float(d.get("load",1)) < 2 else 2)
+	d.node.texture = Art.tex(Art.sanitary.puddles[d.kind][level])
+
+func restore_dirt() -> void:
+	for a in staff.values():
+		if is_instance_valid(a): release_dirt_task(a)
+	for d in dirt: d.node.queue_free()
+	dirt.clear()
+	for d in saved_dirt:
+		var pos = Vector2(d.x,d.z)
+		if not model.room_at(pos).is_empty():
+			place_dirt(pos,d.kind,d.get("load",1.0),d.get("work",6.0))
+			if d.has("fixture"):
+				dirt.back().merge({"fixture":d.fixture,"origin":d.origin})
+				validate_fixture_dirt(dirt.back())
+	saved_dirt.clear()
 
 func dirt_near(p: Vector2, radius: float) -> int:
 	var n = 0
 	for d in dirt:
-		if d.pos.distance_to(p) < radius: n += 1
+		if d.pos.distance_to(p) < radius and model.room_at(p) == model.room_at(d.pos): n += 1
 	return n
 
 # ------------------------------------------------------------------ clients
@@ -496,16 +796,23 @@ func spawn_client() -> void:
 	if FEATURES.reception and queue.size() >= QUEUE_MAX: return      # passers-by give up on such a line
 	var start: Vector2 = entrance.street if rng.randf() < 0.5 else entrance.street2
 	if not nav.reachable(start,entrance.outside): return
+	var active_ids: Array = clients.map(func(c): return str(c.brain.get("profile_id","")))
+	var profile = profiles.select_client(active_ids,day,hour_of_day())
+	if profile.is_empty(): profile = profiles.make_client(Characters.random_client(rng),day,active_ids)
+	if profile.is_empty(): profile = profiles.select_client(active_ids,day,hour_of_day(),true)
+	if profile.is_empty(): return
+	profiles.arrive(profile,day)
 	var a = Actor.new()
 	a.kind = "client"
-	a.configure(Characters.random_client(rng))
+	a.configure(profile.appearance)
 	a.set_world(start)
 	a.speed = rng.randf_range(1.2,1.6)
 	a.brain = {"role":"client","state":"enter","timer":0.0,"sat":clampf(35.0+rating*9.0+rng.randf_range(-8,8),10,95),
-		"name":NAMES[rng.randi_range(0,NAMES.size()-1)],"visits":0,"plan":rng.randi_range(2,4),"waited":0.0,"spent":0,"activity":"enter",
-		"patience":rng.randf_range(40.0,70.0),"paid":not FEATURES.reception,"slot":-1,"grumble":0.0,
-		"budget":int(80.0+rating*90.0+rng.randf_range(0.0,200.0)),"refused":[],
-		"generous":rng.randf() < clampf(0.2+rating*0.08,0.2,0.6)}
+		"name":profile.name,"profile_id":profile.id,"preference":profile.preference,"cleanliness":profile.cleanliness,"visits":0,"plan":rng.randi_range(2,4),"waited":0.0,"spent":0,"activity":"enter",
+		"patience":profile.patience,"paid":not FEATURES.reception,"slot":-1,"grumble":0.0,
+		"budget":int(profile.budget_base+rating*90.0),"refused":[],
+		"generous":profile.generous,
+		"bladder":rng.randf_range(12.0,28.0),"digestion":0.0,"drinks":0}
 	clients.append(a)
 	view.add_actor(a)
 	night.clients += 1
@@ -516,9 +823,12 @@ func spawn_client() -> void:
 		a.brain.activity = "queue"
 		walk_to_slot(a)
 	else:
+		profiles.admit(a,day)
 		go(a,entrance.outside)
 
 func remove_client(a: Actor) -> void:
+	profiles.finish(a,day)
+	Sanitation.forget(self,a)
 	if a.brain.has("service"): end_service(a,true)
 	release(a)
 	queue.erase(a)
@@ -536,6 +846,7 @@ func client_ai(a: Actor, dt: float) -> void:
 	var b: Dictionary = a.brain
 	var arrived = a.step(dt,1.0)
 	var gm = dt*MINUTES_PER_SECOND
+	if FEATURES.toilets and ClientNeeds.tick(self,a,gm,arrived): return
 	match b.state:
 		"enter":
 			if arrived:
@@ -545,6 +856,7 @@ func client_ai(a: Actor, dt: float) -> void:
 				else: b.state = "choose"
 		"entering":
 			if arrived:
+				profiles.admit(a,day)
 				earn(int(prices.entry),"entry",a)
 				b.spent += int(prices.entry)
 				b.state = "choose"
@@ -558,11 +870,13 @@ func client_ai(a: Actor, dt: float) -> void:
 		"checkin":
 			# The entrance is paid to the receptionist in person.
 			if receptionist_at(int(b.get("desk",-1))) != null:
-				b.timer -= gm
+				b.timer -= gm/profiles.employee_factor(str(receptionist_at(int(b.desk)).brain.get("profile_id","")))
 				if b.timer <= 0:
 					earn(int(prices.entry),"entry",a)
 					b.spent += int(prices.entry)
 					b.paid = true
+					profiles.admit(a,day)
+					b.sat += profiles.welcome_bonus(str(receptionist_at(int(b.desk)).brain.get("profile_id","")))
 					if role_present("security"): b.sat += 2
 					release(a)
 					b.state = "choose"
@@ -665,7 +979,7 @@ func free_desk() -> Dictionary:
 func receptionist_at(desk_id: int) -> Actor:
 	for id in staff:
 		var r = staff[id]
-		if is_instance_valid(r) and r.brain.role == "receptionist" and r.brain.state == "working" and int(r.brain.get("desk",-1)) == desk_id: return r
+		if staff_available(r) and r.brain.role == "receptionist" and r.brain.state == "working" and int(r.brain.get("desk",-1)) == desk_id: return r
 	return null
 
 func queue_hint(gm: float) -> void:
@@ -675,16 +989,17 @@ func queue_hint(gm: float) -> void:
 	queue_notice = 90.0
 	if not model.furniture.any(func(i): return not i.get("delivery_pending",false) and i.kind == "reception"):
 		notice.emit("Des clients font la queue dehors : installez un comptoir d'accueil (Mobilier) et embauchez un(e) réceptionniste.")
-	elif free_desk().is_empty() and not staff.values().any(func(r): return is_instance_valid(r) and r.brain.role == "receptionist" and r.brain.state == "working"):
+	elif free_desk().is_empty() and not staff.values().any(func(r): return staff_available(r) and r.brain.role == "receptionist" and r.brain.state == "working"):
 		notice.emit("Des clients font la queue dehors : personne n'est à l'accueil pour encaisser l'entrée.")
 
 func role_present(role: String) -> bool:
 	for id in staff:
 		var a = staff[id]
-		if is_instance_valid(a) and a.brain.role == role and a.brain.state in ["working","post"] and not a.moving: return true
+		if staff_available(a) and a.brain.role == role and a.brain.state in ["working","post"] and not a.moving: return true
 	return false
 
 func leave(a: Actor) -> void:
+	Sanitation.forget(self,a)
 	if a.brain.has("service"): end_service(a,true)
 	if a.brain.has("escort"):
 		var e = a.brain.escort
@@ -719,12 +1034,9 @@ func choose_activity(a: Actor) -> void:
 		var stage = free_spots("watch","client",[0])
 		# a pole show on: the clients flock to the stage
 		if not stage.is_empty() and dancing(): options.append(["stage",6.0,stage])
-	if FEATURES.toilets:
-		var wc = free_spots("stand","client",[2])
-		if not wc.is_empty(): options.append(["toilet",1.2 if b.visits > 0 else 0.3,wc])
 	var floor_spots = free_spots("dance","client",[0,5]).filter(func(s): return model.item_by_id(s.item).kind == "dancefloor")
 	# an escort dancing on the floor draws the clients there
-	var show = staff.values().any(func(e): return is_instance_valid(e) and e.brain.get("state","") == "floor_dance")
+	var show = staff.values().any(func(e): return staff_available(e) and e.brain.get("state","") == "floor_dance")
 	if not floor_spots.is_empty(): options.append(["dance",4.5 if show else 2.5,floor_spots])
 	var spot = look_spot(a)
 	if not spot.is_empty(): options.append(["look",2.0,[spot]])
@@ -734,7 +1046,9 @@ func choose_activity(a: Actor) -> void:
 		wander(a)
 		return
 	var total = 0.0
-	for o in options: total += o[1]
+	for o in options:
+		if o[0] == b.get("preference",""): o[1] *= 1.7
+		total += o[1]
 	var pick = rng.randf()*total
 	var chosen = options[0]
 	for o in options:
@@ -763,11 +1077,11 @@ func choose_activity(a: Actor) -> void:
 
 func look_spot(a: Actor) -> Dictionary:
 	# A free place in a public room to stand and look around.
-	var rooms = model.rooms.filter(func(r): return int(r.type) in [0,5])
+	var rooms = model.rooms.filter(func(r): return int(r.type) in [0,5] and not SitePlan.building(r))
 	for attempt in range(6):
 		if rooms.is_empty(): return {}
 		var r = rooms[rng.randi_range(0,rooms.size()-1)]
-		var p = Vector2(rng.randf_range(r.x+0.6,r.x+r.w-0.6),rng.randf_range(r.z+0.6,r.z+r.h-0.6))
+		var p = model.random_point(r,rng,0.6)
 		var c = nav.free_cell_near(p)
 		if c.x != 9999 and nav.room_of.get(c,0) != 0: return {"pos":nav.center(c)}
 	return {}
@@ -777,7 +1091,7 @@ func ambiance(p: Vector2) -> float:
 	# help, debris and worn finishes hurt.
 	var room = model.room_at(p)
 	if room.is_empty(): return 0.0
-	var r = model.rect(room)
+	var r = model.shape(room)
 	var decor = 0
 	var mess = 0
 	for item in model.furniture:
@@ -806,7 +1120,7 @@ func wander(a: Actor) -> void:
 	if room.is_empty():
 		a.brain.state = "choose"
 		return
-	var target = Vector2(rng.randf_range(room.x+0.5,room.x+room.w-0.5),rng.randf_range(room.z+0.5,room.z+room.h-0.5))
+	var target = model.random_point(room,rng,0.5)
 	go(a,target)
 	a.brain.state = "walk"
 	a.brain.activity = "walk"
@@ -829,20 +1143,21 @@ func dancing() -> bool:
 	# Someone is on the stage (the pole show), not just on the dance floor.
 	for id in staff:
 		var e = staff[id]
-		if is_instance_valid(e) and e.brain.role == "escort" and e.brain.get("state","") == "dancing": return true
+		if staff_available(e) and e.brain.role == "escort" and e.brain.get("state","") == "dancing": return true
 	return false
 
 func free_escort() -> Actor:
 	var best: Actor = null
 	for id in staff:
 		var e = staff[id]
-		if is_instance_valid(e) and e.brain.role == "escort" and e.brain.state in ["post","lounge","idle_free","free"] and not e.brain.has("client"):
+		if staff_available(e) and e.brain.role == "escort" and e.brain.state in ["post","lounge","idle_free","free"] and not e.brain.has("client"):
 			best = e
 			if e.anim != "dance": return e
 	return best
 
 func start_activity(a: Actor) -> void:
 	var b = a.brain
+	if b.activity == b.get("preference",""): b.sat = minf(100,float(b.sat)+2)
 	match b.activity:
 		"look":
 			b.timer = rng.randf_range(6,14)
@@ -856,7 +1171,8 @@ func start_activity(a: Actor) -> void:
 				earn(int(prices.drink)*drinks,"bar",a)
 				b.spent += int(prices.drink)*drinks
 				b.sat += 5
-				bartender_serve()
+				ClientNeeds.drink(a,drinks)
+				b.sat += bartender_serve()
 			else:
 				b.sat -= 10
 				a.emote("help",2.0)
@@ -882,11 +1198,9 @@ func activity_tick(a: Actor, gm: float) -> void:
 	if b.activity == "dance":
 		for id in staff:
 			var e = staff[id]
-			if is_instance_valid(e) and e.brain.get("state","") == "floor_dance" and e.world.distance_to(a.world) < 2.5:
+			if staff_available(e) and e.brain.get("state","") == "floor_dance" and e.world.distance_to(a.world) < 2.5:
 				b.sat = minf(float(b.sat)+0.3*gm,100.0)
 				break
-	var dirty = dirt_near(a.world,3.0)
-	if dirty > 0: b.sat -= 0.25*dirty*gm
 
 func finish_activity(a: Actor) -> void:
 	var b = a.brain
@@ -894,22 +1208,26 @@ func finish_activity(a: Actor) -> void:
 	a.lift = 0
 	b.state = "choose"
 
-func bartender_serve() -> void:
+func bartender_serve() -> float:
 	for id in staff:
 		var s = staff[id]
-		if is_instance_valid(s) and s.brain.role == "bartender":
+		if staff_available(s) and s.brain.role == "bartender":
 			s.brain.serve = 6.0
-			return
+			return profiles.welcome_bonus(str(s.brain.get("profile_id","")))
+	return 0.0
 
 # ------------------------------------------------------------------ staff
 
 func staff_ai(a: Actor, dt: float) -> void:
+	if not reconcile_staff(a): return
 	var b: Dictionary = a.brain
 	var arrived = a.step(dt,1.0)
 	var gm = dt*MINUTES_PER_SECOND
 	if not role_active(b.role):
 		if arrived: a.play("idle")
 		return
+	profiles.employee_work(str(b.get("profile_id","")),gm,day)
+	if b.role != "cleaner": gm /= profiles.employee_factor(str(b.get("profile_id","")))
 	match b.role:
 		"bartender": work_at(a,arrived,"bar","bartender",gm)
 		"receptionist": receptionist_ai(a,arrived,gm)
@@ -989,10 +1307,10 @@ func security_ai(a: Actor, arrived: bool, gm: float) -> void:
 			if b.timer <= 0:
 				b.timer = rng.randf_range(50,90)
 				var room = model.room_at(b.post)
-				var rooms = model.rooms.filter(func(r): return int(r.type) in [0,5])
+				var rooms = model.rooms.filter(func(r): return int(r.type) in [0,5] and not SitePlan.building(r))
 				if not rooms.is_empty():
 					var r = rooms[rng.randi_range(0,rooms.size()-1)]
-					if go(a,Vector2(rng.randf_range(r.x+0.6,r.x+r.w-0.6),rng.randf_range(r.z+0.6,r.z+r.h-0.6))): b.state = "patrol"
+					if go(a,model.random_point(r,rng,0.6)): b.state = "patrol"
 		"patrol":
 			if arrived:
 				b.state = "return"
@@ -1022,7 +1340,7 @@ func next_debris(a: Actor) -> Dictionary:
 func room_private(room: Dictionary) -> bool:
 	# A couple is in this room (or on its way, or someone is showering there).
 	if room.is_empty() or int(room.type) != 1: return false
-	var r = model.rect(room)
+	var r = model.shape(room)
 	for id in busy_beds:
 		var bed = model.item_by_id(int(id))
 		if not bed.is_empty() and r.has_point(Vector2(bed.x,bed.z)): return true
@@ -1064,16 +1382,59 @@ func release_debris(a: Actor) -> void:
 	if debris_taken.get(id) == a: debris_taken.erase(id)
 	a.brain.erase("debris_id")
 
+func release_dirt_task(a: Actor) -> void:
+	var d = a.brain.get("dirt")
+	if d is Dictionary and d.get("taken") == a: d.taken = null
+	a.brain.erase("dirt")
+
+func next_dirt(a: Actor) -> Dictionary:
+	var candidates: Array = []
+	for d in dirt:
+		if int(d.get("fixture",-1)) >= 0: continue
+		if is_instance_valid(d.taken) and d.taken != a: continue
+		if room_private(model.room_at(d.pos)) or not nav.walkable(d.pos) or not nav.reachable(a.world,d.pos): continue
+		candidates.append(d)
+	candidates.sort_custom(func(x,y): return x.pos.distance_squared_to(a.world) < y.pos.distance_squared_to(a.world))
+	return {} if candidates.is_empty() else candidates[0]
+
+func dirt_approach(a: Actor, spill: Dictionary) -> Vector2:
+	var best: Vector2 = spill.pos
+	var distance = INF
+	for offset in [Vector2(.75,0),Vector2(-.75,0),Vector2(0,.75),Vector2(0,-.75)]:
+		var p: Vector2 = spill.pos+offset
+		if not nav.walkable(p) or model.room_at(p) != model.room_at(spill.pos) or not nav.reachable(a.world,p): continue
+		var d = p.distance_squared_to(a.world)
+		if d < distance:
+			distance = d
+			best = p
+	return best
+
 func cleaner_ai(a: Actor, arrived: bool, gm: float) -> void:
 	var b = a.brain
 	# discretion: out of a room where a couple is, back to her post
 	var here = model.room_at(a.world)
 	if b.state != "back" and not here.is_empty() and room_private(here):
+		release(a)
 		release_debris(a)
 		release_bed_task(a)
+		release_dirt_task(a)
 		b.state = "back"
 		if not go(a,b.post): b.state = "post"
 		return
+	if b.state in ["to_dirt","mopping"] and (not b.has("dirt") or not b.dirt in dirt or room_private(model.room_at(b.dirt.pos)) or not nav.reachable(a.world,b.dirt.pos)):
+		release_dirt_task(a)
+		a.path = []
+		b.state = "post"
+	# Wet floors take priority over routine debris and bed making.
+	if Plumbing.technician_tick(self,a,arrived,gm): return
+	if b.state in ["post","idle","back"]:
+		var spill = next_dirt(a)
+		if not spill.is_empty() and go(a,dirt_approach(a,spill)):
+			spill.taken = a
+			b.dirt = spill
+			b.state = "to_dirt"
+			return
+	if Sanitation.cleaner_tick(self,a,arrived,gm): return
 	match b.state:
 		"to_debris":
 			if model.item_by_id(int(b.get("debris_id",-1))).is_empty():
@@ -1082,7 +1443,7 @@ func cleaner_ai(a: Actor, arrived: bool, gm: float) -> void:
 			elif arrived:
 				var item = model.item_by_id(int(b.debris_id))
 				b.state = "clearing"
-				b.timer = float(Catalog.ITEMS[item.kind].get("clean",6))
+				b.timer = float(Catalog.ITEMS[item.kind].get("clean",6))*Sanitation.cleaning_factor(self,a)
 				a.face(Vector2(item.x,item.z)-a.world)
 				a.play("mop")
 			return
@@ -1110,7 +1471,7 @@ func cleaner_ai(a: Actor, arrived: bool, gm: float) -> void:
 			elif arrived:
 				var bed = model.item_by_id(int(b.bed_id))
 				b.state = "making_bed"
-				b.timer = 5.0
+				b.timer = 5.0*Sanitation.cleaning_factor(self,a)
 				a.face(Vector2(bed.x,bed.z)-a.world)
 				a.play("work")
 			return
@@ -1147,33 +1508,24 @@ func cleaner_ai(a: Actor, arrived: bool, gm: float) -> void:
 					return
 	match b.state:
 		"post", "idle":
-			var target = null
-			var best = 1e9
-			for d in dirt:
-				if d.taken != null and is_instance_valid(d.taken): continue
-				var dist = d.pos.distance_squared_to(a.world)
-				if dist < best:
-					best = dist
-					target = d
-			if target != null and go(a,target.pos):
-				target.taken = a
-				b.dirt = target
-				b.state = "to_dirt"
-			elif b.state == "post" and a.path.is_empty():
+			if a.path.is_empty():
 				a.play("idle")
 		"to_dirt":
 			if arrived:
 				b.state = "mopping"
-				b.timer = 10.0
+				b.timer = float(b.dirt.get("work",6.0))*Sanitation.cleaning_factor(self,a)
+				a.face(b.dirt.pos-a.world)
 				a.play("mop")
 		"mopping":
-			b.timer -= gm
+			b.dirt.work = maxf(0,float(b.dirt.get("work",6.0))-gm/Sanitation.cleaning_factor(self,a))
+			b.timer = b.dirt.work*Sanitation.cleaning_factor(self,a)
 			a.play("mop")
 			if b.timer <= 0:
 				var d = b.get("dirt")
 				if d != null:
 					d.node.queue_free()
 					dirt.erase(d)
+					night.dirt_cleaned = int(night.get("dirt_cleaned",0))+1
 				b.erase("dirt")
 				b.state = "back"
 				if not go(a,b.post): b.state = "post"
@@ -1331,7 +1683,7 @@ const SERVICES = [
 const STANDING_RATE = [1.0,1.0,1.3,1.7,2.2]
 # Furniture where people cross paths in the public room.
 const SOCIAL_KINDS = ["bar","stool","chair","table","coffee","sofa","old_sofa","armchair","old_armchair","old_table","dancefloor"]
-const BED_KINDS = ["bed","old_bed"]
+const BED_KINDS = ["bed","heart_bed","old_bed"]
 
 static func infection_risk(client_washed: bool, bed_unmade: bool, mess: int) -> float:
 	# Chance that a service passes an illness on: a client who could not
@@ -1343,12 +1695,12 @@ func service_price(tier: int, e: Actor) -> int:
 
 func social_count(room: Dictionary) -> int:
 	if room.is_empty(): return 0
-	var r = model.rect(room)
+	var r = model.shape(room)
 	return model.furniture.filter(func(i): return not i.get("delivery_pending",false) and i.kind in SOCIAL_KINDS and r.has_point(Vector2(i.x,i.z))).size()
 
 func room_mess(room: Dictionary) -> int:
 	if room.is_empty(): return 0
-	var r = model.rect(room)
+	var r = model.shape(room)
 	return model.furniture.filter(func(i): return Catalog.is_debris(i.kind) and r.has_point(Vector2(i.x,i.z))).size()
 
 func hint(key: String, text: String, every: float = 180.0) -> void:
@@ -1453,11 +1805,17 @@ func pose_obstruction(p: Vector2, kneeling: bool) -> float:
 	return area
 
 func quick_places(bed: Dictionary, c: Actor, e: Actor) -> Dictionary:
+	var p0 = Prof.t("sim.quick_places")
+	var out = _timed_quick_places(bed,c,e)
+	Prof.add("sim.quick_places",p0)
+	return out
+
+func _timed_quick_places(bed: Dictionary, c: Actor, e: Actor) -> Dictionary:
 	# Two reachable floor positions in the bedroom, with a visible gap between
 	# their silhouettes. No furniture, doorway or wall can split the pair.
 	var room = model.room_at(Vector2(bed.x,bed.z))
 	if room.is_empty(): return {}
-	var inner = model.rect(room).grow(-0.3)
+	var inner = model.shape(room).grow(-0.3)
 	var best: Dictionary = {}
 	var score = INF
 	var lo = nav.cell_of(inner.position)
@@ -1490,9 +1848,9 @@ func service_spot(sv: Dictionary, who: String) -> Dictionary:
 func free_shower(room: Dictionary) -> Dictionary:
 	# Only a shower whose door opens onto free floor of the same room is used.
 	if room.is_empty(): return {}
-	var r = model.rect(room)
+	var r = model.shape(room)
 	for s in free_spots("wash","any"):
-		if r.has_point(s.pos) and r.has_point(s.door) and nav.walkable(s.door): return s
+		if not model.item_by_id(s.item).get("leaking",false) and r.has_point(s.pos) and r.has_point(s.door) and nav.walkable(s.door): return s
 	return {}
 
 func floor_spot(e: Actor) -> Dictionary:
@@ -1702,9 +2060,7 @@ func end_service(c: Actor, aborted: bool = false) -> void:
 		money += int(sv.price)
 		night.private = int(night.private)+int(sv.price)
 		c.brain.spent += int(sv.price)
-		view.float_text(c.world,"%s  +%d $" % [SERVICES[tier].name,int(sv.price)],Color("ffd66b"),3.0)
-	elif started:
-		view.float_text(c.world,"Interrompue · non payée",Color("c9c2d6"),2.5)
+		view.float_text(c.world,"+%d $" % int(sv.price),Color("ffd66b"),3.0)
 	if started and not aborted:
 		var tier = int(sv.tier)
 		var lvl = standing(e) if e != null and is_instance_valid(e) else 1
@@ -1816,7 +2172,7 @@ func service_script(c: Actor, gm: float) -> void:
 			# a tip for the show, then under the covers
 			var tip = 10*(1+int(sv.tier))*standing(e) if e != null and is_instance_valid(e) else 10
 			money += tip
-			view.float_text(sv.stage,"Pourboire  +%d $" % tip,Color("ffd66b"),2.5)
+			view.float_text(sv.stage,"+%d $" % tip,Color("ffd66b"),2.5)
 			night.private = int(night.private)+tip
 			c.brain.spent += tip
 			sv.phase = "action"
@@ -1874,9 +2230,15 @@ func clothes_spot(bed: Dictionary) -> Vector2:
 	return first
 
 func room_floor_near(room: Dictionary, p: Vector2) -> Vector2:
+	var p0 = Prof.t("sim.floor_near")
+	var out = _timed_room_floor_near(room,p)
+	Prof.add("sim.floor_near",p0)
+	return out
+
+func _timed_room_floor_near(room: Dictionary, p: Vector2) -> Vector2:
 	# The free floor cell of a room closest to a point: never behind a wall.
 	if room.is_empty(): return p
-	var r = model.rect(room)
+	var r = model.shape(room)
 	var inner = r.grow(-0.3)
 	var best = p
 	var best_d = 1e12
@@ -1899,8 +2261,9 @@ func drop_tissues(bed: Dictionary) -> void:
 	var size: Vector2 = Catalog.ITEMS[bed.kind].size
 	for local in [Vector2(0,size.y/2.0+0.4),Vector2(size.x/2.0+0.4,0.3),Vector2(-size.x/2.0-0.4,0.3),Vector2(size.x/2.0+0.4,-0.6)]:
 		var p = Catalog.local_to_world(bed,local)
-		if model.add_item("trash_tissues",p.x,p.y,0) != -1:
-			world_changed.emit()
+		var id = model.add_item("trash_tissues",p.x,p.y,0)
+		if id != -1:
+			debris_dropped.emit(id)
 			return
 
 func infect_client(c: Actor) -> void:

@@ -53,7 +53,7 @@ static func value(room: Dictionary) -> int:
 	# Renovation value of a room's finishes, charged when they change.
 	var floor_value = int(FLOORS.get(room.get("floor_finish",""),{}).get("value",0))
 	var wall_value = int(WALLS.get(room.get("wall_finish",""),{}).get("value",0))
-	return floor_value*int(room.w*room.h)+wall_value*int(2*(room.w+room.h))
+	return floor_value*BuildingModel.area_of(room)+wall_value*BuildingModel.perimeter_of(room)
 
 static func is_worn(room: Dictionary) -> bool:
 	return FLOORS.get(room.get("floor_finish",""),{}).get("worn",false) or WALLS.get(room.get("wall_finish",""),{}).get("worn",false)

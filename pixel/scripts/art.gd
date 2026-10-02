@@ -8,6 +8,8 @@ static var chars: Dictionary = {}
 static var furniture: Dictionary = {}
 static var tiles: Dictionary = {}
 static var ui: Dictionary = {}
+static var sanitary: Dictionary = {}
+static var site: Dictionary = {}
 static var textures: Dictionary = {}
 static var images: Dictionary = {}
 static var palette_shader: Shader
@@ -20,6 +22,8 @@ static func load_all() -> void:
 	furniture = read("furniture.json")
 	tiles = read("tiles.json")
 	ui = read("ui.json")
+	sanitary = read("sanitary.json")
+	site = read("site.json")
 	palette_shader = load("res://shaders/palette.gdshader")
 	add_material = CanvasItemMaterial.new()
 	add_material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD

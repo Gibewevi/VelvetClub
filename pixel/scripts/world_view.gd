@@ -28,6 +28,10 @@ var handles_node: Node2D
 var street_doors: Array = []
 var bounds = Rect2(-8,-6,18,17)
 var dirt_layer: Node2D
+var rain: RainOverlay
+var rain_ground: RainGround
+var weather_surfaces: Array = []
+var weather_intensity = 0.0
 var club_open = false
 var signs: Array = []
 var animated: Array = []       # looping props (sprite sheets with several frames)
@@ -36,6 +40,11 @@ var clothes: Dictionary = {}    # bed id -> clothes sprite dropped by the bed
 var puffs: Array = []           # floating bubbles above rooms (hearts, steam)
 var anim_items: Array = []      # objects with a loop of pictures (dance floor, lit palm)
 var clock = 0.0
+var rebuild_pending = false     # several changes in one frame: one redraw
+var dust_back: PlaceDust        # puffs behind a placed object (under the furniture)
+var dust_front: PlaceDust       # and in front of it (over the furniture)
+static var small_clouds: Array = []
+var construction: Construction   # building sites draw themselves after the finished walls
 
 func setup(building: BuildingModel) -> void:
 	model = building
@@ -50,6 +59,14 @@ func setup(building: BuildingModel) -> void:
 	dirt_layer.z_index = -190
 	sorted.z_index = 0
 	overlay.z_index = 4000
+	rain = RainOverlay.new()
+	rain.setup(model)
+	rain.world = self
+	overlay.add_child(rain)
+	rain_ground = RainGround.new()
+	rain_ground.z_index = -240
+	add_child(rain_ground)
+	rain_ground.setup(model)
 	grid = GridLines.new()
 	grid.z_index = -180
 	grid.visible = false
@@ -69,6 +86,13 @@ func setup(building: BuildingModel) -> void:
 	overlay.add_child(edge_marker)
 	handles_node = Node2D.new()
 	overlay.add_child(handles_node)
+	# outside the layers a rebuild clears: a puff outlives the redraw it follows
+	dust_back = PlaceDust.new()
+	dust_back.z_index = -195
+	add_child(dust_back)
+	dust_front = PlaceDust.new()
+	dust_front.z_index = 3990
+	add_child(dust_front)
 	rebuild()
 
 # ------------------------------------------------------------------ build
@@ -79,6 +103,17 @@ func clear_node(node: Node) -> void:
 		child.queue_free()
 
 func rebuild() -> void:
+	var p0 = Prof.t("view.rebuild")
+	_timed_rebuild()
+	Prof.add("view.rebuild",p0)
+
+func request_rebuild() -> void:
+	# Redraw the building once, at the start of the next frame, however many
+	# changes come in meanwhile.
+	rebuild_pending = true
+
+func _timed_rebuild() -> void:
+	rebuild_pending = false
 	for outline in outline_sprites.values():
 		if is_instance_valid(outline): outline.queue_free()
 	outline_sprites.clear()
@@ -93,30 +128,60 @@ func rebuild() -> void:
 	signs.clear()
 	animated.clear()
 	anim_items.clear()
+	weather_surfaces.clear()
+	var p0 = Prof.t()
 	compute_bounds()
 	build_ground()
-	for room in model.rooms: build_floor(room)
+	for room in model.rooms:
+		if not SitePlan.building(room): build_floor(room)
+	Prof.add("rb.floors",p0)
+	p0 = Prof.t()
 	build_walls()
+	Prof.add("rb.walls",p0)
+	p0 = Prof.t()
+	if construction != null: construction.build_view()
+	Prof.add("rb.sites",p0)
+	p0 = Prof.t()
 	for item in model.furniture:
 		if Catalog.is_character(item.kind): continue
 		build_item(item)
+	Prof.add("rb.items",p0)
+	p0 = Prof.t()
 	street_blocked.clear()
 	parking_layouts.clear()
 	for pk in model.parkings: build_parking(pk)
 	build_street()
+	Prof.add("rb.street",p0)
+	p0 = Prof.t()
 	build_exterior()
+	Prof.add("rb.exterior",p0)
+	p0 = Prof.t()
+	rain_ground.layout_changed(statics)
+	weather_shade(weather_intensity)
+	Prof.add("rb.rain",p0)
 	for a in actors:
 		if is_instance_valid(a) and a.get_parent() != sorted: sorted.add_child(a)
+	p0 = Prof.t()
 	prepare_depth()
+	Prof.add("rb.depth",p0)
 	selection(selected_item)
 
 func compute_bounds() -> void:
 	if model.rooms.is_empty():
 		bounds = Rect2(-6,-6,12,12)
 		return
-	var r: Rect2 = model.rect(model.rooms[0])
-	for room in model.rooms: r = r.merge(model.rect(room))
+	var r: Rect2 = model.bounds(model.rooms[0])
+	for room in model.rooms: r = r.merge(model.bounds(room))
 	bounds = r
+
+func weather_surface(node: CanvasItem) -> void:
+	weather_surfaces.append({"node":node,"base":node.modulate})
+
+func weather_shade(intensity: float) -> void:
+	weather_intensity = clampf(intensity,0,1)
+	ground.modulate = Color.WHITE.lerp(Color(.84,.86,.91),weather_intensity)
+	for surface in weather_surfaces:
+		if is_instance_valid(surface.node): surface.node.modulate = surface.base*Color.WHITE.lerp(Color(.87,.89,.94),weather_intensity)
 
 func textured_polygon(points: PackedVector2Array, tex: Texture2D, palette: Texture2D = null) -> Polygon2D:
 	var poly = Polygon2D.new()
@@ -139,19 +204,25 @@ func build_ground() -> void:
 	ground.add_child(textured_polygon(Iso.diamond(-L,Street.ROAD.x,L,Street.ROAD.y),Art.tex(Art.tiles.floors.asphalt_cracked),Palette.floor_palette(ROAD_COLOR)))
 
 func build_floor(room: Dictionary) -> void:
+	# one polygon per rectangle of the room; the texture is laid in screen
+	# space, so the pieces of an extended room join without a seam
 	var tex = Art.tex(Art.tiles.floors[Finishes.floor_pattern(room)])
-	var poly = textured_polygon(Iso.diamond(room.x,room.z,room.x+room.w,room.z+room.h),tex,Palette.floor_palette(Color(room.floor_color)))
-	floors.add_child(poly)
+	for r in BuildingModel.parts_of(room):
+		var poly = textured_polygon(Iso.diamond(r.position.x,r.position.y,r.end.x,r.end.y),tex,Palette.floor_palette(Color(room.floor_color)))
+		floors.add_child(poly)
 
 func room_side(axis: String, x: int, z: int, positive: bool) -> Dictionary:
-	if axis == "x": return model.room_at(Vector2(x+0.5,z+(0.5 if positive else -0.5)))
-	return model.room_at(Vector2(x+(0.5 if positive else -0.5),z+0.5))
+	# A room still under construction has no finished walls yet: its own
+	# walls are drawn by the site, a wall it shares stays as it was.
+	var room = model.room_at(Vector2(x+0.5,z+(0.5 if positive else -0.5))) if axis == "x" else model.room_at(Vector2(x+(0.5 if positive else -0.5),z+0.5))
+	return {} if SitePlan.building(room) else room
 
 func add_static(node: Node2D, rect: Rect2, kind: String, data: Dictionary = {}) -> Dictionary:
 	sorted.add_child(node)
 	var entry = {"node":node,"rect":rect,"kind":kind,"rank":0,"extra":[]}
 	entry.merge(data)
 	statics.append(entry)
+	if kind == "prop": weather_surface(node)
 	return entry
 
 func sprite(tex: Texture2D, pos: Vector2, offset: Vector2, mat: Material = null) -> Sprite2D:
@@ -173,6 +244,7 @@ func build_walls() -> void:
 		var z: int = e.z
 		var front_room = room_side(axis,x,z,true)
 		var back_room = room_side(axis,x,z,false)
+		if front_room.is_empty() and back_room.is_empty(): continue
 		# Back walls stand full height, front walls are cut away. A wall between
 		# two public spaces (lounge and corridor) stays low so the bar stays in view.
 		var full = not front_room.is_empty() and wall_mode == 0
@@ -208,7 +280,8 @@ func build_walls() -> void:
 					var open_info: Dictionary = Art.tiles.openings["door_open:"+axis]
 					var center = Vector2(x+0.5,z) if axis == "x" else Vector2(x,z+0.5)
 					doors.append({"sprite":s,"closed":Art.tex(info.file),"open":Art.tex(open_info.file),"center":center,"key":key})
-			if opening == "door" and (front_room.is_empty() or back_room.is_empty()):
+			var beyond = Vector2(x+0.5,z+(0.5 if front_room.is_empty() else -0.5)) if axis == "x" else Vector2(x+(0.5 if front_room.is_empty() else -0.5),z+0.5)
+			if opening == "door" and (front_room.is_empty() or back_room.is_empty()) and model.room_at(beyond).is_empty():
 				street_doors.append({"key":key,"axis":axis,"x":x,"z":z,"outside_positive":front_room.is_empty(),"room":owner})
 	# Posts close corners, wall ends and door gaps.
 	var points: Dictionary = {}
@@ -242,7 +315,7 @@ func build_walls() -> void:
 
 func item_variant(item: Dictionary) -> String:
 	# The picture an item shows right now: a bed in use or unmade, a shower door ajar.
-	if item.kind in ["bed","old_bed"]: return bed_variant(item)
+	if item.kind in ClubSim.BED_KINDS: return bed_variant(item)
 	if item.kind == "shower":
 		var frame = int(shower_doors.get(int(item.id),{}).get("shown",0))
 		if frame > 0: return "shower_f%d" % frame
@@ -362,7 +435,7 @@ func show_clothes(id: int, visible_now: bool, at_point: Vector2 = Vector2.INF) -
 	var room = model.room_at(Vector2(item.x,item.z))
 	var at = Catalog.local_to_world(item,Vector2(size.x/2.0+0.45,0.5))
 	if not room.is_empty():
-		var inner = model.rect(room).grow(-0.35)
+		var inner = model.shape(room).grow(-0.35)
 		for local in [Vector2(size.x/2.0+0.45,0.5),Vector2(-size.x/2.0-0.45,0.5),Vector2(0.3,size.y/2.0+0.4),Vector2(-0.4,size.y/2.0+0.4)]:
 			var p = Catalog.local_to_world(item,local)
 			if inner.has_point(p):
@@ -372,6 +445,27 @@ func show_clothes(id: int, visible_now: bool, at_point: Vector2 = Vector2.INF) -
 	var s = sprite(Art.tex(info.file),Iso.pixel(at.x,at.y),Vector2(info.ox,info.oy),Art.rgba_material())
 	floor_fx.add_child(s)
 	clothes[id] = s
+
+func place_dust(item: Dictionary, light: bool = false) -> void:
+	# A small "pouf" round the foot of an object set down or moved (light:
+	# only a few flecks, for an object turned on the spot).
+	if item.is_empty() or not Catalog.ITEMS.has(item.kind) or Catalog.is_character(item.kind): return
+	if small_clouds.is_empty():
+		for frames in DeliverySmokeArt.clouds():
+			var picked: Array = []
+			for k in PlaceDust.SMALL_STEPS: picked.append(frames[k])
+			small_clouds.append(picked)
+	var flecks: Array = DeliverySmokeArt.flecks()
+	var r = model.item_rect(item)
+	var c = r.get_center()
+	var i = 0
+	for pt in PlaceDust.points(r):
+		var layer: PlaceDust = dust_front if pt.at.x+pt.at.y >= c.x+c.y else dust_back
+		if not light:
+			layer.add(pt.at,small_clouds[i % small_clouds.size()],Vector2(-12,-17),i*0.03,0.5+0.05*(i % 3),pt.dir*0.32,3.0,i % 2 == 1)
+		if light or i % 2 == 0:
+			layer.add(pt.at+pt.dir*0.1,flecks,Vector2(-4,-6),0.04+i*0.02,0.4,pt.dir*0.5,4.0,i % 2 == 0)
+		i += 1
 
 func puff(at: Vector2, icon: String, seconds: float) -> void:
 	# A bubble rising from a spot where the characters are out of sight.
@@ -434,12 +528,61 @@ func build_item(item: Dictionary) -> void:
 			part.sprite.material.set_shader_parameter("tint",Color(.55,.8,1.0,.55))
 		return # no working light or furniture animation before unpacking
 	var glows: Array = []
+	if item.kind in Sanitation.SINKS and item.get("soap",false):
+		# Tiny native-resolution dispenser attached to the basin, sorted with it.
+		var bottle = Image.create(5,8,false,Image.FORMAT_RGBA8)
+		var rows = [".ddd.","..d..",".www.","dwwwd","dwgwd","dwgwd","dwwwd",".ddd."]
+		var colors = {"d":Color("373448"),"w":Color("e5f3df"),"g":Color("6dbba6")}
+		for y in range(rows.size()):
+			for x in range(5):
+				var ch = rows[y][x]
+				if colors.has(ch): bottle.set_pixel(x,y,colors[ch])
+		var dispenser = Sprite2D.new()
+		dispenser.texture = ImageTexture.create_from_image(bottle)
+		var at = Catalog.local_to_world(item,Vector2(-.25,-.1))
+		dispenser.position = (Iso.pixel(at.x,at.y)-entry.node.position+Vector2(0,-24)).round()
+		dispenser.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		entry.node.add_child(dispenser)
 	for light in info.get("lights",[]):
 		glows.append_array(add_glow(entry,pos+Vector2(light.x,light.y),Color(light.color),float(light.radius),float(light.power)))
 	var anim: Dictionary = Catalog.ITEMS[item.kind].get("anim",{})
 	if not anim.is_empty():
 		anim_items.append({"id":int(item.id),"entry":entry,"frames":int(anim.frames),"fps":float(anim.fps),"frame":-1,"glows":glows,
 			"phase":float(posmod(int(item.id)*7,int(anim.frames)))})
+	refresh_sanitary(item,0.0)
+
+func refresh_sanitary(item: Dictionary, time: float) -> void:
+	if not item.kind in Plumbing.KINDS or item.get("delivery_pending",false): return
+	var entry: Dictionary = item_entries.get(int(item.id),{})
+	if entry.is_empty(): return
+	if not entry.has("sanitary_fx"):
+		var info = Art.furniture_entry(item.kind,int(item.rot))
+		var effects: Dictionary = {}
+		for key in ["soil","drops","smell","fault"]:
+			var node = Sprite2D.new()
+			node.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			entry.node.add_child(node)
+			effects[key] = node
+		effects.soil.centered = false
+		effects.soil.offset = -Vector2(info.ox,info.oy)
+		effects.soil.material = Art.rgba_material()
+		effects.smell.position = Vector2(-7,-minf(info.oy,60)-3)
+		effects.fault.position = Vector2(10,-minf(info.oy,60)-7)
+		effects.fault.texture = Art.tex(Art.sanitary.repair)
+		var s = Plumbing.service_spot(item)
+		if not s.is_empty(): effects.drops.position = (Iso.pixel(s.pos.x,s.pos.y)-entry.node.position+Vector2(0,-10)).round()
+		entry.sanitary_fx = effects
+	var fx: Dictionary = entry.sanitary_fx
+	var soil = float(item.get("soil",0))
+	var level = 0 if soil < 15 else (1 if soil < 50 else (2 if soil < 100 else 3))
+	fx.soil.visible = level > 0
+	if level > 0: fx.soil.texture = Art.tex(Art.sanitary.soil[item.kind][str(posmod(int(item.rot),4))][level-1])
+	var frame = int(time*3.0) % 4
+	fx.smell.visible = level == 3
+	fx.smell.texture = Art.tex(Art.sanitary.smell[frame])
+	fx.drops.visible = item.get("leaking",false)
+	fx.drops.texture = Art.tex(Art.sanitary.drops[frame])
+	fx.fault.visible = item.get("leaking",false)
 
 func add_glow(entry: Dictionary, at: Vector2, color: Color, radius_m: float, power: float) -> Array:
 	var r = radius_m*18.0
@@ -478,9 +621,10 @@ func build_exterior() -> void:
 	# column of a room (the tall posts would hide it), never on a driveway.
 	var cmin = INF
 	var cmax = -INF
-	for r in model.rooms:
-		cmin = minf(cmin,r.x-(r.z+r.h))
-		cmax = maxf(cmax,r.x+r.w-r.z)
+	for room in model.rooms:
+		for r in BuildingModel.parts_of(room):
+			cmin = minf(cmin,r.position.x-r.end.y)
+			cmax = maxf(cmax,r.end.x-r.position.y)
 	var clear = func(px: float, pz: float) -> bool: return px-pz < cmin-0.8 or px-pz > cmax+0.8
 	var L = Iso.LOT
 	var x = -L+3.0
@@ -572,6 +716,7 @@ func decal(name: String, x: float, z: float, parent: Node = null) -> Sprite2D:
 	if decal_mat == null: decal_mat = Art.rgba_material()
 	var s = sprite(Art.tex(info.file),Iso.pixel(x,z),Vector2(info.ox,info.oy),decal_mat)
 	(floor_fx if parent == null else parent).add_child(s)
+	weather_surface(s)
 	return s
 
 static func mix_hash(a: float, b: float, seed: int) -> float:
@@ -632,11 +777,15 @@ func build_parking(pk: Dictionary) -> void:
 	# One large, seamless field in world coordinates: bays and driveway share
 	# continuous fractures, without the old 4 m repeating crack pattern.
 	var asphalt = Art.tex(Art.tiles.street.park_asphalt.file)
-	floors.add_child(textured_polygon(Iso.diamond(r.position.x,r.position.y,r.end.x,r.end.y),asphalt))
+	var parking_surface = textured_polygon(Iso.diamond(r.position.x,r.position.y,r.end.x,r.end.y),asphalt)
+	floors.add_child(parking_surface)
+	weather_surface(parking_surface)
 	street_blocked.append(r)
 	var aprons: Array = Street.aprons(lay) if lay.ok else []
 	for a in aprons:
-		floors.add_child(textured_polygon(Iso.diamond(a.position.x,a.position.y,a.end.x,a.end.y),asphalt))
+		var apron_surface = textured_polygon(Iso.diamond(a.position.x,a.position.y,a.end.x,a.end.y),asphalt)
+		floors.add_child(apron_surface)
+		weather_surface(apron_surface)
 		street_blocked.append(a)
 	var seed = int(r.position.x*131.0+r.position.y*17.0+r.size.x*7.0+r.size.y)
 	var edges = model.parking_edges(pk)
@@ -667,11 +816,12 @@ func build_parking(pk: Dictionary) -> void:
 			decal("park_weed_%d" % int(mix_hash(at.x,at.y,seed)*8.0),at.x,at.y)
 	var surface: Dictionary = Art.tiles.street.park_asphalt
 	var period = float(surface.period)
+	var weedy = r.grow(-0.8) if r.size.x > 1.6 and r.size.y > 1.6 else Rect2()
 	for tx in range(int(floor(r.position.x/period)),int(floor(r.end.x/period))+1):
 		for tz in range(int(floor(r.position.y/period)),int(floor(r.end.y/period))+1):
 			for spot in surface.tufts:
 				var at = Vector2(float(spot[0])+tx*period,float(spot[1])+tz*period)
-				if r.grow(-0.8).has_point(at):
+				if weedy.has_area() and weedy.has_point(at):
 					decal("park_weed_%d" % (4+int(mix_hash(at.x,at.y,seed)*4.0)),at.x,at.y)
 
 func preview_parking(r: Rect2, lay: Dictionary, valid: bool) -> void:
@@ -1001,6 +1151,11 @@ func heap_pop() -> int:
 	return top
 
 func depth_sort() -> void:
+	var p0 = Prof.t("depth")
+	_timed_depth_sort()
+	Prof.add("depth",p0)
+
+func _timed_depth_sort() -> void:
 	var n = statics.size()
 	var act: Array = []
 	for a in actors:
@@ -1078,8 +1233,86 @@ func depth_sort() -> void:
 	for rank in range(order.size()):
 		var i: int = order[rank]
 		var z = mini(10+rank*2,3900)
+		if i < n and statics[i].get("dead",false): continue
 		var node: Node2D = statics[i].node if i < n else act[i-n]
 		if node.z_index != z: node.z_index = z
+
+# ------------------------------------------------------------------ small objects
+# Tissues dropped after a service, rubbish swept up: these come and go all
+# night. They are drawn and slotted into the depth order on their own, so
+# the whole building is not redrawn each time (that cost up to a quarter of
+# a second per object and could snowball at high speed).
+
+static func quick_kind(kind: String) -> bool:
+	if not Catalog.is_debris(kind) or Catalog.ITEMS[kind].has("anim"): return false
+	for rot in range(4):
+		var info = Art.furniture_entry(kind,rot)
+		if not info.get("lights",[]).is_empty() or not info.get("parts",[]).is_empty(): return false
+	return true
+
+func add_item_quick(item: Dictionary) -> bool:
+	if item.is_empty() or not quick_kind(item.kind) or item_entries.has(int(item.id)): return false
+	var before = statics.size()
+	build_item(item)
+	append_depth(before)
+	return true
+
+func remove_item_quick(id: int) -> bool:
+	if not item_entries.has(id): return true
+	var entry: Dictionary = item_entries[id]
+	var kind = ""
+	for item in model.furniture:
+		if int(item.id) == id: kind = item.kind
+	if entry.has("parts") or (kind != "" and not quick_kind(kind)): return false
+	if hovered_item == id: hovered_item = -1
+	if outline_sprites.has(id):
+		if is_instance_valid(outline_sprites[id]): outline_sprites[id].queue_free()
+		outline_sprites.erase(id)
+	if entry.get("flat",false):
+		if is_instance_valid(entry.node): entry.node.queue_free()
+	else: retire_static(entry)
+	item_entries.erase(id)
+	return true
+
+func append_depth(from: int) -> void:
+	# New statics join the depth order without recomputing the others.
+	var n = statics.size()
+	s_after.resize(n)
+	s_before.resize(n)
+	s_px.resize(n)
+	s_indeg.resize(n)
+	s_depth.resize(n)
+	for i in range(from,n):
+		var e: Dictionary = statics[i]
+		e.index = i
+		s_after[i] = []
+		s_before[i] = []
+		s_indeg[i] = 0
+		s_px[i] = node_rect(e.node)
+		var c: Vector2 = e.rect.get_center()
+		s_depth[i] = c.x+c.y
+		for cell in cells_of(s_px[i]):
+			if not s_cells.has(cell): s_cells[cell] = []
+			s_cells[cell].append(i)
+	for i in range(from,n): link_static(i)
+
+func retire_static(e: Dictionary) -> void:
+	# A static leaves the picture: its slot stays (indices do not move) but
+	# it has no order and no node any more.
+	var i = int(e.get("index",-1))
+	e.dead = true
+	if i >= 0 and i < statics.size() and statics[i] == e:
+		for j in s_after[i]:
+			s_indeg[j] -= 1
+			s_before[j].erase(i)
+		for j in s_before[i]: s_after[j].erase(i)
+		s_after[i] = []
+		s_before[i] = []
+		s_indeg[i] = 0
+		for cell in cells_of(s_px[i]):
+			if s_cells.has(cell): s_cells[cell].erase(i)
+		s_px[i] = Rect2()
+	if is_instance_valid(e.node): e.node.queue_free()
 
 func add_actor(actor: Node2D) -> void:
 	actors.append(actor)
@@ -1091,6 +1324,14 @@ func remove_actor(actor: Node2D) -> void:
 	actor.queue_free()
 
 func _process(delta: float) -> void:
+	var p0 = Prof.t("view")
+	_timed_process(delta)
+	Prof.add("view",p0)
+
+func _timed_process(delta: float) -> void:
+	if rebuild_pending: rebuild()
+	rain.queue_redraw()
+	rain_ground.queue_redraw()
 	clock += delta
 	for a in anim_items:
 		# dance floor tiles and neon, fairy lights: the next picture of the loop
@@ -1225,7 +1466,7 @@ func selection(item_id: int, room: Dictionary = {}, edge: String = "", parking: 
 		room_outline.points = Iso.diamond(parking.x,parking.z,parking.x+parking.w,parking.z+parking.h)
 	clear_node(handles_node)
 	if not room.is_empty():
-		room_outline.points = Iso.diamond(room.x,room.z,room.x+room.w,room.z+room.h)
+		room_outline.points = BuildingModel.outline_points(room)
 		for h in handles(room):
 			var r = ColorRect.new()
 			r.color = ACCENT
@@ -1256,6 +1497,8 @@ func hover_item(id: int) -> void:
 			if is_instance_valid(a) and a.item_id == id: a.set_outline(HOVER)
 
 func handles(room: Dictionary) -> Array:
+	# an extended room grows by drawing from one of its walls, not by handles
+	if not room.get("parts",[]).is_empty(): return []
 	return [Vector2(room.x,room.z+room.h/2.0),Vector2(room.x+room.w,room.z+room.h/2.0),Vector2(room.x+room.w/2.0,room.z),Vector2(room.x+room.w/2.0,room.z+room.h)]
 
 func clear_preview() -> void:
@@ -1305,6 +1548,34 @@ func preview_room(r: Dictionary, valid: bool) -> void:
 	poly.add_child(line)
 	preview_node = poly
 	overlay.add_child(poly)
+
+func preview_parts(rects: Array, valid: bool, outline_room: Dictionary = {}) -> void:
+	# An extension: the new ground in green (red when refused), the room it
+	# joins outlined.
+	clear_preview()
+	var root = Node2D.new()
+	for r in rects:
+		var poly = Polygon2D.new()
+		poly.polygon = Iso.diamond(r.position.x,r.position.y,r.end.x,r.end.y)
+		poly.color = Color(0.5,1.0,0.65,0.26) if valid else Color(1.0,0.3,0.35,0.3)
+		root.add_child(poly)
+		var line = Line2D.new()
+		line.points = poly.polygon
+		line.closed = true
+		line.width = 1
+		line.antialiased = false
+		line.default_color = Color("7dffa8") if valid else Color("ff5a6a")
+		root.add_child(line)
+	if not outline_room.is_empty():
+		var line = Line2D.new()
+		line.points = BuildingModel.outline_points(outline_room)
+		line.closed = true
+		line.width = 1
+		line.antialiased = false
+		line.default_color = ACCENT
+		root.add_child(line)
+	preview_node = root
+	overlay.add_child(root)
 
 func preview_edge(edge: String, kind: String) -> void:
 	clear_preview()

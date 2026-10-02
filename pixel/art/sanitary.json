@@ -1,0 +1,161 @@
+{
+ "soil": {
+  "toilet": {
+   "0": [
+    "fx/sanitary/toilet_0_soil1.png",
+    "fx/sanitary/toilet_0_soil2.png",
+    "fx/sanitary/toilet_0_soil3.png"
+   ],
+   "1": [
+    "fx/sanitary/toilet_1_soil1.png",
+    "fx/sanitary/toilet_1_soil2.png",
+    "fx/sanitary/toilet_1_soil3.png"
+   ],
+   "2": [
+    "fx/sanitary/toilet_2_soil1.png",
+    "fx/sanitary/toilet_2_soil2.png",
+    "fx/sanitary/toilet_2_soil3.png"
+   ],
+   "3": [
+    "fx/sanitary/toilet_3_soil1.png",
+    "fx/sanitary/toilet_3_soil2.png",
+    "fx/sanitary/toilet_3_soil3.png"
+   ]
+  },
+  "old_toilet": {
+   "0": [
+    "fx/sanitary/old_toilet_0_soil1.png",
+    "fx/sanitary/old_toilet_0_soil2.png",
+    "fx/sanitary/old_toilet_0_soil3.png"
+   ],
+   "1": [
+    "fx/sanitary/old_toilet_1_soil1.png",
+    "fx/sanitary/old_toilet_1_soil2.png",
+    "fx/sanitary/old_toilet_1_soil3.png"
+   ],
+   "2": [
+    "fx/sanitary/old_toilet_2_soil1.png",
+    "fx/sanitary/old_toilet_2_soil2.png",
+    "fx/sanitary/old_toilet_2_soil3.png"
+   ],
+   "3": [
+    "fx/sanitary/old_toilet_3_soil1.png",
+    "fx/sanitary/old_toilet_3_soil2.png",
+    "fx/sanitary/old_toilet_3_soil3.png"
+   ]
+  },
+  "urinal": {
+   "0": [
+    "fx/sanitary/urinal_0_soil1.png",
+    "fx/sanitary/urinal_0_soil2.png",
+    "fx/sanitary/urinal_0_soil3.png"
+   ],
+   "1": [
+    "fx/sanitary/urinal_1_soil1.png",
+    "fx/sanitary/urinal_1_soil2.png",
+    "fx/sanitary/urinal_1_soil3.png"
+   ],
+   "2": [
+    "fx/sanitary/urinal_2_soil1.png",
+    "fx/sanitary/urinal_2_soil2.png",
+    "fx/sanitary/urinal_2_soil3.png"
+   ],
+   "3": [
+    "fx/sanitary/urinal_3_soil1.png",
+    "fx/sanitary/urinal_3_soil2.png",
+    "fx/sanitary/urinal_3_soil3.png"
+   ]
+  },
+  "sink": {
+   "0": [
+    "fx/sanitary/sink_0_soil1.png",
+    "fx/sanitary/sink_0_soil2.png",
+    "fx/sanitary/sink_0_soil3.png"
+   ],
+   "1": [
+    "fx/sanitary/sink_1_soil1.png",
+    "fx/sanitary/sink_1_soil2.png",
+    "fx/sanitary/sink_1_soil3.png"
+   ],
+   "2": [
+    "fx/sanitary/sink_2_soil1.png",
+    "fx/sanitary/sink_2_soil2.png",
+    "fx/sanitary/sink_2_soil3.png"
+   ],
+   "3": [
+    "fx/sanitary/sink_3_soil1.png",
+    "fx/sanitary/sink_3_soil2.png",
+    "fx/sanitary/sink_3_soil3.png"
+   ]
+  },
+  "old_sink": {
+   "0": [
+    "fx/sanitary/old_sink_0_soil1.png",
+    "fx/sanitary/old_sink_0_soil2.png",
+    "fx/sanitary/old_sink_0_soil3.png"
+   ],
+   "1": [
+    "fx/sanitary/old_sink_1_soil1.png",
+    "fx/sanitary/old_sink_1_soil2.png",
+    "fx/sanitary/old_sink_1_soil3.png"
+   ],
+   "2": [
+    "fx/sanitary/old_sink_2_soil1.png",
+    "fx/sanitary/old_sink_2_soil2.png",
+    "fx/sanitary/old_sink_2_soil3.png"
+   ],
+   "3": [
+    "fx/sanitary/old_sink_3_soil1.png",
+    "fx/sanitary/old_sink_3_soil2.png",
+    "fx/sanitary/old_sink_3_soil3.png"
+   ]
+  },
+  "shower": {
+   "0": [
+    "fx/sanitary/shower_0_soil1.png",
+    "fx/sanitary/shower_0_soil2.png",
+    "fx/sanitary/shower_0_soil3.png"
+   ],
+   "1": [
+    "fx/sanitary/shower_1_soil1.png",
+    "fx/sanitary/shower_1_soil2.png",
+    "fx/sanitary/shower_1_soil3.png"
+   ],
+   "2": [
+    "fx/sanitary/shower_2_soil1.png",
+    "fx/sanitary/shower_2_soil2.png",
+    "fx/sanitary/shower_2_soil3.png"
+   ],
+   "3": [
+    "fx/sanitary/shower_3_soil1.png",
+    "fx/sanitary/shower_3_soil2.png",
+    "fx/sanitary/shower_3_soil3.png"
+   ]
+  }
+ },
+ "drops": [
+  "fx/sanitary/drop_0.png",
+  "fx/sanitary/drop_1.png",
+  "fx/sanitary/drop_2.png",
+  "fx/sanitary/drop_3.png"
+ ],
+ "smell": [
+  "fx/sanitary/smell_0.png",
+  "fx/sanitary/smell_1.png",
+  "fx/sanitary/smell_2.png",
+  "fx/sanitary/smell_3.png"
+ ],
+ "puddles": {
+  "water": [
+   "fx/sanitary/water_0.png",
+   "fx/sanitary/water_1.png",
+   "fx/sanitary/water_2.png"
+  ],
+  "urine": [
+   "fx/sanitary/urine_0.png",
+   "fx/sanitary/urine_1.png",
+   "fx/sanitary/urine_2.png"
+  ]
+ },
+ "repair": "fx/sanitary/repair.png"
+}

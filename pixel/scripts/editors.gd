@@ -119,7 +119,8 @@ static func finishes(hud: Hud, game, room_id: int) -> void:
 			var wnames: Array = []
 			for k in wall_keys: wnames.append("%s · %d $/m" % [Finishes.WALLS[k].name,int(Finishes.WALLS[k].value)])
 			options_row(col,"MURS",wnames,wall_keys.find(d.wall_finish),func(i): set_key.call("wall_finish",wall_keys[i]),2)
-			var price = Finishes.value(d.merged({"w":room.w,"h":room.h}))-Finishes.value(original.merged({"w":room.w,"h":room.h}))
+			var size = {"x":room.x,"z":room.z,"w":room.w,"h":room.h,"parts":room.get("parts",[])}
+			var price = Finishes.value(d.merged(size))-Finishes.value(original.merged(size))
 			col.add_child(UiKit.label(("Coût de la rénovation : %s $" % UiKit.money(price)) if price > 0 else ("Remboursement : %s $" % UiKit.money(-price) if price < 0 else "Aucun coût"),1,UiKit.GOLD if price > 0 else UiKit.GREEN))
 			color_row(col,"COULEUR DES MURS",Finishes.SWATCHES,d.wall_color,func(c): set_key.call("wall_color",c))
 			var actions = UiKit.hbox(col,3)

@@ -10,6 +10,8 @@ import pa_furniture
 import pa_tiles
 import pa_ui
 import pa_delivery
+import pa_sanitary
+import pa_site
 from pa_core import write_json, OUT
 
 
@@ -20,6 +22,8 @@ def main():
     pa_tiles.export()
     pa_ui.export()
     pa_delivery.export()
+    pa_sanitary.export()
+    pa_site.export()
     print("ART_BUILD_DONE %.1fs -> %s" % (time.time() - t0, OUT))
 
 

@@ -44,6 +44,19 @@ var catalog_search = ""
 var portrait_cache: Dictionary = {}
 var thumb_cache: Dictionary = {}
 var live_refresh = 0.0
+var sanitary_label: Label
+var hygiene_label: Label
+var hygiene_gauge: ProgressBar
+var demand_label: Label
+var staff_context_label: Label
+var site_bar: ProgressBar
+var site_label: Label
+var site_phase_label: Label
+var site_time_label: Label
+var site_room = -1
+var site_refresh = 0.0
+var drawer_live = true
+var drawer_refresh = 0.0   # lists of people and reports: redrawn every 2 s, not 2 per s
 
 func build(game_ref) -> void:
 	game = game_ref
@@ -114,8 +127,13 @@ func build_status() -> void:
 		speed_buttons[entry[1]] = UiKit.icon_button(entry[0],game.set_speed.bind(entry[1]),speeds,entry[2])
 	open_button = UiKit.button("Fermé",func(): game.toggle_open(),col,"Ouvrir ou fermer le club · O","door")
 	open_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	demand_label = wrap_label("",1,UiKit.MUTED)
+	demand_label.custom_minimum_size.x = 102*S
+	col.add_child(demand_label)
 	delivery_button = UiKit.button("Livraisons",func(): toggle_drawer("deliveries"),col,"Suivre les commandes et leurs colis","furniture")
 	delivery_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	sanitary_label = UiKit.label("",1,UiKit.GOLD)
+	col.add_child(sanitary_label)
 
 func build_top_right() -> void:
 	var row = UiKit.hbox(self,4)
@@ -198,13 +216,35 @@ func build_context() -> void:
 # ------------------------------------------------------------------ refresh
 
 func _process(delta: float) -> void:
+	var p0 = Prof.t("hud")
+	_timed_process(delta)
+	Prof.add("hud",p0)
+
+func _timed_process(delta: float) -> void:
 	if game == null: return
 	toast_time = maxf(0.0,toast_time-delta)
 	toast_label.visible = toast_time > 0
+	site_refresh -= delta
+	if site_refresh <= 0.0 and site_room >= 0:
+		site_refresh = 0.2
+		update_site()
 	live_refresh -= delta
 	if live_refresh <= 0:
 		live_refresh = 0.5
-		if active in ["clients","reports","deliveries"] and not drawer_has_focus(): fill_drawer()
+		var leaks = Plumbing.leaks(game.sim)
+		sanitary_label.visible = leaks > 0 or not game.sim.sanitary_queue.is_empty() or game.sim.sanitary_saturated_until > game.sim.elapsed
+		sanitary_label.text = "Fuites : %d · technicien requis" % leaks if leaks > 0 else ("Sanitaires saturés" if game.sim.sanitary_saturated_until > game.sim.elapsed else "File WC : %d" % game.sim.sanitary_queue.size())
+		if is_instance_valid(hygiene_label):
+			var selected = game.model.item_by_id(game.selected_item)
+			hygiene_label.text = sanitary_details(selected)
+			update_hygiene_gauge(selected)
+		if is_instance_valid(staff_context_label):
+			var employee = game.sim.staff.get(game.selected_item)
+			if is_instance_valid(employee): staff_context_label.text = staff_state(employee)
+		drawer_refresh -= 0.5
+		if drawer_live and drawer_refresh <= 0.0 and active in ["clients","reports","deliveries","staff"] and not drawer_has_focus():
+			drawer_refresh = 2.0
+			fill_drawer()
 		if game.selected_client != null or game.model.item_by_id(game.selected_item).get("delivery_pending",false): refresh_context()
 
 func drawer_has_focus() -> bool:
@@ -216,7 +256,7 @@ func refresh_stats() -> void:
 	money_label.text = UiKit.money(sim.money)
 	money_label.add_theme_color_override("font_color",UiKit.INK if sim.money >= 0 else UiKit.RED)
 	time_label.text = sim.clock_text()
-	day_label.text = ("Nuit %d" if ClubSim.FEATURES.night_cycle else "Jour %d") % sim.day
+	day_label.text = "%s · J%d" % [ClubCalendar.SHORT_DAYS[ClubCalendar.weekday(sim.day)],sim.day]
 	var full = int(round(sim.rating))
 	for i in range(stars.get_child_count()):
 		(stars.get_child(i) as TextureRect).modulate = UiKit.GOLD if i < full else UiKit.DIM
@@ -224,8 +264,10 @@ func refresh_stats() -> void:
 	clients_label.text = str(sim.inside_count())
 	queue_label.text = str(sim.queue.size())
 	queue_label.add_theme_color_override("font_color",UiKit.RED if sim.queue.size() >= 4 else UiKit.INK)
-	debris_label.text = str(game.model.debris().size())
-	open_button.text = "Ouvert" if sim.open else "Fermé"
+	debris_label.text = str(game.model.debris().size()+sim.dirt.size())
+	open_button.text = ("Ouvert" if sim.open else "Fermé")+(" · auto" if sim.opening_hours.enabled and sim.opening_override < 0 else "")
+	open_button.tooltip_text = "Ouvrir ou fermer · O"+("\nDérogation jusqu'au prochain changement d'horaire." if sim.opening_hours.enabled else "")
+	if is_instance_valid(demand_label): demand_label.text = sim.demand_text()
 	open_button.add_theme_color_override("font_color",UiKit.GREEN if sim.open else UiKit.RED)
 	open_button.add_theme_color_override("icon_normal_color",UiKit.GREEN if sim.open else UiKit.RED)
 	UiKit.set_active(open_button,sim.open)
@@ -304,6 +346,11 @@ func clear(node: Node) -> void:
 		c.queue_free()
 
 func fill_drawer() -> void:
+	var p0 = Prof.t("hud.drawer")
+	_timed_fill_drawer()
+	Prof.add("hud.drawer",p0)
+
+func _timed_fill_drawer() -> void:
 	if active == "": return
 	var scroll = drawer_scroll.scroll_vertical
 	clear(drawer_body)
@@ -356,15 +403,16 @@ func fill_build() -> void:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		UiKit.set_active(b,game.room_type == i and game.mode == "room")
-	drawer_body.add_child(wrap_label("Cliquez-glissez sur le terrain pour tracer (%d $ le m²). Les murs voisins sont partagés ; tirez les poignées d'une pièce sélectionnée pour l'agrandir." % Catalog.ROOM_PRICE))
+	drawer_body.add_child(wrap_label("Glissez depuis le terrain libre : nouvelle pièce (%d $ le m²), même collée à une autre. Partez d'un mur ou du sol d'une pièce : elle s'agrandit, et le mur tombe à la fin des travaux." % Catalog.ROOM_PRICE))
 	UiKit.separator(drawer_body)
 	var area = 0
-	for r in game.model.rooms: area += int(r.w*r.h)
+	for r in game.model.rooms: area += BuildingModel.area_of(r)
 	section("PLAN · %d pièces · %d m²" % [game.model.rooms.size(),area])
 	for r in game.model.rooms:
 		var row = UiKit.hbox(drawer_body,3)
 		row.add_child(UiKit.chip(Color(r.floor_color)))
-		var b = UiKit.button("%s · %d m²" % [Catalog.ROOMS[int(r.type)],int(r.w*r.h)],game.select_room.bind(int(r.id)),row)
+		var works: Dictionary = game.construction.status(r) if game.construction != null else {}
+		var b = UiKit.button("%s · %d m²%s" % [Catalog.ROOMS[int(r.type)],BuildingModel.area_of(r),(" · chantier %d %%" % int(works.percent)) if not works.is_empty() else ""],game.select_room.bind(int(r.id)),row)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		UiKit.set_active(b,game.selected_room == int(r.id))
@@ -375,6 +423,34 @@ func portrait_texture(app: Dictionary, mult: int = 1) -> Texture2D:
 	return portrait_cache[key]
 
 func fill_staff() -> void:
+	section("PLANNING")
+	drawer_body.add_child(wrap_label(ClubCalendar.DAYS[ClubCalendar.weekday(game.sim.day)]+" · "+game.sim.clock_text()))
+	UiKit.button("Horaires du club",func(): show_schedule(-1),drawer_body,"Ouverture automatique et jours d'ouverture")
+	drawer_body.add_child(wrap_label("Ménage et maintenance continuent pendant la fermeture selon les plannings."))
+	UiKit.separator(drawer_body)
+	UiKit.separator(drawer_body)
+	section("ÉQUIPE ET HORAIRES")
+	var wages = 0
+	for item in game.model.furniture:
+		if not Catalog.is_character(item.kind): continue
+		if ClubCalendar.covers(item.get("work_schedule",ClubCalendar.default_shift()),game.sim.day,game.sim.minute): wages += int(Catalog.ITEMS[item.kind].get("wage",0))
+		var b = Button.new()
+		var a: Actor = game.sim.staff.get(int(item.id))
+		var state = staff_state(a) if a != null and is_instance_valid(a) else ""
+		var profile = game.sim.profiles.get_profile(str(item.get("profile_id","")))
+		b.text = "%s · %s\n%s" % [profile.get("name",Catalog.ITEMS[item.kind].name),Catalog.ITEMS[item.kind].name,state]
+		b.icon = portrait_texture(item.appearance)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.focus_mode = Control.FOCUS_NONE
+		b.pressed.connect(game.select_item.bind(int(item.id)))
+		UiKit.set_active(b,game.selected_item == int(item.id))
+		drawer_body.add_child(b)
+		UiKit.button("Fiche et histoire",show_profile.bind(str(item.get("profile_id","")),0),drawer_body)
+		drawer_body.add_child(wrap_label(ClubCalendar.summary(item.get("work_schedule",ClubCalendar.default_shift()))))
+		UiKit.button("Modifier le planning",show_schedule.bind(int(item.id)),drawer_body)
+	drawer_body.add_child(wrap_label("Salaires planifiés actuellement : %s $/h, même lorsque le club est fermé." % UiKit.money(wages)))
+
+	UiKit.separator(drawer_body)
 	section("EMBAUCHER")
 	for kind in Catalog.STAFF_ORDER:
 		var entry: Dictionary = Catalog.ITEMS[kind]
@@ -399,26 +475,11 @@ func fill_staff() -> void:
 		b.pressed.connect(game.choose_item.bind(kind))
 		UiKit.set_active(b,game.mode == "furniture" and game.chosen_item == kind)
 		drawer_body.add_child(b)
-	UiKit.separator(drawer_body)
-	section("ÉQUIPE EN SERVICE")
-	var wages = 0
-	for item in game.model.furniture:
-		if not Catalog.is_character(item.kind): continue
-		wages += int(Catalog.ITEMS[item.kind].get("wage",0))
-		var b = Button.new()
-		var a: Actor = game.sim.staff.get(int(item.id))
-		var state = staff_state(a) if a != null and is_instance_valid(a) else ""
-		b.text = "%s\n%s" % [Catalog.ITEMS[item.kind].name,state]
-		b.icon = portrait_texture(item.appearance)
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.focus_mode = Control.FOCUS_NONE
-		b.pressed.connect(game.select_item.bind(int(item.id)))
-		UiKit.set_active(b,game.selected_item == int(item.id))
-		drawer_body.add_child(b)
-	drawer_body.add_child(wrap_label("Salaires : %s $ par heure d'ouverture." % UiKit.money(wages)))
 
 func staff_state(a: Actor) -> String:
+	if a.brain.get("overtime",false): return "Termine sa tâche · fin de service"
 	match a.brain.get("state",""):
+		"off_shift": return "Hors service"
 		"working": return "Au poste"
 		"dancing": return "Sur scène"
 		"lounge": return "Au salon"
@@ -434,15 +495,29 @@ func staff_state(a: Actor) -> String:
 		"to_floor", "floor_dance": return "Danse sur la piste"
 		"to_stage", "dancing": return "Show à la barre"
 		"to_dirt": return "Va nettoyer"
+		"to_fixture", "cleaning_fixture": return "Entretient les sanitaires"
+		"to_repair": return "Va réparer une fuite"
+		"repairing": return "Répare la plomberie"
 		"patrol": return "Ronde"
 	return "Disponible"
 
 func fill_clients() -> void:
 	var sim: ClubSim = game.sim
+	UiKit.button("Carnet des clients connus",show_client_book,drawer_body,"Histoires, habitués et suivi, même après leur départ")
+	var factors = sim.demand_factors()
+	drawer_body.add_child(wrap_label(sim.demand_text(),1,UiKit.GOLD))
+	drawer_body.add_child(wrap_label("Heure ×%.2f · Jour ×%.2f\nRéputation ×%.2f · Météo ×%.2f" % [factors.hour,factors.day,factors.reputation,factors.weather]))
 	drawer_body.add_child(UiKit.label("Club ouvert" if sim.open else "Club fermé : personne n'entre",1,UiKit.GREEN if sim.open else UiKit.RED))
 	section("AUJOURD'HUI")
 	drawer_body.add_child(UiKit.label("%d entrées · %s $ encaissés" % [int(sim.night.clients),UiKit.money(int(sim.night.entry))],1))
 	drawer_body.add_child(UiKit.label("Satisfaction : %d %%" % int(round(sim.satisfaction())),1))
+	drawer_body.add_child(UiKit.label("Flaques : %d · Accidents : %d" % [sim.dirt.size(),int(sim.night.get("accidents",0))],1,UiKit.GOLD))
+	drawer_body.add_child(wrap_label(Sanitation.status(sim),1,UiKit.GOLD))
+	var water = sim.dirt.filter(func(d): return d.kind == "water").size()
+	var work = 0.0
+	for d in sim.dirt: work += float(d.get("work",6.0))
+	drawer_body.add_child(wrap_label("Fuites : %d · Sol mouillé : %.1f m²\nNettoyage au sol : %.0f min de travail\nRéparations effectuées : %d" % [Plumbing.leaks(sim),water*.25,work,int(sim.night.get("repairs",0))],1,UiKit.GOLD))
+	drawer_body.add_child(wrap_label("Départs liés aux sanitaires : %d · Lavages des mains : %d" % [int(sim.night.get("sanitary_departures",0)),int(sim.night.get("handwashes",0))]))
 	UiKit.separator(drawer_body)
 	section("PRÉSENTS (%d)" % sim.clients.size())
 	for c in sim.clients:
@@ -564,6 +639,10 @@ func report_line(parent: Node, text: String, value: int, strong: bool = false) -
 	row.add_child(UiKit.label(("+" if value > 0 else "")+UiKit.money(value)+" $",1,UiKit.GREEN if value > 0 else (UiKit.RED if value < 0 else UiKit.MUTED)))
 
 func fill_settings() -> void:
+	section("HORAIRES")
+	UiKit.button("Horaires d'ouverture du club",func(): show_schedule(-1),drawer_body)
+	drawer_body.add_child(wrap_label(("Automatique · " if game.sim.opening_hours.enabled else "Ouverture manuelle · ")+ClubCalendar.summary(game.sim.opening_hours)))
+	UiKit.separator(drawer_body)
 	section("VUE")
 	var row = UiKit.hbox(drawer_body,2)
 	for z in [1,2,3,4]:
@@ -588,7 +667,59 @@ func fill_settings() -> void:
 
 # ------------------------------------------------------------------ context window
 
+func sanitary_details(item: Dictionary) -> String:
+	var text = "Saleté : %d %% · Usure : %d %%" % [int(item.get("soil",0)),int(item.get("wear",0))]
+	if Sanitation.needs_cleaning(game.sim,item):
+		text += "\nNettoyage nécessaire"
+	else:
+		text += "\nEntretien à 100 % ou en cas de flaque"
+	var status = Plumbing.repair_status(game.sim,item)
+	if status != "": text += "\n"+status
+	return text
+
+func update_hygiene_gauge(item: Dictionary) -> void:
+	if not is_instance_valid(hygiene_gauge): return
+	hygiene_gauge.value = float(item.get("soil",0))
+	var fill = StyleBoxFlat.new()
+	fill.bg_color = UiKit.RED if Sanitation.needs_cleaning(game.sim,item) else (UiKit.GOLD if hygiene_gauge.value >= 60 else UiKit.GREEN)
+	hygiene_gauge.add_theme_stylebox_override("fill",fill)
+
+func room_size(room: Dictionary) -> String:
+	# an extended room is no longer a rectangle: its area says it all
+	if not room.get("parts",[]).is_empty(): return "%d m² (agrandie)" % BuildingModel.area_of(room)
+	return "%d × %d m · %d m²" % [room.w,room.h,room.w*room.h]
+
+func site_lines(works: Dictionary) -> Array:
+	return ["Avancement : %d %%" % int(works.percent),"Phase : "+String(works.phase_name),
+		"Temps restant : %s (≈ %d s)" % [SitePlan.duration_text(works.minutes),ceili(works.real_seconds)]]
+
+func update_site() -> void:
+	# The figures follow what the site shows, a few times a second.
+	var room = game.model.room_by_id(site_room)
+	if room.is_empty() or not SitePlan.building(room) or not is_instance_valid(site_label):
+		site_room = -1
+		if game.selected_room >= 0 and not room.is_empty(): refresh_context()
+		return
+	var works: Dictionary = game.construction.status(room)
+	if works.is_empty(): return
+	site_bar.value = float(works.progress)*100.0
+	var lines = site_lines(works)
+	site_label.text = lines[0]
+	site_phase_label.text = lines[1]
+	site_time_label.text = lines[2]
+
 func refresh_context() -> void:
+	var p0 = Prof.t("hud.context")
+	_timed_refresh_context()
+	Prof.add("hud.context",p0)
+
+func _timed_refresh_context() -> void:
+	staff_context_label = null
+	site_room = -1
+	site_label = null
+	site_bar = null
+	hygiene_gauge = null
+	hygiene_label = null
 	clear(context_body)
 	var model: BuildingModel = game.model
 	var item = model.item_by_id(game.selected_item)
@@ -607,6 +738,13 @@ func refresh_context() -> void:
 		context_body.add_child(UiKit.label("Satisfaction : %d %%" % int(client.brain.sat),1,UiKit.GREEN if client.brain.sat >= 60 else UiKit.GOLD))
 		context_body.add_child(UiKit.label("Dépensé : %d $" % int(client.brain.spent),1))
 		context_body.add_child(UiKit.label("Budget : %d $" % int(client.brain.get("budget",0)),1,UiKit.MUTED))
+		var need = int(client.brain.get("bladder",0.0))
+		context_body.add_child(UiKit.label("Besoin de toilettes : %d %%" % need,1,UiKit.RED if need >= 85 else (UiKit.GOLD if need >= 65 else UiKit.MUTED)))
+		context_body.add_child(UiKit.label("Boissons consommées : %d" % int(client.brain.get("drinks",0)),1,UiKit.MUTED))
+		UiKit.button("Fiche et histoire",show_profile.bind(str(client.brain.get("profile_id","")),0),context_body)
+		if client.brain.state == "toilet_wait":
+			context_body.add_child(wrap_label(client.brain.get("wait_reason","Cherche un sanitaire"),1,UiKit.GOLD))
+			if client.brain.has("wc_rank"): context_body.add_child(UiKit.label("Place dans la file : %d" % int(client.brain.wc_rank),1))
 	elif not item.is_empty():
 		var e: Dictionary = Catalog.ITEMS[item.kind]
 		context.title.text = "Sélection"
@@ -620,9 +758,16 @@ func refresh_context() -> void:
 		name.custom_minimum_size.x = 100*S
 		col.add_child(name)
 		if Catalog.is_character(item.kind):
+			var profile = game.sim.profiles.get_profile(str(item.get("profile_id","")))
+			col.add_child(UiKit.label(profile.get("name",""),1,UiKit.GOLD))
+			UiKit.button("Fiche et histoire",show_profile.bind(str(item.get("profile_id","")),0),context_body)
 			col.add_child(UiKit.label("%d $/h" % int(e.wage),1,UiKit.GOLD))
 			var a = game.sim.staff.get(int(item.id))
-			if a != null and is_instance_valid(a): col.add_child(UiKit.label(staff_state(a),1,UiKit.MUTED))
+			if a != null and is_instance_valid(a):
+				staff_context_label = UiKit.label(staff_state(a),1,UiKit.MUTED)
+				col.add_child(staff_context_label)
+			context_body.add_child(wrap_label(ClubCalendar.summary(item.get("work_schedule",ClubCalendar.default_shift()))))
+			UiKit.button("Planning de cet employé",show_schedule.bind(int(item.id)),context_body)
 			if Characters.is_escort(item.kind) and a != null and is_instance_valid(a):
 				var health = int(a.brain.get("health",100.0))
 				col.add_child(UiKit.label("Santé : %d %%" % health,1,UiKit.GREEN if health >= 70 else (UiKit.GOLD if health >= 55 else UiKit.RED)))
@@ -663,6 +808,22 @@ func refresh_context() -> void:
 			UiKit.set_active(pr,item.get("priority",false))
 			context.reset_size()
 			return
+		if not item.get("delivery_pending",false):
+			if item.kind in Plumbing.KINDS:
+				hygiene_label = wrap_label(sanitary_details(item),1,UiKit.GOLD)
+				context_body.add_child(hygiene_label)
+				hygiene_gauge = ProgressBar.new()
+				hygiene_gauge.show_percentage = false
+				hygiene_gauge.custom_minimum_size = Vector2(120*S,7*S)
+				hygiene_gauge.add_theme_stylebox_override("background",UiKit.flat(Color("15141d"),UiKit.DIM))
+				hygiene_gauge.tooltip_text = "La saleté s'accumule avec les utilisations. Une flaque ou une jauge pleine déclenche le ménage."
+				context_body.add_child(hygiene_gauge)
+				update_hygiene_gauge(item)
+			for key in Sanitation.upgrades_for(item.kind):
+				var upgrade: Dictionary = Sanitation.UPGRADES[key]
+				var installed = item.get(key,false)
+				var button = UiKit.button(upgrade.name+(" ✓" if installed else " · %d $" % upgrade.price),game.buy_sanitary_upgrade.bind(int(item.id),key),context_body,upgrade.effect)
+				button.disabled = installed or game.sim.money < int(upgrade.price)
 		context_body.add_child(UiKit.label("Glisser pour déplacer",1,UiKit.MUTED))
 		var g = UiKit.grid(context_body,2,2)
 		var remove_text = "Renvoyer" if Catalog.is_character(item.kind) else ("Jeter" if Catalog.is_used(item.kind) else "Revendre")
@@ -676,9 +837,41 @@ func refresh_context() -> void:
 			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		if Catalog.is_character(item.kind):
 			UiKit.button("Personnaliser…",game.edit_appearance.bind(int(item.id)),context_body,"Tenue, coiffure, couleurs","person")
+	elif not room.is_empty() and SitePlan.building(room):
+		# a room under construction: how far the works have gone
+		context.title.text = "Chantier"
+		var joins = game.model.room_by_id(int(room.get("merge_into",-1)))
+		context_body.add_child(UiKit.label(("Agrandissement · %s · +%d m²" % [Catalog.ROOMS[int(joins.type)],BuildingModel.area_of(room)]) if not joins.is_empty() else ("%s · %s" % [Catalog.ROOMS[int(room.type)],room_size(room)]),1))
+		site_room = int(room.id)
+		site_bar = ProgressBar.new()
+		site_bar.show_percentage = false
+		site_bar.custom_minimum_size = Vector2(150*S,8*S)
+		site_bar.add_theme_stylebox_override("background",UiKit.flat(Color("15141d"),UiKit.DIM))
+		site_bar.add_theme_stylebox_override("fill",UiKit.flat(Color("f0a23a"),Color("f0a23a")))
+		context_body.add_child(site_bar)
+		site_label = UiKit.label("",1,UiKit.INK)
+		context_body.add_child(site_label)
+		site_phase_label = UiKit.label("",1,UiKit.GOLD)
+		context_body.add_child(site_phase_label)
+		site_time_label = UiKit.label("",1,UiKit.MUTED)
+		context_body.add_child(site_time_label)
+		update_site()
+		section("MODIFIER LE CHANTIER",context_body)
+		if not joins.is_empty():
+			# an extension takes the kind and finishes of the room it joins
+			context_body.add_child(wrap_label("À la fin des travaux, le mur tombe et cette surface rejoint la pièce (même type, mêmes revêtements). Tracez encore depuis un mur pour agrandir davantage."))
+		else:
+			context_body.add_child(wrap_label("Tirez les poignées, ou tracez depuis un de ses murs avec l'outil Pièce, pour agrandir la zone : seule la différence est facturée (%d $ le m²), ce qui est construit reste, les nouvelles cases rejoignent les travaux." % Catalog.ROOM_PRICE))
+			var g = UiKit.grid(context_body,2,2)
+			for i in range(Catalog.ROOMS.size()):
+				var b = UiKit.button(Catalog.ROOMS[i],game.set_selected_room_type.bind(i),g)
+				b.custom_minimum_size.x = 84*S
+				UiKit.set_active(b,int(room.type) == i)
+			UiKit.button("Revêtements…",game.edit_finishes.bind(int(room.id)),context_body,"Sol et murs posés à la fin des travaux","walls")
+		UiKit.button("Abandonner le chantier",game.delete_selection,context_body,"Rembourse la pièce","delete")
 	elif not room.is_empty():
 		context.title.text = "Sélection"
-		context_body.add_child(UiKit.label("%d × %d m · %d m²" % [room.w,room.h,room.w*room.h],1))
+		context_body.add_child(UiKit.label(room_size(room),1))
 		section("TYPE",context_body)
 		var g = UiKit.grid(context_body,2,2)
 		for i in range(Catalog.ROOMS.size()):
@@ -688,7 +881,7 @@ func refresh_context() -> void:
 		UiKit.button("Revêtements…",game.edit_finishes.bind(int(room.id)),context_body,"Sol et murs","walls")
 		context_body.add_child(UiKit.label("Sol : "+Finishes.FLOORS[room.floor_finish].name,1,UiKit.MUTED))
 		context_body.add_child(UiKit.label("Murs : "+Finishes.WALLS[room.wall_finish].name,1,UiKit.MUTED))
-		context_body.add_child(UiKit.label("Tirez les poignées pour redimensionner.",1,UiKit.MUTED))
+		context_body.add_child(wrap_label("Pour l'agrandir : outil Pièce, tracez depuis un de ses murs." if not room.get("parts",[]).is_empty() else "Tirez les poignées pour redimensionner, ou tracez depuis un de ses murs avec l'outil Pièce pour l'agrandir."))
 		UiKit.button("Supprimer la pièce",game.delete_selection,context_body,"Retire aussi son mobilier","delete")
 	elif not parking.is_empty():
 		context.title.text = "Sélection"
@@ -719,6 +912,116 @@ func refresh_context() -> void:
 	context.reset_size()
 
 # ------------------------------------------------------------------ dialogs (movable windows)
+
+func profile_scroll(parent: Node) -> VBoxContainer:
+	var scroll = ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0,clampf(size.y-235*S,120*S,270*S))
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	parent.add_child(scroll)
+	var col = UiKit.vbox(scroll,5)
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return col
+
+func show_client_book() -> void:
+	open_modal("Carnet des clients",func(col):
+		col.add_child(wrap_label("Retrouvez les clients connus, leurs souvenirs et vos notes de suivi."))
+		var search = LineEdit.new()
+		search.placeholder_text = "Rechercher un prénom…"
+		col.add_child(search)
+		var watched = CheckBox.new()
+		watched.text = "Afficher seulement les clients suivis"
+		col.add_child(watched)
+		var entries = profile_scroll(col)
+		var fill = func():
+			clear(entries)
+			var profiles: Array = game.sim.profiles.records.values().filter(func(p): return p.kind == "client")
+			profiles.sort_custom(func(a,b): return int(a.last_arrival) > int(b.last_arrival) if a.last_arrival != b.last_arrival else str(a.name) < str(b.name))
+			var count = 0
+			for p in profiles:
+				if not search.text.is_empty() and not str(p.name).to_lower().contains(search.text.to_lower()): continue
+				if watched.button_pressed and not p.watched: continue
+				var label = "%s · %d visites%s" % [p.name,int(p.visits)," · Suivi" if p.watched else (" · Habitué" if int(p.good_visits) >= 3 else "")]
+				var button = UiKit.button(label,show_profile.bind(p.id,0),entries)
+				button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+				button.icon = portrait_texture(p.appearance)
+				count += 1
+			if count == 0: entries.add_child(wrap_label("Aucun client correspondant pour l'instant."))
+		search.text_changed.connect(func(_text): fill.call())
+		watched.toggled.connect(func(_value): fill.call())
+		fill.call()
+		UiKit.button("Fermer",func(): close_modal(),col,"","check"),320)
+
+func show_profile(id: String, tab: int = 0) -> void:
+	for client in game.sim.clients:
+		if is_instance_valid(client): game.sim.profiles.sync_spending(client)
+	var p = game.sim.profiles.get_profile(id)
+	if p.is_empty(): return
+	open_modal("Fiche · "+p.name,func(col):
+		var head = UiKit.hbox(col,6)
+		var portrait = TextureRect.new()
+		portrait.texture = portrait_texture(p.appearance,2)
+		head.add_child(portrait)
+		var info = UiKit.vbox(head,2)
+		info.add_child(UiKit.label("%s · %d ans" % [p.name,int(p.age)],1,UiKit.GOLD))
+		info.add_child(UiKit.label("Habitué du club" if p.kind == "client" and int(p.good_visits) >= 3 else ("Client" if p.kind == "client" else Catalog.ITEMS[p.kind].name),1))
+		var tabs = UiKit.hbox(col,3)
+		for i in range(3):
+			var button = UiKit.button(["Portrait","Souvenirs","Suivi"][i],show_profile.bind(id,i),tabs)
+			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			UiKit.set_active(button,tab == i)
+		var body = profile_scroll(col)
+		if tab == 0:
+			section("SON HISTOIRE",body)
+			body.add_child(wrap_label(p.story,1,UiKit.INK))
+			section("PERSONNALITÉ ET PRÉFÉRENCES",body)
+			if p.kind == "client":
+				body.add_child(wrap_label("%s · %s" % ["Patient" if p.patient else "Préfère être servi rapidement","Attentif à la propreté" if p.clean else "Tolérant à une petite saleté"]))
+				body.add_child(wrap_label(CharacterProfiles.PREF_NAMES[p.preference]+" · plus souvent choisi, satisfaction +2."))
+				body.add_child(wrap_label("Patience : %.0f min · %s\nSaleté : sensibilité ×%.1f" % [float(p.patience),"Généreux avec les pourboires" if p.generous else "Surveille ses dépenses",float(p.cleanliness)]))
+				body.add_child(wrap_label("Aime venir le %s vers %02d h." % [ClubCalendar.DAYS[int(p.preferred_day)].to_lower(),int(p.preferred_hour)]))
+				section("SES VISITES",body)
+				body.add_child(wrap_label("%d entrées · %d $ dépensés au total" % [int(p.visits),int(p.spent)]))
+				body.add_child(wrap_label("Dernière soirée terminée : %d %% de satisfaction" % int(p.last_satisfaction) if int(p.finished_visits) > 0 else "Aucune soirée terminée pour l'instant."))
+				section("OBJECTIF PERSONNEL",body)
+				body.add_child(wrap_label("Passer trois bonnes soirées au club : %d / 3.\n%s" % [mini(3,int(p.good_visits)),"Objectif atteint : habitué satisfait." if int(p.good_visits) >= 3 else "Une bonne expérience renforce son envie de revenir."]))
+			else:
+				body.add_child(wrap_label({"efficient":"Méthodique : temps de ménage et réparation réduit de 10 %.","welcoming":"Accueillant : satisfaction +1 lors de l'accueil ou du service au bar.","focused":"Appliqué : souhaite développer son expérience professionnelle."}[p.employee_trait]))
+				body.add_child(wrap_label("Préfère travailler %s. Indication pour le planning ; aucun horaire imposé." % ("le soir" if p.shift == "soir" else "la nuit")))
+				section("OBJECTIF PERSONNEL",body)
+				body.add_child(wrap_label("Acquérir 8 heures d'expérience au club : %.1f / 8 h.\n%s" % [minf(8,float(p.work_minutes)/60),"Objectif atteint : temps de travail des tâches réduit de 5 %." if float(p.work_minutes) >= 480 else "Récompense : temps de travail des tâches réduit de 5 %. Les déplacements gardent leur vitesse."]))
+		elif tab == 1:
+			section("SOUVENIRS DU CLUB",body)
+			for memory in p.memories:
+				body.add_child(wrap_label("Jour %d · %s" % [int(memory.day),memory.text],1,UiKit.INK))
+			if p.memories.is_empty(): body.add_child(wrap_label("Aucun souvenir pour l'instant."))
+		else:
+			section("NOTE DE LA DIRECTION",body)
+			var note = LineEdit.new()
+			note.text = p.note
+			note.max_length = 240
+			note.placeholder_text = "Votre note sur ce personnage…"
+			body.add_child(note)
+			note.text_changed.connect(func(text):
+				p.note = text
+				game.request_save())
+			if p.kind == "client":
+				var watch = CheckBox.new()
+				watch.text = "Client à suivre"
+				watch.button_pressed = p.watched
+				body.add_child(watch)
+				watch.toggled.connect(func(value):
+					game.sim.profiles.mark_watched(id,value,game.sim.day)
+					game.request_save())
+				body.add_child(wrap_label("Le suivi est une note de gestion. Il ne prouve aucun incident et ne bloque pas l'entrée."))
+				section("FAITS OBSERVÉS",body)
+				if p.incidents.is_empty(): body.add_child(wrap_label("Aucun incident observé au club."))
+				for event in p.incidents:
+					body.add_child(wrap_label("Jour %d · %s · %s\nSource : %s%s" % [int(event.day),CharacterProfiles.INCIDENT_NAMES[event.kind],"Confirmé" if event.confirmed else "À vérifier",event.source," · Coût : %d $" % int(event.cost) if event.confirmed else ""],1,UiKit.GOLD))
+				if not p.incidents.is_empty(): body.add_child(wrap_label("Coût des incidents confirmés : %d $" % game.sim.profiles.incident_cost(id)))
+		var actions = UiKit.hbox(col,3)
+		if p.kind == "client": UiKit.button("Carnet",show_client_book,actions)
+		UiKit.button("Actualiser",show_profile.bind(id,tab),actions)
+		UiKit.button("Fermer",func(): close_modal(),actions,"","check"),320)
 
 func open_modal(title: String, build: Callable, width: int = 190, on_close: Callable = Callable()) -> VBoxContainer:
 	var keep_pos = Vector2(-1,-1)
@@ -755,6 +1058,85 @@ func center_window(win: Control) -> void:
 	var p = ((size-win.size)/2.0/S).floor()*S
 	win.position = p.max(Vector2.ZERO)
 	win.modulate.a = 1.0
+
+func schedule_time_control(parent: Node, title: String, minutes: int) -> Dictionary:
+	var row = UiKit.hbox(parent,3)
+	var label = UiKit.label(title,1)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(label)
+	var hour = OptionButton.new()
+	for h in range(24): hour.add_item("%02d" % h,h)
+	hour.select(minutes/60)
+	row.add_child(hour)
+	row.add_child(UiKit.label(":",1))
+	var part = OptionButton.new()
+	var values: Array = [0,15,30,45]
+	if not minutes%60 in values:
+		values.append(minutes%60)
+		values.sort()
+	for m in values: part.add_item("%02d" % m,m)
+	part.select(values.find(minutes%60))
+	row.add_child(part)
+	return {"hour":hour,"minute":part}
+
+func show_schedule(id: int, preset: Dictionary = {}) -> void:
+	var club = id < 0
+	var item = game.model.item_by_id(id)
+	if not club and item.is_empty(): return
+	var draft: Dictionary = (game.sim.opening_hours if club else item.get("work_schedule",ClubCalendar.default_shift())).duplicate()
+	if not preset.is_empty(): draft.merge(preset,true)
+	var title = "Horaires du club" if club else "Planning · "+Catalog.ITEMS[item.kind].name
+	open_modal(title,func(col):
+		var mode_button: Button
+		if club:
+			mode_button = UiKit.button("Ouverture automatique : "+("oui" if draft.enabled else "non"),func(): pass,col)
+			mode_button.pressed.connect(func():
+				draft.enabled = not draft.enabled
+				mode_button.text = "Ouverture automatique : "+("oui" if draft.enabled else "non")
+				UiKit.set_active(mode_button,draft.enabled))
+			UiKit.set_active(mode_button,draft.enabled)
+		col.add_child(wrap_label("Jours de début du service" if not club else "Jours d'ouverture"))
+		var days_row = UiKit.hbox(col,2)
+		var buttons: Array = []
+		for i in range(7):
+			var button = UiKit.button(ClubCalendar.SHORT_DAYS[i],func(): pass,days_row,ClubCalendar.DAYS[i])
+			button.custom_minimum_size.x = 28*S
+			buttons.append(button)
+			UiKit.set_active(button,bool(int(draft.days) & (1 << i)))
+		var start = schedule_time_control(col,"Ouverture" if club else "Début",int(draft.start))
+		var end = schedule_time_control(col,"Fermeture" if club else "Fin",int(draft.end))
+		var preview = wrap_label(ClubCalendar.summary(draft),1,UiKit.GOLD)
+		col.add_child(preview)
+		var update = func():
+			draft.start = start.hour.get_selected_id()*60+start.minute.get_selected_id()
+			draft.end = end.hour.get_selected_id()*60+end.minute.get_selected_id()
+			preview.text = ClubCalendar.summary(draft)
+		for i in range(7):
+			var button: Button = buttons[i]
+			button.pressed.connect(func():
+				draft.days = int(draft.days) ^ (1 << i)
+				UiKit.set_active(button,bool(int(draft.days) & (1 << i)))
+				update.call())
+		for control in [start.hour,start.minute,end.hour,end.minute]: control.item_selected.connect(func(_index): update.call())
+		col.add_child(wrap_label("Une fin avant le début se termine le lendemain. Deux heures identiques donnent un service de 24 h."))
+		UiKit.separator(col)
+		var presets = UiKit.hbox(col,2)
+		UiKit.button("Tous les jours",func(): show_schedule(id,{"days":127,"start":draft.start,"end":draft.end,"enabled":draft.get("enabled",false)}),presets)
+		UiKit.button("Ven–Sam",func(): show_schedule(id,{"days":48,"start":draft.start,"end":draft.end,"enabled":draft.get("enabled",false)}),presets)
+		if not club:
+			var shifts = UiKit.hbox(col,2)
+			UiKit.button("Nuit 19–05",func(): show_schedule(id,{"days":draft.days,"start":1140,"end":300}),shifts)
+			UiKit.button("Jour 06–14",func(): show_schedule(id,{"days":draft.days,"start":360,"end":840}),shifts)
+		else:
+			col.add_child(wrap_label("Le bouton Ouvert/Fermé permet une dérogation jusqu'au prochain changement d'horaire."))
+		var row = UiKit.hbox(col,3)
+		UiKit.button("Enregistrer",func():
+			update.call()
+			if club: game.set_opening_hours(draft)
+			else: game.set_staff_schedule(id,draft)
+			close_modal(),row,"","check")
+		UiKit.button("Annuler",func(): close_modal(),row,"","close")
+	,270)
 
 func close_modal(run_callback: bool = true) -> void:
 	if modal != null:

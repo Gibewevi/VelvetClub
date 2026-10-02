@@ -4,7 +4,7 @@ Compact yellow van, taped kraft cartons and a yellow hand truck, using the
 supplied artwork's shapes and palette at the existing game scale.
 """
 from pa_core import save, write_json
-from pa_iso import Mat, box, cyl, render, finish, rot_x
+from pa_iso import Mat, box, cyl, ell, render, finish, rot_x
 import math
 import numpy as np
 
@@ -49,6 +49,28 @@ def truck(opening,blink,load=3,pitch=0):
     return constructed_truck(opening,blink,load,carton,pitch=pitch)
 
 
+def traffic_cone():
+    """Round tapered safety cone on a thin square rubber foot.
+
+    Circular sections share one group, so the white bands wrap around the
+    body without square corners or dark seams between construction slices.
+    """
+    orange=Mat(tones=['74352e','a74725','d96625','ef862b','ffa843','ffce75'])
+    stripe=Mat(tones=['776773','a69aab','cbbdca','e6d7d2','f9ebdc','fff4e2'])
+    foot=Mat(tones=['292432','403746','564855','72575c','926d65','b98c73'])
+    group=object()
+    p=[box(-.27,0,-.27,.27,.045,.27,foot),
+       box(-.25,.045,-.25,.25,.065,.25,orange),
+       cyl(0,.06,0,.215,.045,orange,group=group)]
+    for y0 in np.arange(.09,.72,.015):
+        y1=min(y0+.015,.72)
+        radius=.205-(.205-.043)*((y0+y1)*.5-.09)/.63
+        band=(.245 <= (y0+y1)*.5 < .345 or .495 <= (y0+y1)*.5 < .57)
+        p.append(cyl(0,y0,0,radius,y1-y0,stripe if band else orange,group=group))
+    p.append(ell(0,.72,0,.043,.025,.043,orange,group=group))
+    return p
+
+
 def export():
     from pa_truck import LIGHTS, FOOTPRINTS
     manifest={"_truck_lights":LIGHTS}
@@ -77,11 +99,7 @@ def export():
            box(-.4,1.34,-d/2-.13,.4,1.4,-d/2-.07,DARK)]
         for x in [-.43,.43]: p+=wheel(x,.17,-d/2-.16,.17)
         put(f'cart_{size}',p+carton(w,h,d,(0,.23,0)))
-    p=[box(-.24,0,-.24,.24,.05,.24,YELLOW)]
-    for i in range(10):
-        r=.18-i*.015
-        p.append(box(-r,.05+i*.045,-r,r,.095+i*.045,r,WHITE if i in [3,4,7] else YELLOW))
-    put('cone',p)
+    put('cone',finish(render(traffic_cone(),edge_light=False)))
     write_json('delivery.json',manifest)
     return manifest
 

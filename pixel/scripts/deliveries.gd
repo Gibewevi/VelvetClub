@@ -142,7 +142,7 @@ func destination(from: Vector2, item: Dictionary) -> Array:
 	for x in range(floori((r.position.x-.9)*2),ceili((r.end.x+.9)*2)):
 		for z in range(floori((r.position.y-.9)*2),ceili((r.end.y+.9)*2)):
 			var p = Vector2(x*.5+.25,z*.5+.25)
-			if r.grow(.12).has_point(p) or not model.rect(room).has_point(p) or not nav.walkable(p): continue
+			if r.grow(.12).has_point(p) or not model.inside(room,p) or not nav.walkable(p): continue
 			var path = nav.path(from,p,false)
 			if path.is_empty(): continue
 			var length = 0.0
@@ -156,6 +156,11 @@ func destination(from: Vector2, item: Dictionary) -> Array:
 	return best
 
 func _process(delta: float) -> void:
+	var p0 = Prof.t("deliveries")
+	_timed_process(delta)
+	Prof.add("deliveries",p0)
+
+func _timed_process(delta: float) -> void:
 	if game == null: return
 	truck.warning_paused = not enabled or game.sim.speed == 0 or game.sim.paused_for_report
 	if not enabled or game.sim.speed == 0 or game.sim.paused_for_report: return

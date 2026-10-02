@@ -203,6 +203,16 @@ EMOTES = {
         "..........B.....", "................", "................", "................",
     ],
 }
+# Legible two-tone WC thought bubbles at the same native scale as other emotes.
+for name, color in [("wc", "y"), ("wc_urgent", "r")]:
+    EMOTES[name] = [
+        "................", "..cccccccccccc..", ".cccccccccccccc.",
+        ".cwcccwccwwwccc.", ".cwcccwcwcccwcc.", ".cwcccwcwcccccc.",
+        ".cwcwcwcwcccccc.", ".cwcwcwcwcccwcc.", ".ccwcwcccwwwccc.",
+        ".cccccccccccccc.", "..cccccccccccc..", ".....ccc........",
+        "....cc..........", "................", "..cc............", "................",
+    ]
+    EMOTES[name] = [r.replace("c", color) for r in EMOTES[name]]
 EMOTE_COLORS = {"n": "6fd35a", "N": "2f8a3a", "p": "ff7fb2", "P": "d0407a", "h": "ffffff", "w": "fbf6ee",
                 "y": "ffd84a", "Y": "fff6b0",
                 "k": "3a2a4a", "r": "ff5a5a", "R": "b0243a", "g": "a6d45a", "G": "4a7a2a", "b": "7ac8ff", "B": "2a70c0"}

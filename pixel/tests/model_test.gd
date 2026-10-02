@@ -213,6 +213,9 @@ func _init() -> void:
 	check(Catalog.local_to_world({"x":0,"z":0,"rot":1},Vector2(0,1)) == Vector2(-1,0),"Rotation 1 faces -x")
 	parking_checks()
 	orient_checks()
+	site_checks()
+	extension_checks()
+	reach_checks()
 	print("MODEL_TESTS: %d checks, %d failures" % [checks,failures])
 	if failures == 0: print("MODEL_TESTS_PASSED")
 	quit(1 if failures > 0 else 0)
@@ -299,3 +302,146 @@ func orient_checks() -> void:
 	d.add_room(0,0,8,6,0)
 	for x in [3,4]: d.set_opening("x:%d:0" % x,"door")
 	check(Orient.best(d,"sofa",4.0,0.6,0) != 0,"A sofa does not back onto a doorway")
+
+func site_checks() -> void:
+	# Building sites: logical progress only (time, %, phases), no view.
+	var m = BuildingModel.new()
+	var id = m.add_room(0,0,4,3,1)
+	var room = m.room_by_id(id)
+	room.build = SitePlan.start()
+	var els = SitePlan.elements(m,room)
+	var order: Array = []
+	for e in els:
+		if order.is_empty() or order[-1] != e.phase: order.append(e.phase)
+	check(order == SitePlan.PHASES,"A site goes slab, walls, paint, floor, finish (%s)" % str(order))
+	check(SitePlan.phase(room.build,els) == "slab" and SitePlan.progress(room.build,els) == 0.0,"A new site starts at the slab, 0 %")
+	var segs = SitePlan.segments(m,room)
+	check(segs.size() == 14,"An isolated 4 x 3 site has 14 m of wall to build (%d)" % segs.size())
+	check(segs.filter(func(sg): return sg.full).size() == 7 and segs.filter(func(sg): return int(sg.rows) == SitePlan.FULL_ROWS).size() == 7,"Back walls rise full height, front walls stay low")
+	var total = SitePlan.totals(room.build,els).y
+	var cur = SitePlan.work(room.build,els,SitePlan.SLAB*2.5)
+	check(cur == 2 and float(room.build.done["s:0:0"]) == 1.0 and float(room.build.done["s:0:1"]) == 1.0 and absf(float(room.build.done["s:1:0"])-0.5) < 0.001,"Concrete is poured cell by cell from the back corner")
+	check(absf(SitePlan.progress(room.build,els)-SitePlan.SLAB*2.5/total) < 0.0001,"The percentage is the work done over all the work")
+	check(SitePlan.wetness(room.build,Vector2i(0,0)) > 0.9,"Fresh concrete is wet")
+	cur = SitePlan.work(room.build,els,SitePlan.SLAB*9.5,cur)
+	check(SitePlan.phase(room.build,els) == "walls","Walls start once the slab is poured")
+	cur = SitePlan.work(room.build,els,SitePlan.ROW*segs.size()*2.0,cur)
+	check(segs.all(func(sg): return SitePlan.rows(room.build,sg) == 2),"Blocks are laid course by course all round")
+	var left = SitePlan.remaining(room.build,els)
+	check(absf(left-(total-SitePlan.totals(room.build,els).x)) < 0.0001 and left > 0.0,"Time left is the work still to do")
+	# enlarging during the works keeps what was built
+	var before_p = SitePlan.progress(room.build,els)
+	check(m.resize_room(id,{"x":0,"z":0,"w":5,"h":3}),"A site can be enlarged")
+	room = m.room_by_id(id)
+	els = SitePlan.elements(m,room)
+	SitePlan.tidy(room.build,els)
+	check(SitePlan.phase(room.build,els) == "slab","New cells send the crew back to the slab")
+	check(float(room.build.done["s:0:0"]) == 1.0 and float(room.build.done["s:3:2"]) == 1.0,"Concrete already poured stays")
+	check(SitePlan.rows(room.build,{"key":"x:0:0","rows":SitePlan.FULL_ROWS}) == 2,"Walls already laid on the sides kept stay")
+	check(not room.build.done.has("w:z:4:0"),"The wall of the moved side is taken down")
+	check(SitePlan.progress(room.build,els) < before_p,"The percentage is worked out again")
+	# undo restores an older plan, never older work
+	var older = {"done":{"s:0:0":1.0},"clock":1.0,"wet":{}}
+	var merged = SitePlan.merge(room.build,older)
+	check(float(merged.done["w:x:0:0"]) >= 2.0 and float(merged.clock) >= float(room.build.clock),"Undo keeps the work done since")
+	# saves
+	var copy = BuildingModel.new()
+	check(copy.load_checked(JSON.parse_string(JSON.stringify(m.snapshot()))) and SitePlan.building(copy.room_by_id(id)),"A site in progress is saved and loaded")
+	check(SitePlan.sanitize({"done":{"s:0:0":"x"}}).is_empty() and SitePlan.sanitize({"done":{"s:0:0":-1}}).is_empty(),"Damaged site data is refused")
+	var bad = m.snapshot()
+	bad.rooms[0].build = {"done":"nope"}
+	check(copy.load_checked(JSON.parse_string(JSON.stringify(bad))) and not SitePlan.building(copy.room_by_id(id)),"A damaged site loads as a finished room")
+	check(not m.valid_item({"kind":"bed","x":2.5,"z":1.5,"rot":0}) and m.error.begins_with("Chantier"),"Nothing is furnished during the works")
+	# to the end
+	cur = SitePlan.work(room.build,els,10000.0,0)
+	check(cur == els.size() and SitePlan.progress(room.build,els) == 1.0 and SitePlan.phase(room.build,els) == "done","Enough time finishes the site")
+	var n = ClubNav.new()
+	room.build = SitePlan.start()
+	n.rebuild(m)
+	check(not n.walkable(Vector2(2.5,1.5)),"Nobody walks on a site")
+	room.erase("build")
+	n.rebuild(m)
+	check(n.walkable(Vector2(2.5,1.5)),"A finished room is open")
+	check(SitePlan.duration_text(135.2) == "2 h 16" and SitePlan.duration_text(12.0) == "12 min","Time left reads in hours and minutes")
+
+func extension_checks() -> void:
+	# A drawing from a room's wall or floor adds ground to it: built as a
+	# site of the same kind, it then merges and the wall between goes.
+	var m = BuildingModel.new()
+	var a = m.add_room(0,0,4,3,1)
+	var other = m.add_room(-3,0,3,3,0)
+	var room = m.room_by_id(a)
+	var value = m.cost()
+	var ext = m.add_extension(a,Rect2(4,0,2,3))
+	check(ext != -1,"Ground drawn from a wall extends the room (%s)" % m.error)
+	var site = m.room_by_id(ext)
+	check(int(site.merge_into) == a and int(site.type) == 1 and site.wall_finish == room.wall_finish,"The extension takes the room's kind and finishes")
+	check(m.cost()-value == 6*Catalog.ROOM_PRICE+Finishes.value(site),"Only the new ground is charged")
+	check(m.edges().has("z:4:0") and m.edges()["z:4:0"].rooms.size() == 2,"The wall stays up during the works")
+	# drawn from inside the room, beyond a corner: only the new ground counts
+	var pieces = m.extension_parts(room,Rect2(2,1,4,4))
+	var cells = 0
+	for q in pieces: cells += int(q.get_area())
+	check(cells == 12 and pieces.all(func(q): return not m.overlaps(room,q)),"A drawing from inside keeps only the ground beyond the walls (%d m²)" % cells)
+	check(m.add_extension(a,Rect2(1,1,2,1)) == -1 and m.error.begins_with("Tirez"),"A drawing that stays inside the room adds nothing")
+	check(m.add_extension(a,Rect2(-2,1,3,1)) == -1,"An extension cannot cover another room")
+	check(m.add_extension(other,Rect2(4,0,1,3)) == -1,"Nor can it cover an extension in progress")
+	# the works end: one room, no wall between
+	site.erase("build")
+	check(m.merge_extension(ext) == a and m.room_by_id(ext).is_empty(),"The finished extension joins its room")
+	room = m.room_by_id(a)
+	check(BuildingModel.area_of(room) == 18 and room.parts.size() == 1 and room.merged == [ext],"The room now covers both")
+	check(not m.edges().has("z:4:0") and not m.edges().has("z:4:2"),"The wall between them is gone")
+	check(BuildingModel.perimeter_of(room) == 18 and m.room_at(Vector2(5.5,1.5)) == room,"Outline and floor follow the new shape")
+	check(m.valid_item({"kind":"sofa","x":4.0,"z":1.5,"rot":0}),"Furniture can stand across the old wall line")
+	var n = ClubNav.new()
+	n.rebuild(m)
+	check(n.reachable(Vector2(1.5,1.5),Vector2(5.5,1.5)),"People walk through where the wall was")
+	# an L: extend the extended room again, along the front
+	ext = m.add_extension(a,Rect2(0,3,2,2))
+	check(ext != -1,"An extended room can grow again")
+	m.room_by_id(ext).erase("build")
+	m.merge_extension(ext)
+	room = m.room_by_id(a)
+	var loop = BuildingModel.outline(room)
+	check(loop.size() == BuildingModel.perimeter_of(room) and loop[0].a == Vector2i(-0,0) and loop[-1].b == loop[0].a,"The outline goes once round the L, from the back corner")
+	check(BuildingModel.outline_points(room).size() == 6,"An L has six corners")
+	check(m.shape(room).grow(-0.3).has_point(Vector2(1.0,3.2)) and not m.shape(room).grow(-0.3).has_point(Vector2(2.9,3.5)),"Points near the inner corner of the L are known")
+	# a site of that shape builds the walls round its outline
+	room.build = SitePlan.start()
+	var segs = SitePlan.segments(m,room)
+	check(segs.size() == BuildingModel.perimeter_of(room)-3,"An L-shaped site builds its own walls, not the one it shares (%d)" % segs.size())
+	room.erase("build")
+	# saves
+	var copy = BuildingModel.new()
+	check(copy.load_checked(JSON.parse_string(JSON.stringify(m.snapshot()))) and BuildingModel.area_of(copy.room_by_id(a)) == 22,"An extended room is saved and loaded")
+	var bad = m.snapshot()
+	for r in bad.rooms:
+		if int(r.id) == a: r.parts = [{"x":0,"z":0,"w":"x","h":1}]
+	check(not copy.load_checked(JSON.parse_string(JSON.stringify(bad))),"A damaged room shape is refused")
+	# removing a room takes its pending extension along
+	ext = m.add_extension(a,Rect2(6,0,1,3))
+	m.remove_room(a)
+	check(m.room_by_id(ext).is_empty(),"Removing a room removes its extension in progress")
+
+func reach_checks() -> void:
+	# "Can someone get there?" now answers from connected areas computed with
+	# the plan; it must agree with a real path search everywhere.
+	var m = BuildingModel.new()
+	m.starter()
+	m.add_room(10,-6,4,4,1)   # a closed room: no door, unreachable
+	var n = ClubNav.new()
+	n.rebuild(m)
+	var rng = RandomNumberGenerator.new()
+	rng.seed = 7
+	var agree = 0
+	var unreachable = 0
+	for i in range(300):
+		var a = Vector2(rng.randf_range(-14,16),rng.randf_range(-14,12))
+		var b = Vector2(rng.randf_range(-14,16),rng.randf_range(-14,12))
+		var ca = n.start_cell(a)
+		var cb = n.free_cell_near(b)
+		var searched = ca.x != 9999 and cb.x != 9999 and not n.astar.get_id_path(n.key(ca),n.key(cb)).is_empty()
+		if n.reachable(a,b) == searched: agree += 1
+		if not searched: unreachable += 1
+	check(agree == 300 and unreachable > 0,"Reachability from connected areas matches path search (%d/300, %d unreachable)" % [agree,unreachable])

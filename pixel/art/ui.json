@@ -67,6 +67,9 @@
   "bang": "ui/emote_bang.png",
   "star": "ui/emote_star.png",
   "zzz": "ui/emote_zzz.png",
-  "sweat": "ui/emote_sweat.png"
+  "sweat": "ui/emote_sweat.png",
+  "wc": "ui/emote_wc.png",
+  "wc_urgent": "ui/emote_wc_urgent.png",
+  "repair": "fx/sanitary/repair.png"
  }
 }

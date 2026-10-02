@@ -9,7 +9,7 @@
  ],
  "index_scale": 4,
  "palette_size": 40,
- "frames": 28,
+ "frames": 52,
  "anims": {
   "front:idle": [
    0,
@@ -44,26 +44,58 @@
    17
   ],
   "front:kneel": [
-   18
-  ],
-  "back:idle": [
+   18,
    19,
-   20
-  ],
-  "back:walk": [
+   20,
    21,
    22,
-   23,
-   24
+   23
+  ],
+  "front:push": [
+   24,
+   25,
+   26,
+   27
+  ],
+  "back:idle": [
+   28,
+   29
+  ],
+  "back:walk": [
+   30,
+   31,
+   32,
+   33
   ],
   "back:sit": [
-   25
+   34
   ],
   "back:stand": [
-   26
+   35
   ],
   "back:kneel": [
-   27
+   36,
+   37,
+   38,
+   39,
+   40,
+   41
+  ],
+  "back:mop": [
+   42,
+   43,
+   44,
+   45
+  ],
+  "back:work": [
+   46,
+   47
+  ],
+  "back:push": [
+   48,
+   49,
+   50,
+   51
   ]
  },
  "files": {
@@ -128,6 +160,8 @@
   "body_m_casual": "chars/body_m_casual.png",
   "body_m_suit": "chars/body_m_suit.png",
   "body_m_bartender": "chars/body_m_bartender.png",
+  "body_m_hivis": "chars/body_m_hivis.png",
+  "body_m_hivis_roller": "chars/body_m_hivis_roller.png",
   "hairb_m_curly": "chars/hairb_m_curly.png",
   "hairf_m_curly": "chars/hairf_m_curly.png",
   "hairb_m_fade": "chars/hairb_m_fade.png",
@@ -141,6 +175,7 @@
   "face_m_2": "chars/face_m_2.png",
   "hat_m_police": "chars/hat_m_police.png",
   "hat_m_cap": "chars/hat_m_cap.png",
+  "hat_m_hardhat": "chars/hat_m_hardhat.png",
   "glasses_m_1": "chars/glasses_m_1.png",
   "glasses_m_2": "chars/glasses_m_2.png"
  },

@@ -18,10 +18,14 @@ def garment(outfit, part, x, y, fig):
     R = plan_of(fig.male)["rows"]
     if k in ("foot", "heel"):
         return "shoe", None
-    if k == "mop_handle":
+    if k in ("mop_handle", "shovel_handle", "roller_pole"):
         return "wood", None
     if k == "mop_head":
         return "prop", None
+    if k in ("shovel_blade", "trowel"):
+        return "metal", None
+    if k == "roller":
+        return "g3", None
     if outfit == "dress":
         b0, b1 = R["bust"]
         if k == "torso":
@@ -136,6 +140,24 @@ def garment(outfit, part, x, y, fig):
         if k == "hand":
             return "g2", None
         return "skin", None
+    if outfit.startswith("hivis"):
+        # site worker: orange high-visibility vest with two reflective bands
+        # over a dark T-shirt, dark work trousers
+        if k == "torso":
+            if rel > R["belt"]:
+                return "g2", (SH if rel == R["belt"] + 1 else None)
+            if not back and rel <= 1 and abs(r) < 0.3:
+                return "g2", None
+            if rel in (4, 6):
+                return "g3", HI
+            if not back and abs(r) < 0.08 and rel >= 2:
+                return "g1", SH
+            return "g1", None
+        if k == "upper_arm":
+            return "g2", None
+        if k in ("thigh", "shin"):
+            return "g2", (SH if k == "shin" and t > 0.8 else None)
+        return "skin", None
     if outfit == "bartender":
         if k == "torso":
             if not back and abs(r) < 0.30 and rel <= R["belt"]:
@@ -216,10 +238,31 @@ def body_layer(fig, outfit):
                         cut[:slit_from] = False
                         sk.mask &= ~cut
             parts.append(sk)
+    behind = fig.view != "front"
     if getattr(fig, "mop", None):
         a, b = fig.mop
-        parts.append(limb("mop_handle", a, b, 0.55, 0.55, 5.0))
-        parts.append(blob("mop_head", b[0] + 0.3, 45.2, 3.4, 1.3, 5.1))
+        o = 0.5 if behind else 5.0
+        if outfit.startswith("hivis"):
+            # a site shovel: wooden handle, steel blade on the ground
+            parts.append(limb("shovel_handle", a, b, 0.55, 0.55, o))
+            parts.append(blob("shovel_blade", b[0] + (-0.5 if behind else 0.5), b[1] - 1.0, 2.2, 1.7, o + 0.1))
+        else:
+            parts.append(limb("mop_handle", a, b, 0.55, 0.55, o))
+            parts.append(blob("mop_head", b[0] + 0.3, b[1] - 0.3, 3.4, 1.3, o + 0.1))
+    if outfit.startswith("hivis") and fig.anim == "work":
+        # the hand reaching furthest forward holds the tool
+        hands = sorted([fig.hand_near, fig.hand_far], key=lambda h: h[0])
+        hx, hy = hands[0] if behind else hands[-1]
+        o = 0.5 if behind else 6.5
+        d = -1 if behind else 1
+        if outfit == "hivis_roller":
+            # paint roller on a short pole, pressed against the wall ahead
+            top = (hx + 4.0 * d, hy - 10.0)
+            parts.append(limb("roller_pole", (hx, hy + 0.5), top, 0.55, 0.55, o))
+            parts.append(limb("roller", (top[0] - 2.5, top[1] - 0.5), (top[0] + 2.5, top[1] + 0.5), 1.1, 1.1, o + 0.1))
+        else:
+            # mason's trowel held out ahead
+            parts.append(limb("trowel", (hx + 0.5 * d, hy + 1.0), (hx + 3.0 * d, hy + 2.0), 0.9, 0.6, o))
     order = sorted(range(len(parts)), key=lambda k: parts[k].order)
     owner = np.full((FH, FW), -1)
     for k in order:

@@ -27,11 +27,86 @@ func restore(data: Dictionary) -> void:
 	next_id = int(data.next_id)
 
 func rect(room: Dictionary) -> Rect2:
+	# The first rectangle of a room (all of a car park).
 	return Rect2(room.x,room.z,room.w,room.h)
+
+# A room is its rectangle plus the extensions merged into it ("parts").
+static func parts_of(room: Dictionary) -> Array:
+	var out: Array = [Rect2(room.x,room.z,room.w,room.h)]
+	for q in room.get("parts",[]): out.append(Rect2(q.x,q.z,q.w,q.h))
+	return out
+
+static func cells_of(room: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	for r in parts_of(room):
+		for x in range(int(r.position.x),int(r.end.x)):
+			for z in range(int(r.position.y),int(r.end.y)): out[Vector2i(x,z)] = true
+	return out
+
+static func area_of(room: Dictionary) -> int:
+	if not room.has("parts") or room.parts.is_empty(): return int(room.w*room.h)
+	return cells_of(room).size()
+
+static func perimeter_of(room: Dictionary) -> int:
+	if not room.has("parts") or room.parts.is_empty(): return int(2*(room.w+room.h))
+	var cells = cells_of(room)
+	var n = 0
+	for c in cells:
+		for d in [Vector2i(1,0),Vector2i(-1,0),Vector2i(0,1),Vector2i(0,-1)]:
+			if not cells.has(c+d): n += 1
+	return n
+
+func shape(room: Dictionary) -> RoomShape:
+	return RoomShape.of(room)
+
+func bounds(room: Dictionary) -> Rect2:
+	var b = rect(room)
+	for r in parts_of(room): b = b.merge(r)
+	return b
+
+func inside(room: Dictionary, p: Vector2) -> bool:
+	for r in parts_of(room):
+		if (r as Rect2).has_point(p): return true
+	return false
+
+func overlaps(room: Dictionary, area: Rect2) -> bool:
+	for r in parts_of(room):
+		if (r as Rect2).intersects(area): return true
+	return false
+
+func encloses(room: Dictionary, area: Rect2) -> bool:
+	# Every metre cell the rectangle covers belongs to the room.
+	if not room.has("parts") or room.parts.is_empty(): return rect(room).encloses(area)
+	var cells = cells_of(room)
+	var x0 = floori(area.position.x+1e-4)
+	var z0 = floori(area.position.y+1e-4)
+	for x in range(x0,maxi(ceili(area.end.x-1e-4),x0+1)):
+		for z in range(z0,maxi(ceili(area.end.y-1e-4),z0+1)):
+			if not cells.has(Vector2i(x,z)): return false
+	return true
+
+func random_point(room: Dictionary, rng: RandomNumberGenerator, margin: float) -> Vector2:
+	# Somewhere on the floor of the room, away from its walls.
+	var parts = parts_of(room)
+	var total = 0.0
+	for r in parts: total += (r as Rect2).get_area()
+	var pick = rng.randf()*total
+	var r: Rect2 = parts[0]
+	for q in parts:
+		pick -= (q as Rect2).get_area()
+		r = q
+		if pick <= 0.0: break
+	var m = Vector2(minf(margin,r.size.x/2.0-0.05),minf(margin,r.size.y/2.0-0.05))
+	return Vector2(rng.randf_range(r.position.x+m.x,r.end.x-m.x),rng.randf_range(r.position.y+m.y,r.end.y-m.y))
+
+func part_at(room: Dictionary, p: Vector2) -> Rect2:
+	for r in parts_of(room):
+		if (r as Rect2).has_point(p): return r
+	return rect(room)
 
 func room_at(p: Vector2) -> Dictionary:
 	for room in rooms:
-		if rect(room).has_point(p): return room
+		if inside(room,p): return room
 	return {}
 
 func room_by_id(id: int) -> Dictionary:
@@ -51,27 +126,33 @@ func item_rect(item: Dictionary) -> Rect2:
 func valid_room(candidate: Dictionary, except_id: int = -1) -> bool:
 	error = ""
 	var r = rect(candidate)
-	if r.size.x < 2 or r.size.y < 2:
-		error = "Une pièce doit mesurer au moins 2 × 2 m."
+	# an extension may be a single metre wide; a room starts at 2 × 2 m
+	var least = 1 if candidate.has("merge_into") else 2
+	if r.size.x < least or r.size.y < least:
+		error = "Une pièce doit mesurer au moins 2 × 2 m." if least == 2 else "Tracez au moins 1 m depuis le mur."
 		return false
-	if r.position.x < -LIMIT or r.position.y < -LIMIT or r.end.x > LIMIT or r.end.y > LIMIT:
-		error = "Vous avez atteint la limite du terrain."
-		return false
-	if strict and r.end.y > Street.LOT_FRONT:
-		error = "Le trottoir et la rue sont publics : construisez en retrait."
-		return false
-	for room in rooms:
-		if room.id != except_id and r.intersects(rect(room)):
-			error = "Les pièces peuvent se toucher, mais pas se chevaucher."
+	for part in parts_of(candidate):
+		if part.size.x < 1 or part.size.y < 1:
+			error = "Pièce invalide."
 			return false
-	for pk in parkings:
-		if r.intersects(rect(pk)):
-			error = "Un parking occupe déjà cet endroit."
+		if part.position.x < -LIMIT or part.position.y < -LIMIT or part.end.x > LIMIT or part.end.y > LIMIT:
+			error = "Vous avez atteint la limite du terrain."
 			return false
+		if strict and part.end.y > Street.LOT_FRONT:
+			error = "Le trottoir et la rue sont publics : construisez en retrait."
+			return false
+		for room in rooms:
+			if room.id != except_id and overlaps(room,part):
+				error = "Les pièces peuvent se toucher, mais pas se chevaucher."
+				return false
+		for pk in parkings:
+			if part.intersects(rect(pk)):
+				error = "Un parking occupe déjà cet endroit."
+				return false
 	if except_id != -1:
 		var old = room_by_id(except_id)
 		for item in furniture:
-			if not old.is_empty() and rect(old).has_point(Vector2(item.x,item.z)) and not r.encloses(item_rect(item)):
+			if not old.is_empty() and inside(old,Vector2(item.x,item.z)) and not encloses(candidate,item_rect(item)):
 				error = "Déplacez le mobilier avant de réduire ce côté."
 				return false
 	return true
@@ -103,7 +184,10 @@ func resize_room(id: int, candidate: Dictionary) -> bool:
 func remove_room(id: int) -> void:
 	var room = room_by_id(id)
 	if room.is_empty(): return
-	furniture = furniture.filter(func(i): return not rect(room).has_point(Vector2(i.x,i.z)))
+	# its extensions still under construction go with it
+	for other in rooms.duplicate():
+		if int(other.get("merge_into",-1)) == id: remove_room(int(other.id))
+	furniture = furniture.filter(func(i): return not inside(room,Vector2(i.x,i.z)))
 	rooms.erase(room)
 	prune_openings()
 
@@ -114,13 +198,16 @@ func valid_item(item: Dictionary, except_id: int = -1) -> bool:
 		return false
 	var area = item_rect(item)
 	var room = room_at(Vector2(item.x,item.z))
-	if room.is_empty() or not rect(room).encloses(area):
+	if room.is_empty() or not encloses(room,area):
 		error = "Placez l'objet entièrement à l'intérieur d'une pièce."
+		return false
+	if SitePlan.building(room):
+		error = "Chantier en cours : la pièce sera meublable une fois terminée."
 		return false
 	var flat = Catalog.ITEMS[item.kind].get("flat",false)
 	var person = Catalog.is_character(item.kind)
 	var clear = Catalog.clear_rect(item) if strict else Rect2()
-	if clear.size != Vector2.ZERO and not rect(room).encloses(clear):
+	if clear.size != Vector2.ZERO and not encloses(room,clear):
 		error = "La porte de la douche doit s'ouvrir dans la pièce."
 		return false
 	for other in furniture:
@@ -201,7 +288,7 @@ func valid_parking(candidate: Dictionary, except_id: int = -1) -> bool:
 		error = "Le trottoir et la rue sont publics."
 		return false
 	for room in rooms:
-		if r.intersects(rect(room)):
+		if overlaps(room,r):
 			error = "Un parking ne peut pas empiéter sur une pièce."
 			return false
 	for pk in parkings:
@@ -229,7 +316,7 @@ func valid_parking(candidate: Dictionary, except_id: int = -1) -> bool:
 			for bay in lay.bays:
 				var access = Street.bay_access(bay)
 				for room in rooms:
-					if access.intersects(rect(room)):
+					if overlaps(room,access):
 						error = "L'entrée des places donne sur un bâtiment. R pour tourner."
 						return false
 				for pk in parkings:
@@ -392,19 +479,158 @@ static func edge_key(axis: String, x: int, z: int) -> String:
 	return "%s:%d:%d" % [axis,x,z]
 
 func edges() -> Dictionary:
+	# Wall segments: every metre of a room's outline. Inside a room (between
+	# the rectangles of an extended room) there is no wall.
 	var result = {}
 	for room in rooms:
-		for x in range(int(room.x),int(room.x+room.w)):
-			for z in [int(room.z),int(room.z+room.h)]:
-				var k = edge_key("x",x,z)
-				if not result.has(k): result[k] = {"axis":"x","x":x,"z":z,"rooms":[]}
-				result[k].rooms.append(room.id)
-		for z in range(int(room.z),int(room.z+room.h)):
-			for x in [int(room.x),int(room.x+room.w)]:
-				var k = edge_key("z",x,z)
-				if not result.has(k): result[k] = {"axis":"z","x":x,"z":z,"rooms":[]}
-				result[k].rooms.append(room.id)
+		for e in room_edges(room):
+			var k = edge_key(e.axis,e.x,e.z)
+			if not result.has(k): result[k] = {"axis":e.axis,"x":e.x,"z":e.z,"rooms":[]}
+			result[k].rooms.append(room.id)
 	return result
+
+static func room_edges(room: Dictionary) -> Array:
+	var out: Array = []
+	if not room.has("parts") or room.parts.is_empty():
+		for x in range(int(room.x),int(room.x+room.w)):
+			for z in [int(room.z),int(room.z+room.h)]: out.append({"axis":"x","x":x,"z":z})
+		for z in range(int(room.z),int(room.z+room.h)):
+			for x in [int(room.x),int(room.x+room.w)]: out.append({"axis":"z","x":x,"z":z})
+		return out
+	var cells = cells_of(room)
+	for c in cells:
+		if not cells.has(c+Vector2i(0,-1)): out.append({"axis":"x","x":c.x,"z":c.y})
+		if not cells.has(c+Vector2i(0,1)): out.append({"axis":"x","x":c.x,"z":c.y+1})
+		if not cells.has(c+Vector2i(-1,0)): out.append({"axis":"z","x":c.x,"z":c.y})
+		if not cells.has(c+Vector2i(1,0)): out.append({"axis":"z","x":c.x+1,"z":c.y})
+	return out
+
+static func outline(room: Dictionary) -> Array:
+	# The metres of wall round a room in order, clockwise from its back
+	# corner: {axis, x, z, front, a, b} (front: the room's +x / +z side).
+	var cells = cells_of(room)
+	var by_start: Dictionary = {}
+	var count = 0
+	for c in cells:
+		var sides = []
+		if not cells.has(c+Vector2i(0,-1)): sides.append({"axis":"x","x":c.x,"z":c.y,"front":false,"a":Vector2i(c.x,c.y),"b":Vector2i(c.x+1,c.y)})
+		if not cells.has(c+Vector2i(1,0)): sides.append({"axis":"z","x":c.x+1,"z":c.y,"front":true,"a":Vector2i(c.x+1,c.y),"b":Vector2i(c.x+1,c.y+1)})
+		if not cells.has(c+Vector2i(0,1)): sides.append({"axis":"x","x":c.x,"z":c.y+1,"front":true,"a":Vector2i(c.x+1,c.y+1),"b":Vector2i(c.x,c.y+1)})
+		if not cells.has(c+Vector2i(-1,0)): sides.append({"axis":"z","x":c.x,"z":c.y,"front":false,"a":Vector2i(c.x,c.y+1),"b":Vector2i(c.x,c.y)})
+		for e in sides:
+			if not by_start.has(e.a): by_start[e.a] = []
+			by_start[e.a].append(e)
+			count += 1
+	var out: Array = []
+	while out.size() < count:
+		# start each loop at its back corner
+		var start = Vector2i(999999,999999)
+		for q in by_start:
+			if by_start[q].is_empty(): continue
+			if q.x+q.y < start.x+start.y or (q.x+q.y == start.x+start.y and q.x < start.x): start = q
+		var at = start
+		while by_start.has(at) and not by_start[at].is_empty():
+			var e: Dictionary = by_start[at].pop_front()
+			out.append(e)
+			at = e.b
+	return out
+
+static func outline_points(room: Dictionary) -> PackedVector2Array:
+	# Corners of the outline (first loop), for drawing it.
+	var out = PackedVector2Array()
+	var loop = outline(room)
+	if loop.is_empty(): return out
+	var first: Vector2i = loop[0].a
+	for i in range(loop.size()):
+		var e: Dictionary = loop[i]
+		if i > 0 and e.a == first: break
+		var prev: Dictionary = loop[i-1] if i > 0 else loop[-1]
+		if i == 0 or prev.axis != e.axis: out.append(Iso.to_screen(e.a.x,e.a.y))
+	return out
+
+func extension_parts(target: Dictionary, area: Rect2) -> Array:
+	# The ground a drawing adds to a room: the drawn rectangle without what
+	# the room already covers, cut into whole rectangles.
+	var cells = cells_of(target)
+	var free: Dictionary = {}
+	for x in range(int(area.position.x),int(area.end.x)):
+		for z in range(int(area.position.y),int(area.end.y)):
+			if not cells.has(Vector2i(x,z)): free[Vector2i(x,z)] = true
+	var keys = free.keys()
+	keys.sort_custom(func(a,b): return a.y < b.y or (a.y == b.y and a.x < b.x))
+	var out: Array = []
+	for c in keys:
+		if not free.has(c): continue
+		var w = 1
+		while free.has(c+Vector2i(w,0)): w += 1
+		var h = 1
+		while true:
+			var row_free = true
+			for i in range(w):
+				if not free.has(c+Vector2i(i,h)): row_free = false
+			if not row_free: break
+			h += 1
+		for i in range(w):
+			for j in range(h): free.erase(c+Vector2i(i,j))
+		out.append(Rect2(c.x,c.y,w,h))
+	# the biggest piece first: it is the extension's own rectangle
+	out.sort_custom(func(a,b): return a.get_area() > b.get_area())
+	return out
+
+func add_extension(target_id: int, area: Rect2) -> int:
+	# Ground added to an existing room: built as a site of the same kind and
+	# finishes, merged into the room when the works are over.
+	var target = room_by_id(target_id)
+	if target.is_empty():
+		error = "Pièce introuvable."
+		return -1
+	var pieces = extension_parts(target,area)
+	if pieces.is_empty():
+		error = "Tirez au-delà du mur pour agrandir la pièce."
+		return -1
+	var main: Rect2 = pieces[0]
+	var candidate = {"id":next_id,"x":int(main.position.x),"z":int(main.position.y),"w":int(main.size.x),"h":int(main.size.y),"type":target.type,"merge_into":target_id}
+	if pieces.size() > 1:
+		candidate.parts = []
+		for i in range(1,pieces.size()):
+			var q: Rect2 = pieces[i]
+			candidate.parts.append({"x":int(q.position.x),"z":int(q.position.y),"w":int(q.size.x),"h":int(q.size.y)})
+	for key in ["floor_finish","floor_color","wall_finish","wall_color"]: candidate[key] = target[key]
+	if not valid_room(candidate): return -1
+	if not pieces.any(func(q): return touches(target,q)):
+		error = "Partez du mur de la pièce pour l'agrandir."
+		return -1
+	candidate.id = uid()
+	rooms.append(candidate)
+	return candidate.id
+
+func touches(room: Dictionary, area: Rect2) -> bool:
+	# Shares at least one metre of wall with the room.
+	var cells = cells_of(room)
+	for x in range(int(area.position.x),int(area.end.x)):
+		for z in range(int(area.position.y),int(area.end.y)):
+			for d in [Vector2i(1,0),Vector2i(-1,0),Vector2i(0,1),Vector2i(0,-1)]:
+				if cells.has(Vector2i(x,z)+d): return true
+	return false
+
+func merge_extension(ext_id: int) -> int:
+	# A finished extension joins its room: the wall between them goes.
+	# Returns the room it joined, or -1 when it stays a room of its own.
+	var ext = room_by_id(ext_id)
+	if ext.is_empty(): return -1
+	var target = room_by_id(int(ext.get("merge_into",-1)))
+	if target.is_empty() or int(target.id) == ext_id:
+		ext.erase("merge_into")
+		return -1
+	if not target.has("parts"): target.parts = []
+	for r in parts_of(ext): target.parts.append({"x":int(r.position.x),"z":int(r.position.y),"w":int(r.size.x),"h":int(r.size.y)})
+	if not target.has("merged"): target.merged = []
+	target.merged.append(ext_id)
+	for other in rooms:
+		if int(other.get("merge_into",-1)) == ext_id: other.merge_into = int(target.id)
+	rooms.erase(ext)
+	prune_openings()
+	return int(target.id)
 
 func prune_openings() -> void:
 	var walls = edges()
@@ -422,8 +648,8 @@ func cost() -> int:
 	# Value of the building: rooms by area, renovated finishes and furniture.
 	# Salvaged furniture and debris are worth nothing.
 	var total = 0
-	for room in rooms: total += int(room.w*room.h)*Catalog.ROOM_PRICE+Finishes.value(room)
-	for item in furniture: total += int(Catalog.ITEMS[item.kind].get("price",0))
+	for room in rooms: total += area_of(room)*Catalog.ROOM_PRICE+Finishes.value(room)
+	for item in furniture: total += int(Catalog.ITEMS[item.kind].get("price",0))+Sanitation.value(item)
 	var parking_area = 0.0
 	for pk in parkings: parking_area += rect(pk).get_area()
 	total += roundi(parking_area*Street.PRICE_M2)
@@ -454,10 +680,16 @@ func load_checked(data: Variant) -> bool:
 			if not r.get(key) is float and not r.get(key) is int: return false
 			if not is_finite(float(r[key])) or float(r[key]) != floor(float(r[key])): return false
 		if r.id < 1 or ids.has(int(r.id)) or r.type < 0 or r.type >= Catalog.ROOMS.size(): return false
+		if not candidate.valid_parts(r): return false
 		if not candidate.valid_room(r): return false
 		ids[int(r.id)] = true
 		var loaded = r.duplicate(true)
 		for key in ["id","x","z","w","h","type"]: loaded[key] = int(r[key])
+		if loaded.has("build"):
+			# a site in progress; damaged progress data restarts nothing, the room is kept finished
+			var works = SitePlan.sanitize(loaded.build)
+			if works.is_empty(): loaded.erase("build")
+			else: loaded.build = works
 		if int(version) == 1 or not Finishes.valid(loaded):
 			if int(version) == 3: return false
 			var keep = loaded.duplicate()
@@ -477,12 +709,27 @@ func load_checked(data: Variant) -> bool:
 		var loaded_item = item.duplicate(true)
 		loaded_item.id = int(item.id)
 		loaded_item.rot = int(item.rot)
+		for upgrade in Sanitation.UPGRADES:
+			if item.has(upgrade) and (not item[upgrade] is bool or not upgrade in Sanitation.upgrades_for(item.kind)): return false
+		if item.has("soil"):
+			if not item.soil is float and not item.soil is int: return false
+			if not is_finite(float(item.soil)): return false
+			loaded_item.soil = clampf(float(item.soil),0,100)
+		for field in ["wear","leak_timer"]:
+			if not item.has(field): continue
+			if not item.kind in Plumbing.KINDS or not (item[field] is int or item[field] is float) or not is_finite(float(item[field])): return false
+			loaded_item[field] = clampf(float(item[field]),0,100 if field == "wear" else 128)
+		if item.has("leaking") and (not item.leaking is bool or not item.kind in Plumbing.KINDS): return false
 		if item.has("delivery_pending"):
 			if not item.delivery_pending is bool or Catalog.is_character(item.kind): return false
 			if not item.get("delivery_key") is String or item.delivery_key.is_empty() or item.delivery_key.length() > 128: return false
 			if delivery_keys.has(item.delivery_key): return false
 			delivery_keys[item.delivery_key] = true
+		if item.has("work_schedule"):
+			if not Catalog.is_character(item.kind) or not ClubCalendar.valid(item.work_schedule): return false
+			loaded_item.work_schedule = ClubCalendar.normalized(item.work_schedule)
 		if Catalog.is_character(item.kind):
+			if item.has("profile_id") and (not item.profile_id is String or item.profile_id.length() > 16): return false
 			if item.has("appearance") and not Characters.valid(item.appearance): return false
 			loaded_item.appearance = Characters.normalize(item.get("appearance",{}),item.kind)
 		if not candidate.valid_item(loaded_item):
@@ -518,6 +765,25 @@ func load_checked(data: Variant) -> bool:
 	candidate.next_id = maxi(candidate.next_id,int(data.get("next_id",1)))
 	for pk in candidate.parkings.duplicate(): candidate.modularize_parking(int(pk.id))
 	restore(candidate.snapshot())
+	return true
+
+func valid_parts(room: Dictionary) -> bool:
+	# Saved shape data: whole-metre rectangles, a link to an existing room.
+	for key in ["parts","merged"]:
+		if room.has(key) and (not room[key] is Array or room[key].size() > 64): return false
+	for q in room.get("parts",[]):
+		if not q is Dictionary: return false
+		for key in ["x","z","w","h"]:
+			if not (q.get(key) is float or q.get(key) is int) or not is_finite(float(q[key])) or float(q[key]) != floor(float(q[key])): return false
+		if float(q.w) < 1 or float(q.h) < 1: return false
+		for key in ["x","z","w","h"]: q[key] = int(q[key])
+	for i in range(room.get("merged",[]).size()):
+		var v = room.merged[i]
+		if not (v is float or v is int) or not is_finite(float(v)): return false
+		room.merged[i] = int(v)
+	if room.has("merge_into"):
+		if not (room.merge_into is float or room.merge_into is int) or not is_finite(float(room.merge_into)): return false
+		room.merge_into = int(room.merge_into)
 	return true
 
 func starter() -> void:

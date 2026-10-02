@@ -31,8 +31,10 @@ void fragment() {
 	vec4 c = resolve(t);
 	if (outline_color.a > 0.0 && t.a < 0.5) {
 		vec2 px = TEXTURE_PIXEL_SIZE;
-		float a = texture(TEXTURE, UV + vec2(px.x, 0.0)).a + texture(TEXTURE, UV - vec2(px.x, 0.0)).a
-			+ texture(TEXTURE, UV + vec2(0.0, px.y)).a + texture(TEXTURE, UV - vec2(0.0, px.y)).a;
+		// Trace solid pixels only: adding four translucent shadow samples
+		// would paint an opaque selection plate over floor stains.
+		float a = step(0.5, texture(TEXTURE, UV + vec2(px.x, 0.0)).a) + step(0.5, texture(TEXTURE, UV - vec2(px.x, 0.0)).a)
+			+ step(0.5, texture(TEXTURE, UV + vec2(0.0, px.y)).a) + step(0.5, texture(TEXTURE, UV - vec2(0.0, px.y)).a);
 		if (a > 0.5) {
 			c = outline_color;
 		}

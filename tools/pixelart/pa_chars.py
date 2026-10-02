@@ -232,8 +232,10 @@ def plan_of(male):
 
 
 # ------------------------------------------------------------ poses
-ANIMS_FRONT = [("idle", 2), ("walk", 4), ("sit", 1), ("dance", 4), ("mop", 4), ("work", 2), ("stand", 1), ("kneel", 1)]
-ANIMS_BACK = [("idle", 2), ("walk", 4), ("sit", 1), ("stand", 1), ("kneel", 1)]
+# New animations go at the end of each list: "push" walks behind a
+# wheelbarrow; mop and work also exist from behind (facing a wall).
+ANIMS_FRONT = [("idle", 2), ("walk", 4), ("sit", 1), ("dance", 4), ("mop", 4), ("work", 2), ("stand", 1), ("kneel", 6), ("push", 4)]
+ANIMS_BACK = [("idle", 2), ("walk", 4), ("sit", 1), ("stand", 1), ("kneel", 6), ("mop", 4), ("work", 2), ("push", 4)]
 
 
 def frame_list():
@@ -271,8 +273,11 @@ def pose(anim, f, view):
         p["sit"] = True
         p["drop"] = 4
     elif anim == "kneel":
-        # Upright, still, hands resting on the thighs; folded legs stay on the floor.
+        # Neutral resting breath: the head, neck and torso rise together by one
+        # native pixel. Folded shins and feet remain planted on the floor.
         p["drop"] = 7
+        p["bob"] = -1 if f in (2, 3) else 0
+        p["hand_n"] = (0, 1 if f == 5 else 0)
     elif anim == "dance":
         p["sway"] = [-1, 0, 1, 0][f]
         p["bob"] = [0, -1, 0, -1][f]
@@ -291,6 +296,17 @@ def pose(anim, f, view):
         p["hand_f"] = (1.5 + sw, -7.0)
         p["elbow_f"] = (1.0 + sw * 0.4, -3.5)
         p["prop"] = ("mop", sw)
+    elif anim == "push":
+        # walking legs, both hands forward low on the wheelbarrow handles
+        fwd, back, lift = (1, 1), (0, -1), (0, -2)
+        p["feet"] = [{"near": fwd, "far": back}, {"near": (0, 0), "far": lift},
+                     {"near": back, "far": fwd}, {"near": lift, "far": (0, 0)}][f]
+        p["knee"] = [{"near": 0, "far": 0}, {"near": 0, "far": 1}, {"near": 0, "far": 0}, {"near": 1, "far": 0}][f]
+        p["bob"] = -1 if f in (1, 3) else 0
+        p["hand_n"] = (4.5, -3.0)
+        p["elbow_n"] = (2.0, -1.0)
+        p["hand_f"] = (3.5, -3.5)
+        p["elbow_f"] = (1.0, -1.5)
     elif anim == "work":
         p["hand_n"] = [(4.5, -6.0), (5.5, -5.0)][f]
         p["elbow_n"] = [(2.0, -3.0), (2.2, -2.5)][f]
@@ -494,6 +510,10 @@ def build(male: bool, view: str, anim: str, f: int, curvy: bool = False, silhoue
             sw = j["prop"][1]
             a = (19.0 + sw, top + 1.0)
             b = (25.0 + sw * 1.6, 45.5)
+            if not front:
+                # facing away: the handle reaches up-left, its foot further back
+                a = (13.0 - sw, top + 1.0)
+                b = (7.0 - sw * 1.6, 43.5)
             u = 0.20 if side == "far" else 0.46
             hand_p = (a[0] + (b[0] - a[0]) * u - 0.5, a[1] + (b[1] - a[1]) * u - 0.9)
             mid = ((sx + hand_p[0]) / 2, (sy + hand_p[1]) / 2)
@@ -501,7 +521,7 @@ def build(male: bool, view: str, anim: str, f: int, curvy: bool = False, silhoue
             fig.mop = (a, b)
         elif anim == "kneel":
             elbow = (sx + out * 0.8, sy + 4.5)
-            hand_p = (sx - out * 1.6, sy + 8.0)
+            hand_p = (sx - out * 1.6, P["shoulder"][2] + up + 8.0 + hand[1])
         elif curvy and anim == "idle":
             # escorts pose with both hands on the hips, elbows out
             elbow = (sx + out * 2.6, sy + 4.0)
