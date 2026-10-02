@@ -7,6 +7,8 @@ var strength = 0.0
 var drawn_particles = 0
 var world: Node2D
 var drops: Array = []
+var covered: Dictionary = {}    # metre cells under a roof: a drop over one is hidden
+var drawn_key = []              # what the last drawing showed (drop time, camera, rain)
 
 func setup(building: BuildingModel) -> void:
 	model = building
@@ -32,12 +34,28 @@ func step(seconds: float, intensity: float) -> void:
 	if world != null:
 		world.rain_ground.step(seconds,intensity)
 		world.weather_shade(intensity)
+
+func layout_changed() -> void:
+	covered.clear()
+	if model == null: return
+	for room in model.rooms:
+		for c in BuildingModel.cells_of(room): covered[c] = true
+
+func refresh() -> void:
+	# Drops move 24 times a second: drawing them again in between (or while
+	# paused, with nothing moving) only cost time.
+	var key = [floori(phase*24.0) if strength > 0 else -1,get_canvas_transform().origin.round(),snappedf(strength,.01)]
+	if key == drawn_key: return
+	drawn_key = key
 	queue_redraw()
 
 func sheltered(pixel: Vector2) -> bool:
 	# The cutaway interior includes objects above the floor, up to wall height.
+	# (900 drops a frame: one lookup per height instead of a search of every room)
+	if covered.is_empty() and model != null and not model.rooms.is_empty(): layout_changed()
 	for height in range(0,Iso.WALL_H+1,8):
-		if not model.room_at(Iso.to_world(pixel+Vector2(0,height))).is_empty(): return true
+		var w = Iso.to_world(pixel+Vector2(0,height))
+		if covered.has(Vector2i(floori(w.x),floori(w.y))): return true
 	return false
 
 func _draw() -> void:

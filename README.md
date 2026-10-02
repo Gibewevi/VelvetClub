@@ -1,4 +1,4 @@
-# Construction — V63 pixel art
+# Construction — V64 pixel art
 
 Jeu natif Windows de gestion d'un club, en isométrique et en vrai pixel art rétro. Développé avec Godot 4.5.1, avec le moteur et les ressources intégrés à l'exécutable : rien à installer pour jouer.
 
@@ -6,7 +6,9 @@ Le projet `pixel/` est un jeu 2D. Tout le graphisme est dessiné pixel par pixel
 
 ## Jouer
 
-Lancer `build/Construction-V63-Poussiere.exe`.
+Lancer `build/Construction-V64-Pluie-Fluide.exe`.
+
+**V64 — Pluie fluide.** La pluie coûtait 65 à 75 ms par image (chaque goutte cherchait un toit en parcourant toutes les pièces, à 8 hauteurs) : le jeu tombait vers 10 images/s dès qu'il pleuvait. L'abri se lit maintenant dans une table des cases couvertes (2,5 ms), la pluie n'est redessinée que quand une goutte bouge (24 fois/s) ou que la caméra se déplace, l'assombrissement météo seulement quand l'intensité change, et le test « point dans une pièce » ne crée plus rien en mémoire. Profilage : `--profile-rain=1.0` et `--profile-hour=20` pour mesurer une nuit pluvieuse ; `tests/rain_cost_probe.gd` mesure le coût d'une image de pluie.
 
 **V63 — Petit nuage de poussière.** Poser, déplacer ou recevoir un objet soulève à son pied un petit nuage, dans le dessin de la fumée des pneus de la camionnette (en plus petit et plus bref : environ une demi-seconde). Tourner un objet ne soulève que quelques éclats. Les nuages de l'arrière passent derrière l'objet, ceux de l'avant devant ; l'animation suit le temps réel (elle joue aussi en pause) et survit aux redessins du bâtiment. Aperçus dans `build/Apercus-V63/`.
 
@@ -190,7 +192,7 @@ Exécuter `./Build.ps1`. Le script effectue, dans l'ordre :
 1. la régénération de tout le pixel art (si Python est présent) ;
 2. l'import du projet ;
 3. les tests : `model_test.gd` (petit local vétuste de départ avec une seule chambre, déchets accessibles, valeur des revêtements, plan complet de démonstration avec réception et urinoirs, navigation, import 3D, validations), `art_test.gd` (grille 32 × 16, frames 32 × 48, bords nets, index de palette, chaque frame de corps d'un seul tenant avec les pieds au sol et des jambes de taille constante en marchant, calques de chaque apparence, sprites de tout le catalogue, icônes 10 × 10 et cadres de l'interface), la scène (`--smoke-test`), la simulation (`--sim-test` : club fermé sans client, techniciens qui nettoient, file d'attente dehors sans accueil avec clients impatients, aucune entrée sans réceptionniste, puis entrées payées à l'accueil, boissons servies au bar, escort au salon, départ à la fermeture) et l'interface dans une vraie fenêtre (`--ui-test`, y compris le déplacement d'une fenêtre par sa barre de titre) ;
-4. l'export de `build/Construction-V63-Poussiere.exe`.
+4. l'export de `build/Construction-V64-Pluie-Fluide.exe`.
 
 Le test `--delivery-test` couvre le regroupement avant arrivée, les achats de la tournée suivante, deux livreurs, les fantômes inutilisables, le paiement unique, l'annulation et le remboursement, le déplacement en cours de transport, la reprise après sauvegarde, les accès bloqués et leur rétablissement, ainsi que les anciennes parties. Le test d'interface achète aussi deux objets à la souris, ouvre le suivi, observe le transport et le déballage puis vérifie leur installation et le départ du camion.
 

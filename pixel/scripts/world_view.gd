@@ -157,6 +157,9 @@ func _timed_rebuild() -> void:
 	Prof.add("rb.exterior",p0)
 	p0 = Prof.t()
 	rain_ground.layout_changed(statics)
+	rain.layout_changed()
+	rain.drawn_key = []
+	shaded_at = -1.0   # the new surfaces take the current weather
 	weather_shade(weather_intensity)
 	Prof.add("rb.rain",p0)
 	for a in actors:
@@ -177,7 +180,12 @@ func compute_bounds() -> void:
 func weather_surface(node: CanvasItem) -> void:
 	weather_surfaces.append({"node":node,"base":node.modulate})
 
+var shaded_at = -1.0
+
 func weather_shade(intensity: float) -> void:
+	# called on every simulation step: only repaint when the rain changes
+	if absf(clampf(intensity,0,1)-shaded_at) < 0.005: return
+	shaded_at = clampf(intensity,0,1)
 	weather_intensity = clampf(intensity,0,1)
 	ground.modulate = Color.WHITE.lerp(Color(.84,.86,.91),weather_intensity)
 	for surface in weather_surfaces:
@@ -1330,8 +1338,8 @@ func _process(delta: float) -> void:
 
 func _timed_process(delta: float) -> void:
 	if rebuild_pending: rebuild()
-	rain.queue_redraw()
-	rain_ground.queue_redraw()
+	rain.refresh()
+	rain_ground.refresh()
 	clock += delta
 	for a in anim_items:
 		# dance floor tiles and neon, fairy lights: the next picture of the loop

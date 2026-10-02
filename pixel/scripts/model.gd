@@ -65,8 +65,10 @@ func bounds(room: Dictionary) -> Rect2:
 	return b
 
 func inside(room: Dictionary, p: Vector2) -> bool:
-	for r in parts_of(room):
-		if (r as Rect2).has_point(p): return true
+	# asked very often (rain, people, objects): no list, no rectangle built
+	if p.x >= room.x and p.y >= room.z and p.x < room.x+room.w and p.y < room.z+room.h: return true
+	for q in room.get("parts",[]):
+		if p.x >= q.x and p.y >= q.z and p.x < q.x+q.w and p.y < q.z+q.h: return true
 	return false
 
 func overlaps(room: Dictionary, area: Rect2) -> bool:

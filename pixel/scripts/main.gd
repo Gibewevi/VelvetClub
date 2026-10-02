@@ -1428,6 +1428,14 @@ func profile_run() -> void:
 	await get_tree().process_frame
 	if not sim.open: toggle_open()
 	set_speed(3)
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--profile-hour="):
+			# start the run at this hour of the night (the busiest time)
+			sim.minute = float(arg.trim_prefix("--profile-hour="))*60.0
+		if arg.begins_with("--profile-rain="):
+			# a heavy shower that lasts the whole run
+			sim.rain_strength = float(arg.trim_prefix("--profile-rain="))
+			sim.weather_remaining = 99999.0
 	Prof.enabled = true
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--profile-trace="): Prof.trace = FileAccess.open(arg.trim_prefix("--profile-trace="),FileAccess.WRITE)
@@ -1467,7 +1475,7 @@ func profile_run() -> void:
 				Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)/1048576.0,Performance.get_monitor(Performance.OBJECT_COUNT),
 				Performance.get_monitor(Performance.OBJECT_NODE_COUNT),Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT),
 				Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT),Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
-				sim.clients.size(),view.actors.size(),view.statics.size(),sim.dirt.size(),view.puffs.size(),shown,sim.day,sim.clock_text(),Prof.report(frames)])
+				sim.clients.size(),view.actors.size(),view.statics.size(),sim.dirt.size(),view.puffs.size(),shown,sim.day,sim.clock_text()+(" pluie %.2f/%d gouttes" % [sim.rain_strength,view.rain.drawn_particles]),Prof.report(frames)])
 			window = now
 			frames = 0
 			worst = 0

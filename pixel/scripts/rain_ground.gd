@@ -18,6 +18,7 @@ var phase = 0.0
 var strength = 0.0
 var drawn_puddles = 0
 var drawn_impacts = 0
+var drawn_key = []
 
 func setup(building: BuildingModel) -> void:
 	model = building
@@ -60,6 +61,7 @@ func layout_changed(entries: Array) -> void:
 			var r: Rect2 = e.rect.grow(.15)
 			blocked.append(r)
 			file_rect(r)
+	drawn_key = []
 	for patch in patches: patch.exposed = exposed(patch.world,1.1)
 	for impact in impacts: impact.exposed = exposed(impact.world,.45)
 	queue_redraw()
@@ -69,6 +71,12 @@ func step(seconds: float, intensity: float) -> void:
 	phase = fposmod(phase+maxf(0,seconds),960.0)
 	# Full saturation takes ~90 game minutes; drying takes ~five game hours.
 	wetness = clampf(wetness+maxf(0,seconds)*(strength/36.0 if strength > 0 else -1.0/120.0),0,1)
+
+func refresh() -> void:
+	# Splashes change 8 times a second, puddles with the wetness: redraw then.
+	var key = [floori(phase*8.0) if strength > 0 else -1,snappedf(wetness,.01),get_canvas_transform().origin.round(),snappedf(strength,.01)]
+	if key == drawn_key: return
+	drawn_key = key
 	queue_redraw()
 
 func to_dict() -> Dictionary:
