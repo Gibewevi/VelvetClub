@@ -264,10 +264,29 @@ func door_pairs() -> Dictionary:
 			out[BuildingModel.edge_key(c[0],at.x+step.x*(i+1),at.y+step.y*(i+1))] = "r"
 	return out
 
+func wall_full(front_room: Dictionary, back_room: Dictionary) -> bool:
+	# Back walls stand full height, front walls are cut away. A wall between
+	# two public spaces (lounge and corridor) stays low so the bar stays in view.
+	var full = not front_room.is_empty() and wall_mode == 0
+	if full and not back_room.is_empty() and int(front_room.type) == 0 and int(back_room.type) == 0: full = false
+	return full
+
 func build_walls() -> void:
 	var walls: Dictionary = model.edges()
 	var segs: Dictionary = {}
 	var pairs = door_pairs()
+	# High walls meeting at each grid point: where a high wall meets no other
+	# one, it stops there and is drawn with its real end (no post).
+	var high_at: Dictionary = {}
+	for key in walls:
+		var e: Dictionary = walls[key]
+		var front_room = room_side(e.axis,e.x,e.z,true)
+		var back_room = room_side(e.axis,e.x,e.z,false)
+		if front_room.is_empty() and back_room.is_empty(): continue
+		if not wall_full(front_room,back_room): continue
+		var a = Vector2i(e.x,e.z)
+		for q in [a,a+(Vector2i(1,0) if e.axis == "x" else Vector2i(0,1))]:
+			high_at[q] = int(high_at.get(q,0))+1
 	for key in walls:
 		var e: Dictionary = walls[key]
 		var axis: String = e.axis
@@ -276,25 +295,27 @@ func build_walls() -> void:
 		var front_room = room_side(axis,x,z,true)
 		var back_room = room_side(axis,x,z,false)
 		if front_room.is_empty() and back_room.is_empty(): continue
-		# Back walls stand full height, front walls are cut away. A wall between
-		# two public spaces (lounge and corridor) stays low so the bar stays in view.
-		var full = not front_room.is_empty() and wall_mode == 0
-		if full and not back_room.is_empty() and int(front_room.type) == 0 and int(back_room.type) == 0: full = false
+		var full = wall_full(front_room,back_room)
 		var owner = front_room if not front_room.is_empty() else back_room
 		var opening: String = model.openings.get(key,"")
 		var pair: String = pairs.get(key,"")
 		var kind = "full" if full else "low"
 		if opening == "door": kind = ("full_door"+("_"+pair if pair != "" else "")) if full else ""
 		elif opening == "window": kind = "full_window" if full else "low_window"
-		segs[key] = {"axis":axis,"x":x,"z":z,"full":full,"kind":kind,"owner":owner,"opening":opening}
+		var ends = ""
+		if kind == "full":
+			var a = Vector2i(x,z)
+			if int(high_at.get(a,0)) <= 1: ends += "0"
+			if int(high_at.get(a+(Vector2i(1,0) if axis == "x" else Vector2i(0,1)),0)) <= 1: ends += "1"
+		segs[key] = {"axis":axis,"x":x,"z":z,"full":full,"kind":kind,"owner":owner,"opening":opening,"ends":ends}
 		var rect = Rect2(x,z,1,0) if axis == "x" else Rect2(x,z,0,1)
 		var pos = Iso.pixel(x,z)
 		var node = Node2D.new()
-		var entry = add_static(node,rect,"wall",{"key":key})
+		var entry = add_static(node,rect,"wall",{"key":key,"high":full and kind != ""})
 		if kind != "":
 			# Variants follow the position so the pattern runs on along a wall.
 			var variant = posmod(x if axis == "x" else z,int(Art.tiles.get("wall_variants",1)))
-			var wkey = "%s:%s:%s" % [Finishes.wall_pattern(owner),axis,kind]
+			var wkey = "%s:%s:%s" % [Finishes.wall_pattern(owner),axis,kind+("_e"+ends if ends != "" and Art.tiles.walls.has("%s:%s:full_e%s" % [Finishes.wall_pattern(owner),axis,ends]) else "")]
 			var info: Dictionary = Art.tiles.walls.get("%s:%d" % [wkey,variant],Art.tiles.walls[wkey])
 			var s = sprite(Art.tex(info.file),pos,Vector2(info.ox,info.oy),Art.material(Palette.wall_palette(Color(owner.wall_color))))
 			node.add_child(s)
@@ -320,8 +341,8 @@ func build_walls() -> void:
 			var beyond = Vector2(x+0.5,z+(0.5 if front_room.is_empty() else -0.5)) if axis == "x" else Vector2(x+(0.5 if front_room.is_empty() else -0.5),z+0.5)
 			if opening == "door" and pair != "r" and (front_room.is_empty() or back_room.is_empty()) and model.room_at(beyond).is_empty():
 				street_doors.append({"key":key,"axis":axis,"x":x,"z":z,"outside_positive":front_room.is_empty(),"room":owner,"double":pair == "l"})
-	# Posts close the ends of high walls, and the corners, ends and door
-	# gaps of cut walls.
+	# Posts close the corners, ends and door gaps of cut walls (and a door
+	# or window at the very end of a high wall).
 	var points: Dictionary = {}
 	for key in segs:
 		var s: Dictionary = segs[key]
@@ -345,11 +366,13 @@ func build_walls() -> void:
 		if any_gap: need = true
 		if list.size() == 2 and list[0].axis == list[1].axis and list[0].full != list[1].full: need = true
 		if not need: continue
-		# High walls joining high walls (a corner, a T, a crossing) meet by
-		# themselves: a post there only showed as a pillar standing in the
-		# corner. A post is kept where a high wall stops (at a cut wall, a
-		# gap or its free end): it is the end of that wall.
-		if list.size() >= 2 and list.all(func(q): return q.full and q.kind != ""): continue
+		# High walls need no post: where they meet they join by themselves,
+		# where one stops it is drawn with its real end. Only a door or a
+		# window right at the end of a high wall keeps one to close it.
+		if any_full:
+			if list.size() >= 2 and list.all(func(q): return q.full and q.kind != ""): continue
+			var open_end = list.any(func(q): return q.full and q.kind.begins_with("full_") and int(high_at.get(p,0)) <= 1)
+			if not open_end: continue
 		var post_kind = "full" if any_full else "low"
 		# The dark low posts mark corners, wall ends and door frames. Where a
 		# low wall runs straight on (a T or a crossing), the wall that meets
@@ -1151,7 +1174,12 @@ func static_order(i: int, j: int) -> int:
 	# them, else the wall leaving towards the viewer cuts the post in half.
 	if a.kind == "post" and b.kind == "wall" and wall_ends_at(b.rect,a.rect.position): return -1
 	if b.kind == "post" and a.kind == "wall" and wall_ends_at(a.rect,b.rect.position): return 1
-	return rect_order(a.rect,b.rect)
+	var order = rect_order(a.rect,b.rect)
+	# A high wall that stops where a cut wall passes: the cut wall runs in
+	# front of the high wall's end (they only touch, on a diagonal).
+	if order == 0 and a.kind == "wall" and b.kind == "wall" and bool(a.get("high",false)) != bool(b.get("high",false)) and a.rect.grow(0.001).intersects(b.rect.grow(0.001)):
+		return 1 if a.get("high",false) else -1
+	return order
 
 static func wall_ends_at(r: Rect2, p: Vector2) -> bool:
 	return r.position.is_equal_approx(p) or r.end.is_equal_approx(p)

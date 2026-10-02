@@ -423,12 +423,17 @@ def render_idx(prims, bounds=None):
     return cv
 
 
-def render_segment(axis, kind, pattern, variant):
+def render_segment(axis, kind, pattern, variant, ends=""):
     """Render the segment between two plain neighbours, then keep only the
-    columns of the middle metre: collinear segments join without a seam."""
+    columns of the middle metre: collinear segments join without a seam.
+    `ends` names the ends where the wall stops ("0" its start, "1" its end):
+    no neighbour there, so the wall shows its real end (edge, end face,
+    cap) and the picture keeps those columns."""
     base = "full" if kind.startswith("full") else "low"
     prims = []
     for offset, k in ((-1, base), (0, kind), (1, base)):
+        if (offset == -1 and "0" in ends) or (offset == 1 and "1" in ends):
+            continue
         # the neighbours already sit at world u -1 / +1, so they share the
         # middle segment's variant offset and the pattern stays continuous
         part = wall_prims(axis, k, pattern, variant)
@@ -439,6 +444,13 @@ def render_segment(axis, kind, pattern, variant):
     cv = render_idx(prims)
     t2 = WALL_T / 2
     c0, c1 = (-HALF_W * t2 * 1.0, HALF_W * (1 - t2)) if axis == "x" else (HALF_W * (t2 - 1), HALF_W * t2)
+    # a wall that stops: keep its outline at the start, its end face at the end
+    if axis == "x":
+        c0 -= 2 if "0" in ends else 0
+        c1 = HALF_W * (1 + t2) + 2 if "1" in ends else c1
+    else:
+        c1 += 2 if "0" in ends else 0
+        c0 = HALF_W * (-1 - t2) - 2 if "1" in ends else c0
     cols = np.arange(cv.w) - cv.ox
     drop = (cols < c0) | (cols >= c1)
     cv.rgba[:, drop] = 0
@@ -738,6 +750,16 @@ def export():
                     man["walls"][f"{pat}:{axis}:{kind}:{variant}"] = entry
                     if variant == 0:
                         man["walls"][f"{pat}:{axis}:{kind}"] = entry
+            # a high wall that stops (at a cut wall, a gap or nowhere): its real end
+            for ends in ("0", "1", "01"):
+                for variant in range(WALL_VARIANTS):
+                    cv = render_segment(axis, "full", pat, variant, ends)
+                    path = f"tiles/wall_{pat}_{axis}_full_e{ends}_{variant}.png"
+                    save(cv.rgba, path)
+                    entry = {"file": path, "ox": cv.ox, "oy": cv.oy}
+                    man["walls"][f"{pat}:{axis}:full_e{ends}:{variant}"] = entry
+                    if variant == 0:
+                        man["walls"][f"{pat}:{axis}:full_e{ends}"] = entry
     for kind in ("full", "low"):
         cv = render_idx(post_prims(kind))
         save(cv.rgba, f"tiles/post_{kind}.png")

@@ -2400,23 +2400,29 @@ func double_door_checks() -> void:
 	changed_view()
 
 func post_depth_checks() -> void:
-	# A full post where a high wall meets the cut front wall (a T) is drawn
-	# whole: after every wall that ends at it.
+	# High walls have no posts: where they meet they join, where one stops
+	# (at the cut front, at a cut side wall) it is drawn with its own end,
+	# and the cut wall passing there runs in front of that end.
 	var start = model.snapshot()
 	var keep_undo = undo_stack.duplicate()
 	var rich = sim.money
 	sim.money = 100000
 	capture_tjunction()
-	var posts = view.statics.filter(func(e): return e.kind == "post" and Vector2i(e.rect.position) == Vector2i(17,-5))
-	check(posts.size() == 1,"A post stands where the wall between two bedrooms meets the front")
-	if posts.size() == 1:
-		var post: Dictionary = posts[0]
-		var walls = view.statics.filter(func(e): return e.kind == "wall" and e.get("key","") in ["x:16:-5","x:17:-5","z:17:-6"])
-		check(walls.size() == 3 and walls.all(func(w): return w.node.z_index < post.node.z_index),"The post is drawn over the ends of the three walls that meet it")
+	var high_posts = view.statics.filter(func(e): return e.kind == "post" and str(e.get("file","")).contains("post_full"))
+	check(high_posts.is_empty(),"No post at all on high walls (%d)" % high_posts.size())
+	var wall = func(key): return view.statics.filter(func(e): return e.kind == "wall" and e.get("key","") == key)
+	var stem = wall.call("z:17:-6")
+	var back = wall.call("x:23:-9")
+	check(stem.size() == 1 and str(stem[0].file).contains("full_e1") and back.size() == 1 and str(back[0].file).contains("full_e1"),"A high wall that stops at a cut wall shows its real end")
+	var inner = wall.call("x:16:-9")
+	check(inner.size() == 1 and not str(inner[0].file).contains("_e"),"Where high walls meet, they simply join")
+	if stem.size() == 1:
+		var low = wall.call("x:16:-5")+wall.call("x:17:-5")
+		check(low.size() == 2 and low.all(func(w): return w.node.z_index > stem[0].node.z_index),"The cut front wall runs in front of the end of the wall between two bedrooms")
 	var post_at = func(x, z): return view.statics.any(func(e): return e.kind == "post" and Vector2i(e.rect.position) == Vector2i(x,z))
 	check(not post_at.call(17,-8) and not post_at.call(17,-7) and not post_at.call(22,-7) and not post_at.call(22,-6),"A door in a high wall has its frame, no posts beside it")
-	check(not post_at.call(14,-9) and not post_at.call(17,-9) and not post_at.call(20,-9) and not post_at.call(22,-9),"No post in the corners where high walls meet")
-	check(post_at.call(14,-5) and post_at.call(24,-9),"A post closes a high wall where it stops at a cut wall")
+	check(not post_at.call(14,-9) and not post_at.call(17,-9) and not post_at.call(20,-9) and not post_at.call(22,-9) and not post_at.call(17,-5) and not post_at.call(24,-9),"No post in the corners nor where a high wall stops")
+	check(post_at.call(24,-5),"The corner of two cut walls keeps its dark post")
 	model.set_opening("x:18:-5","door")
 	view.rebuild()
 	check(post_at.call(18,-5) and post_at.call(19,-5),"A gap in a cut wall keeps its end posts")
