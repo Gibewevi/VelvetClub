@@ -57,6 +57,10 @@ func ensure_employee(item: Dictionary, day: int) -> Dictionary:
 	if p.is_empty() or p.kind != item.kind or int(p.get("staff_item",-1)) != int(item.id):
 		p = create(item.kind,item.appearance,day)
 		p.staff_item = int(item.id)
+		# hired from the short list: the name and age on the candidate's card
+		var hired: Dictionary = item.get("staff",{})
+		if hired.has("name") and str(hired.name) != "": p.name = str(hired.name)
+		if hired.has("age"): p.age = int(hired.age)
 		item.profile_id = p.id
 		remember(p.id,day,"Rejoint l'équipe du club.")
 	p.appearance = item.appearance.duplicate(true)

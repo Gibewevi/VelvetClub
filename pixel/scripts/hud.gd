@@ -5,7 +5,7 @@ extends Control
 # redrawn as pixel art: status top-left, counters and history top-right, a
 # dock of icon + text buttons at the bottom, and every panel or dialog in a
 # window with a title bar.
-const DOCK = [["select","Sélection","select","Sélection · Échap"],["build","Construire","build","Pièces, portes, fenêtres, parkings · T P F K"],
+const DOCK = [["select","Sélection","select","Sélection · Échap"],["build","Construire","build","Pièces, cloisons, portes, fenêtres, parkings · T C P F K"],
 	["decor","Mobilier","furniture","Catalogue du mobilier · B"],["staff","Personnel","person","Embaucher et suivre l'équipe"],
 	["clients","Clients","clients","Clients présents"],["services","Services","services","Tarifs"],
 	["reports","Rapports","reports","Recettes et nuits précédentes"],["settings","Menu","menu","Vue et partie"]]
@@ -56,6 +56,8 @@ var site_time_label: Label
 var site_room = -1
 var site_refresh = 0.0
 var drawer_live = true
+var staff_tab = 0          # Personnel: 0 the team, 1 hiring
+var recruit_kind = ""      # the job whose candidates are shown
 var cloak_label: Label
 var drawer_refresh = 0.0   # lists of people and reports: redrawn every 2 s, not 2 per s
 
@@ -382,7 +384,7 @@ func fill_build() -> void:
 	section("OUTILS")
 	var g = UiKit.grid(drawer_body,2,2)
 	for entry in [["select","Sélection","select","Échap"],["room","Pièce","build","Tracer une pièce · T"],["door","Porte","door","Placer une porte · P"],["window","Fenêtre","window","Placer une fenêtre · F"],
-			["parking","Places","parking","Clic : une place · Glisser : une rangée · K"],["parking_lane","Allée","parking","Tracer le passage entre les places et la rue"]]:
+			["partition","Cloison","walls","Monter un mur à l'intérieur d'une pièce · C"],["parking","Places","parking","Clic : une place · Glisser : une rangée · K"],["parking_lane","Allée","parking","Tracer le passage entre les places et la rue"]]:
 		var b = UiKit.button(entry[1],game.set_mode.bind(entry[0]),g,entry[3],entry[2])
 		b.custom_minimum_size.x = 92*S
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -408,6 +410,7 @@ func fill_build() -> void:
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		UiKit.set_active(b,game.room_type == i and game.mode == "room")
 	drawer_body.add_child(wrap_label("Glissez depuis le terrain libre : nouvelle pièce (%d $ le m²), même collée à une autre. Partez d'un mur ou du sol d'une pièce : elle s'agrandit, et le mur tombe à la fin des travaux." % Catalog.ROOM_PRICE))
+	drawer_body.add_child(wrap_label("Cloison : glissez le long du quadrillage dans une pièce (%d $ le mètre). Ajoutez-y une porte pour passer." % BuildingModel.PARTITION_PRICE))
 	UiKit.separator(drawer_body)
 	var area = 0
 	for r in game.model.rooms: area += BuildingModel.area_of(r)
@@ -427,58 +430,131 @@ func portrait_texture(app: Dictionary, mult: int = 1) -> Texture2D:
 	return portrait_cache[key]
 
 func fill_staff() -> void:
-	section("PLANNING")
-	drawer_body.add_child(wrap_label(ClubCalendar.DAYS[ClubCalendar.weekday(game.sim.day)]+" · "+game.sim.clock_text()))
-	UiKit.button("Horaires du club",func(): show_schedule(-1),drawer_body,"Ouverture automatique et jours d'ouverture")
-	drawer_body.add_child(wrap_label("Ménage et maintenance continuent pendant la fermeture selon les plannings."))
-	UiKit.separator(drawer_body)
-	UiKit.separator(drawer_body)
-	section("ÉQUIPE ET HORAIRES")
+	# Two tabs: the people already in the club, and the candidates to hire.
+	var team: Array = game.model.furniture.filter(func(i): return Catalog.is_character(i.kind))
+	var tabs = UiKit.hbox(drawer_body,3)
+	for i in range(2):
+		var b = UiKit.button(["Équipe (%d)" % team.size(),"Recrutement"][i],func():
+			staff_tab = i
+			fill_drawer(),tabs,["Les employés du club, leur poste et leur planning","Choisir parmi les candidats du jour"][i])
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		UiKit.set_active(b,staff_tab == i)
+	if staff_tab == 0: fill_team(team)
+	else: fill_recruiting()
+
+func fill_team(team: Array) -> void:
 	var wages = 0
-	for item in game.model.furniture:
-		if not Catalog.is_character(item.kind): continue
-		if ClubCalendar.covers(item.get("work_schedule",ClubCalendar.default_shift()),game.sim.day,game.sim.minute): wages += int(Catalog.ITEMS[item.kind].get("wage",0))
+	for item in team:
+		if ClubCalendar.covers(item.get("work_schedule",ClubCalendar.default_shift()),game.sim.day,game.sim.minute): wages += int(Recruits.stats(item).wage)
+	drawer_body.add_child(wrap_label("%s · %s · salaires en cours : %s $/h" % [ClubCalendar.DAYS[ClubCalendar.weekday(game.sim.day)],game.sim.clock_text(),UiKit.money(wages)],1,UiKit.INK))
+	UiKit.button("Horaires du club",func(): show_schedule(-1),drawer_body,"Ouverture automatique et jours d'ouverture")
+	if team.is_empty():
+		drawer_body.add_child(wrap_label("Personne dans l'équipe pour l'instant."))
+		UiKit.button("Voir les candidats",func():
+			staff_tab = 1
+			fill_drawer(),drawer_body)
+		return
+	for item in team:
+		var card = UiKit.vbox(UiKit.panel(drawer_body),2)
 		var b = Button.new()
 		var a: Actor = game.sim.staff.get(int(item.id))
-		var state = staff_state(a) if a != null and is_instance_valid(a) else ""
+		var state = staff_state(a) if a != null and is_instance_valid(a) else ("En route" if item.get("delivery_pending",false) else "")
 		var profile = game.sim.profiles.get_profile(str(item.get("profile_id","")))
-		b.text = "%s · %s\n%s" % [profile.get("name",Catalog.ITEMS[item.kind].name),Catalog.ITEMS[item.kind].name,state]
+		var skills = Recruits.stats(item)
+		b.text = "%s · %s\n%s · %d $/h" % [profile.get("name",Catalog.ITEMS[item.kind].name),Catalog.ITEMS[item.kind].name,state,int(skills.wage)]
 		b.icon = portrait_texture(item.appearance)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.focus_mode = Control.FOCUS_NONE
+		b.add_theme_font_size_override("font_size",UiKit.fs(1))
+		b.tooltip_text = "Sélectionner dans le club"
 		b.pressed.connect(game.select_item.bind(int(item.id)))
 		UiKit.set_active(b,game.selected_item == int(item.id))
-		drawer_body.add_child(b)
-		UiKit.button("Fiche et histoire",show_profile.bind(str(item.get("profile_id","")),0),drawer_body)
-		drawer_body.add_child(wrap_label(ClubCalendar.summary(item.get("work_schedule",ClubCalendar.default_shift()))))
-		UiKit.button("Modifier le planning",show_schedule.bind(int(item.id)),drawer_body)
-	drawer_body.add_child(wrap_label("Salaires planifiés actuellement : %s $/h, même lorsque le club est fermé." % UiKit.money(wages)))
+		card.add_child(b)
+		skill_rows(card,item.kind,skills.speed,skills.quality)
+		var row = UiKit.hbox(card,3)
+		UiKit.button("Fiche",show_profile.bind(str(item.get("profile_id","")),0),row,"Son histoire, ses souvenirs")
+		UiKit.button("Planning",show_schedule.bind(int(item.id)),row,ClubCalendar.summary(item.get("work_schedule",ClubCalendar.default_shift())))
+	drawer_body.add_child(wrap_label("Les salaires planifiés courent même lorsque le club est fermé. Ménage et maintenance continuent selon les plannings."))
 
-	UiKit.separator(drawer_body)
-	section("EMBAUCHER")
+func fill_recruiting() -> void:
+	# The jobs, then the three candidates of the day for the chosen one.
+	var jobs: Array = []
 	for kind in Catalog.STAFF_ORDER:
+		if kind in Catalog.STAFF_ACTIVE or ClubSim.FEATURES.staff_roles: jobs.append(kind)
+	if recruit_kind == "" or not recruit_kind in jobs: recruit_kind = jobs[0]
+	section("POSTE")
+	# one portrait per job; the name and what it does in the tooltip
+	var row = UiKit.hbox(drawer_body,2)
+	for kind in jobs:
 		var entry: Dictionary = Catalog.ITEMS[kind]
-		var active = kind in Catalog.STAFF_ACTIVE or ClubSim.FEATURES.staff_roles
 		var need = Catalog.stars_needed(kind)
 		var unlocked = game.sim.stars() >= need
-		var available = active and unlocked
 		var b = Button.new()
-		if not active: b.text = "%s · bientôt" % entry.name
-		elif not unlocked: b.text = "%s · %d étoiles" % [entry.name,need]
-		else: b.text = "%s · %d $/h" % [entry.name,int(entry.wage)]
 		b.icon = portrait_texture(Characters.defaults(kind))
 		b.focus_mode = Control.FOCUS_NONE
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.add_theme_font_size_override("font_size",UiKit.fs(1))
-		b.disabled = not available
+		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		if not unlocked: b.modulate = Color(1,1,1,0.45)
+		var what = ""
 		if Characters.is_escort(kind):
 			var st: Dictionary = Characters.STANDINGS[kind]
-			b.tooltip_text = "Standing %d/4 · %s · tient compagnie aux clients du salon" % [int(st.level),st.name] if unlocked else "Un club de %d étoiles attire les escorts de ce standing." % need
-		elif not active: b.tooltip_text = "Arrive avec une prochaine fonctionnalité."
-		else: b.tooltip_text = "Placer %s : cliquez dans une pièce · %s" % [entry.name.to_lower(),{"receptionist":"accueille les clients au comptoir d'accueil et encaisse l'entrée","bartender":"sert à boire au comptoir de bar"}.get(kind,"nettoie les déchets")]
-		b.pressed.connect(game.choose_item.bind(kind))
-		UiKit.set_active(b,game.mode == "furniture" and game.chosen_item == kind)
-		drawer_body.add_child(b)
+			what = "Standing %d/4 · %s · tient compagnie aux clients du salon" % [int(st.level),st.name]
+		else: what = {"receptionist":"Accueille les clients au comptoir d'accueil et encaisse l'entrée","bartender":"Sert à boire au comptoir de bar","security":"Rassure les clients à l'entrée et fait des rondes","maid":"Fait les lits et nettoie les sanitaires"}.get(kind,"Nettoie les déchets et répare la plomberie")
+		b.tooltip_text = "%s · %d $/h en moyenne
+%s%s" % [entry.name,Recruits.base_wage(kind),what,"" if unlocked else "
+Demande un club de %d étoiles." % need]
+		b.pressed.connect(func():
+			recruit_kind = kind
+			fill_drawer())
+		UiKit.set_active(b,recruit_kind == kind)
+		row.add_child(b)
+	var entry: Dictionary = Catalog.ITEMS[recruit_kind]
+	var need = Catalog.stars_needed(recruit_kind)
+	section("CANDIDATS · %s · salaire moyen %d $/h" % [entry.name.to_upper(),Recruits.base_wage(recruit_kind)])
+	if game.sim.stars() < need:
+		drawer_body.add_child(wrap_label("Il faut un club de %d étoiles pour attirer ce profil." % need,1,UiKit.GOLD))
+		return
+	var names = Recruits.skill_names(recruit_kind)
+	drawer_body.add_child(wrap_label("%s : %s.\n%s : %s." % [names[0],names[1],names[2],names[3]]))
+	for c in Recruits.pool(game.sim,recruit_kind):
+		var card = UiKit.vbox(UiKit.panel(drawer_body),2)
+		var head = UiKit.hbox(card,4)
+		var face = TextureRect.new()
+		face.texture = portrait_texture(c.appearance)
+		head.add_child(face)
+		var col = UiKit.vbox(head,1)
+		col.add_child(UiKit.label("%s · %d ans" % [c.name,int(c.age)],1,UiKit.INK))
+		col.add_child(UiKit.label(c.tag,1,UiKit.MUTED))
+		var pay = UiKit.label("%d $/h%s" % [int(c.wage)," · "+c.deal if c.deal != "" else ""],1,UiKit.GREEN if c.deal == "Bonne affaire" else (UiKit.RED if c.deal == "Exigeant" else UiKit.GOLD))
+		col.add_child(pay)
+		skill_rows(card,recruit_kind,c.speed,c.quality)
+		var taken = Recruits.taken(game.sim,str(c.key))
+		var hire = UiKit.button("Déjà embauché" if taken else "Embaucher",game.hire.bind(c),card,"Puis cliquez dans une pièce pour son poste")
+		hire.disabled = taken
+		UiKit.set_active(hire,not taken and game.mode == "furniture" and str(game.placement_staff.get("key","")) == str(c.key))
+	drawer_body.add_child(wrap_label("De nouveaux candidats se présentent chaque jour."))
+	var ad = UiKit.button("Passer une annonce · %d $" % Recruits.AD_PRICE,func():
+		Recruits.advertise(game.sim)
+		toast("Annonce passée : de nouveaux candidats pour chaque poste.")
+		game.request_save()
+		fill_drawer(),drawer_body,"Trois nouveaux candidats par poste, tout de suite")
+	ad.disabled = game.sim.money < Recruits.AD_PRICE
+
+func skill_rows(parent: Node, kind: String, speed: float, quality: float) -> void:
+	# two rows of five squares: speed and quality, named for the job
+	var names = Recruits.skill_names(kind)
+	for row_data in [[names[0],names[1],speed],[names[2],names[3],quality]]:
+		var row = UiKit.hbox(parent,1)
+		row.tooltip_text = "%s : %s (×%.2f)" % [row_data[0],row_data[1],float(row_data[2])]
+		row.mouse_filter = Control.MOUSE_FILTER_PASS
+		var l = UiKit.label(row_data[0],1,UiKit.MUTED)
+		l.custom_minimum_size.x = 48*S
+		l.mouse_filter = Control.MOUSE_FILTER_PASS
+		row.add_child(l)
+		var n = Recruits.stars(float(row_data[2]))
+		for i in range(5):
+			var box = UiKit.chip(UiKit.GOLD if i < n else UiKit.DIM,7,5)
+			box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			row.add_child(box)
 
 func staff_state(a: Actor) -> String:
 	if a.brain.get("overtime",false): return "Termine sa tâche · fin de service"
@@ -664,7 +740,6 @@ func fill_settings() -> void:
 	UiKit.separator(drawer_body)
 	section("PARTIE")
 	UiKit.button("Enregistrer",func(): game.manual_save(),drawer_body,"Ctrl + S","save")
-	UiKit.button("Importer le bâtiment 3D",func(): game.import_3d(),drawer_body,"Reprend les pièces et le mobilier de la version 3D","import")
 	UiKit.button("Nouveau club",func(): confirm("Nouveau club","Repartir du club de départ ?\nL'argent et la réputation sont réinitialisés.",func(): game.reset_club()),drawer_body,"","plus")
 	UiKit.button("Commandes et aide",func(): show_help(),drawer_body,"F1","help")
 	UiKit.button("Quitter",func(): game.quit(),drawer_body,"","exit")
@@ -770,7 +845,9 @@ func _timed_refresh_context() -> void:
 			var profile = game.sim.profiles.get_profile(str(item.get("profile_id","")))
 			col.add_child(UiKit.label(profile.get("name",""),1,UiKit.GOLD))
 			UiKit.button("Fiche et histoire",show_profile.bind(str(item.get("profile_id","")),0),context_body)
-			col.add_child(UiKit.label("%d $/h" % int(e.wage),1,UiKit.GOLD))
+			col.add_child(UiKit.label("%d $/h" % int(Recruits.stats(item).wage),1,UiKit.GOLD))
+			var skills = Recruits.stats(item)
+			skill_rows(context_body,item.kind,skills.speed,skills.quality)
 			var a = game.sim.staff.get(int(item.id))
 			if a != null and is_instance_valid(a):
 				staff_context_label = UiKit.label(staff_state(a),1,UiKit.MUTED)
@@ -841,7 +918,7 @@ func _timed_refresh_context() -> void:
 		var remove_text = "Renvoyer" if Catalog.is_character(item.kind) else ("Jeter" if Catalog.is_used(item.kind) else "Revendre")
 		if item.get("delivery_pending",false): remove_text = "Annuler l'achat"
 		var actions = [["Déplacer","move",game.start_move,"Cliquer la nouvelle position"],["Tourner","rotate",game.rotate_item,"R"]]
-		if not Catalog.is_used(item.kind): actions.append(["Copier","copy",game.duplicate_item,"Ctrl + D"])
+		if not Catalog.is_used(item.kind) and not Catalog.is_character(item.kind): actions.append(["Copier","copy",game.duplicate_item,"Ctrl + D"])
 		actions.append([remove_text,"delete",game.delete_selection,"Suppr"])
 		for entry in actions:
 			var b = UiKit.button(entry[0],entry[2],g,entry[3],entry[1])
@@ -917,6 +994,14 @@ func _timed_refresh_context() -> void:
 			context_body.add_child(wrap_label(lay.get("error","")))
 		context_body.add_child(UiKit.label("Valeur : %s $" % UiKit.money(Street.price(model.rect(parking))),1,UiKit.GOLD))
 		UiKit.button("Supprimer l'allée" if is_lane else "Supprimer la rangée",game.delete_selection,context_body,"Suppr","delete")
+	elif game.selected_edge != "" and not model.openings.has(game.selected_edge):
+		# a partition: its length, what it is worth, and how to get through
+		context.title.text = "Sélection"
+		var run = model.partition_run(game.selected_edge)
+		context_body.add_child(UiKit.label("Cloison · %d m" % run.size(),1))
+		context_body.add_child(UiKit.label("Valeur : %s $" % UiKit.money(run.size()*BuildingModel.PARTITION_PRICE),1,UiKit.GOLD))
+		context_body.add_child(wrap_label("Pour la traverser, placez-y une porte (P). Démolie, elle est remboursée."))
+		UiKit.button("Démolir la cloison",game.delete_selection,context_body,"Suppr","delete")
 	elif game.selected_edge != "":
 		context.title.text = "Sélection"
 		context_body.add_child(UiKit.label("Porte" if model.openings.get(game.selected_edge) == "door" else "Fenêtre",1))
@@ -999,6 +1084,13 @@ func show_profile(id: String, tab: int = 0) -> void:
 			else:
 				body.add_child(wrap_label({"efficient":"Méthodique : temps de ménage et réparation réduit de 10 %.","welcoming":"Accueillant : satisfaction +1 lors de l'accueil ou du service au bar.","focused":"Appliqué : souhaite développer son expérience professionnelle."}[p.employee_trait]))
 				body.add_child(wrap_label("Préfère travailler %s. Indication pour le planning ; aucun horaire imposé." % ("le soir" if p.shift == "soir" else "la nuit")))
+				var hired = game.sim.model.item_by_id(int(p.get("staff_item",-1)))
+				if not hired.is_empty():
+					section("COMPÉTENCES",body)
+					var skills = Recruits.stats(hired)
+					skill_rows(body,hired.kind,skills.speed,skills.quality)
+					var names = Recruits.skill_names(hired.kind)
+					body.add_child(wrap_label("%s : %s.\n%s : %s.\nSalaire : %d $/h (moyenne du poste : %d $/h)." % [names[0],names[1],names[2],names[3],int(skills.wage),Recruits.base_wage(hired.kind)]))
 				section("OBJECTIF PERSONNEL",body)
 				body.add_child(wrap_label("Acquérir 8 heures d'expérience au club : %.1f / 8 h.\n%s" % [minf(8,float(p.work_minutes)/60),"Objectif atteint : temps de travail des tâches réduit de 5 %." if float(p.work_minutes) >= 480 else "Récompense : temps de travail des tâches réduit de 5 %. Les déplacements gardent leur vitesse."]))
 		elif tab == 1:
@@ -1177,7 +1269,8 @@ func confirm(title: String, text: String, action: Callable) -> void:
 func show_help() -> void:
 	open_modal("Commandes",func(col):
 		for block in [
-			["CONSTRUIRE","T pièce · P porte · F fenêtre\nCliquez-glissez pour tracer ; tirez les poignées pour agrandir."],
+			["PERSONNEL","Recrutement : trois candidats par poste chaque jour,\navec leur rapidité, leur qualité de travail et leur salaire."],
+			["CONSTRUIRE","T pièce · C cloison · P porte · F fenêtre\nCliquez-glissez pour tracer ; tirez les poignées pour agrandir."],
 			["MOBILIER","B catalogue · orientation automatique (murs, table, bar) · R : tourner à la main · A : auto · Maj + clic : en série\nGlisser un objet pour le déplacer."],
 			["SÉLECTION","Suppr supprimer · Ctrl + D copier\nCtrl + Z / Y annuler / rétablir · Ctrl + S enregistrer"],
 			["TEMPS","Espace pause · 1 normal · 2 accéléré"],

@@ -9,6 +9,7 @@ var next_id: int = 1
 var error: String = ""
 var strict = true   # rules newer than some saves (shower doors kept free, nothing on the street): not enforced on loading
 const LIMIT = 24
+const PARTITION_PRICE = 60   # a metre of partition wall inside a room
 
 func uid() -> int:
 	var result = next_id
@@ -206,6 +207,10 @@ func valid_item(item: Dictionary, except_id: int = -1) -> bool:
 	if SitePlan.building(room):
 		error = "Chantier en cours : la pièce sera meublable une fois terminée."
 		return false
+	for k in room.get("walls",[]):
+		if crosses(area,k):
+			error = "Une cloison passe ici."
+			return false
 	var flat = Catalog.ITEMS[item.kind].get("flat",false)
 	var person = Catalog.is_character(item.kind)
 	var clear = Catalog.clear_rect(item) if strict else Rect2()
@@ -482,14 +487,155 @@ static func edge_key(axis: String, x: int, z: int) -> String:
 
 func edges() -> Dictionary:
 	# Wall segments: every metre of a room's outline. Inside a room (between
-	# the rectangles of an extended room) there is no wall.
+	# the rectangles of an extended room) there is no wall, except the
+	# partitions the player put up, which have the room on both sides.
 	var result = {}
 	for room in rooms:
 		for e in room_edges(room):
 			var k = edge_key(e.axis,e.x,e.z)
 			if not result.has(k): result[k] = {"axis":e.axis,"x":e.x,"z":e.z,"rooms":[]}
 			result[k].rooms.append(room.id)
+		for k in room.get("walls",[]):
+			if result.has(k): continue
+			var c = k.split(":")
+			result[k] = {"axis":c[0],"x":int(c[1]),"z":int(c[2]),"rooms":[room.id,room.id],"partition":true}
 	return result
+
+# ------------------------------------------------------------------ partitions
+# A partition is a wall put up inside a room, along the metre grid: stored on
+# the room as edge keys ("walls"). The room keeps its type; people cross a
+# partition only through a door placed in it.
+
+static func edge_cells(key: String) -> Array:
+	# the two metre cells a wall segment stands between, [] for a bad key
+	var p = key.split(":")
+	if p.size() != 3 or not p[0] in ["x","z"] or not p[1].is_valid_int() or not p[2].is_valid_int(): return []
+	var x = int(p[1])
+	var z = int(p[2])
+	return [Vector2i(x,z-1),Vector2i(x,z)] if p[0] == "x" else [Vector2i(x-1,z),Vector2i(x,z)]
+
+static func interior_in(own: Dictionary, key: String) -> bool:
+	var cells = edge_cells(key)
+	return not cells.is_empty() and own.has(cells[0]) and own.has(cells[1])
+
+static func crosses(area: Rect2, key: String) -> bool:
+	# whether a footprint straddles a wall segment
+	var c = edge_cells(key)
+	if c.is_empty(): return false
+	var m = 0.03
+	if key.begins_with("x"):
+		var z = float(c[1].y)
+		return area.position.y < z-m and area.end.y > z+m and area.position.x < c[1].x+1-m and area.end.x > c[1].x+m
+	var x = float(c[1].x)
+	return area.position.x < x-m and area.end.x > x+m and area.position.y < c[1].y+1-m and area.end.y > c[1].y+m
+
+static func partition_keys(a: Vector2i, b: Vector2i) -> Array:
+	# the metre segments of a straight wall from one grid point to another
+	var out: Array = []
+	if a.y == b.y:
+		for x in range(mini(a.x,b.x),maxi(a.x,b.x)): out.append(edge_key("x",x,a.y))
+	elif a.x == b.x:
+		for z in range(mini(a.y,b.y),maxi(a.y,b.y)): out.append(edge_key("z",a.x,z))
+	return out
+
+func partition_room(key: String) -> Dictionary:
+	for room in rooms:
+		if room.get("walls",[]).has(key): return room
+	return {}
+
+func partition_check(keys: Array) -> Dictionary:
+	# The room a new partition would stand in, or {} (error says why).
+	error = ""
+	if keys.is_empty():
+		error = "Glissez le long du quadrillage pour tracer la cloison."
+		return {}
+	var room: Dictionary = {}
+	var fresh = 0
+	for k in keys:
+		var cells = edge_cells(k)
+		var here = room_at(Vector2(cells[0])+Vector2(0.5,0.5))
+		var there = room_at(Vector2(cells[1])+Vector2(0.5,0.5))
+		if here.is_empty() or there.is_empty() or int(here.id) != int(there.id):
+			error = "Une cloison se monte à l'intérieur d'une pièce, pas sur ses murs."
+			return {}
+		if room.is_empty(): room = here
+		elif int(room.id) != int(here.id):
+			error = "Une cloison reste dans une seule pièce."
+			return {}
+		if not room.get("walls",[]).has(k): fresh += 1
+	if SitePlan.building(room):
+		error = "Chantier en cours : montez la cloison une fois les travaux finis."
+		return {}
+	if fresh == 0:
+		error = "Cette cloison existe déjà."
+		return {}
+	for item in furniture:
+		if not inside(room,Vector2(item.x,item.z)): continue
+		for k in keys:
+			if crosses(item_rect(item),k):
+				error = "Déplacez d'abord ce qui se trouve sur le tracé."
+				return {}
+	return room
+
+func add_partition(keys: Array) -> int:
+	# Returns the room it was put up in, or -1.
+	var room = partition_check(keys)
+	if room.is_empty(): return -1
+	if not room.has("walls"): room.walls = []
+	for k in keys:
+		if not room.walls.has(k): room.walls.append(k)
+	return int(room.id)
+
+func partition_run(key: String) -> Array:
+	# the whole straight partition a segment belongs to
+	var room = partition_room(key)
+	if room.is_empty(): return []
+	var own: Array = room.walls
+	var c = key.split(":")
+	var axis = c[0]
+	var run: Array = [key]
+	for dir in [-1,1]:
+		var x = int(c[1])
+		var z = int(c[2])
+		while true:
+			if axis == "x": x += dir
+			else: z += dir
+			var k = edge_key(axis,x,z)
+			if not own.has(k): break
+			run.append(k)
+	return run
+
+func remove_partition(key: String) -> int:
+	# Takes down the whole straight partition; returns how many metres.
+	var room = partition_room(key)
+	if room.is_empty(): return 0
+	var run = partition_run(key)
+	for k in run: room.walls.erase(k)
+	if room.walls.is_empty(): room.erase("walls")
+	prune_openings()
+	return run.size()
+
+func closed_areas(room: Dictionary) -> int:
+	# How many separate areas the partitions (without doors) leave in a room.
+	var own = cells_of(room)
+	var walls: Dictionary = {}
+	for k in room.get("walls",[]):
+		if openings.get(k,"") != "door": walls[k] = true
+	var seen: Dictionary = {}
+	var count = 0
+	for start in own:
+		if seen.has(start): continue
+		count += 1
+		seen[start] = true
+		var stack: Array = [start]
+		while not stack.is_empty():
+			var c: Vector2i = stack.pop_back()
+			for step in [[Vector2i(1,0),edge_key("z",c.x+1,c.y)],[Vector2i(-1,0),edge_key("z",c.x,c.y)],[Vector2i(0,1),edge_key("x",c.x,c.y+1)],[Vector2i(0,-1),edge_key("x",c.x,c.y)]]:
+				var n: Vector2i = c+step[0]
+				if own.has(n) and not seen.has(n) and not walls.has(step[1]):
+					seen[n] = true
+					stack.append(n)
+	return count
 
 static func room_edges(room: Dictionary) -> Array:
 	var out: Array = []
@@ -635,6 +781,15 @@ func merge_extension(ext_id: int) -> int:
 	return int(target.id)
 
 func prune_openings() -> void:
+	# a room made smaller (or merged) keeps only the partitions still inside it
+	for room in rooms:
+		if not room.has("walls"): continue
+		var own = cells_of(room)
+		var kept: Array = []
+		for k in room.walls:
+			if interior_in(own,k): kept.append(k)
+		if kept.is_empty(): room.erase("walls")
+		else: room.walls = kept
 	var walls = edges()
 	for key in openings.keys():
 		if not walls.has(key): openings.erase(key)
@@ -650,7 +805,7 @@ func cost() -> int:
 	# Value of the building: rooms by area, renovated finishes and furniture.
 	# Salvaged furniture and debris are worth nothing.
 	var total = 0
-	for room in rooms: total += area_of(room)*Catalog.ROOM_PRICE+Finishes.value(room)
+	for room in rooms: total += area_of(room)*Catalog.ROOM_PRICE+Finishes.value(room)+room.get("walls",[]).size()*PARTITION_PRICE
 	for item in furniture: total += int(Catalog.ITEMS[item.kind].get("price",0))+Sanitation.value(item)
 	var parking_area = 0.0
 	for pk in parkings: parking_area += rect(pk).get_area()
@@ -687,6 +842,15 @@ func load_checked(data: Variant) -> bool:
 		ids[int(r.id)] = true
 		var loaded = r.duplicate(true)
 		for key in ["id","x","z","w","h","type"]: loaded[key] = int(r[key])
+		if loaded.has("walls"):
+			# partitions: keys of walls inside the room; anything else is dropped
+			if not loaded.walls is Array or loaded.walls.size() > 2000: return false
+			var own = cells_of(loaded)
+			var kept: Array = []
+			for k in loaded.walls:
+				if k is String and k.length() <= 24 and interior_in(own,k) and not kept.has(k): kept.append(k)
+			if kept.is_empty(): loaded.erase("walls")
+			else: loaded.walls = kept
 		if loaded.has("build"):
 			# a site in progress; damaged progress data restarts nothing, the room is kept finished
 			var works = SitePlan.sanitize(loaded.build)
@@ -717,6 +881,9 @@ func load_checked(data: Variant) -> bool:
 			if not item.soil is float and not item.soil is int: return false
 			if not is_finite(float(item.soil)): return false
 			loaded_item.soil = clampf(float(item.soil),0,100)
+		if item.has("shine"):
+			if not (item.shine is float or item.shine is int) or not is_finite(float(item.shine)) or not item.kind in Plumbing.KINDS: return false
+			loaded_item.shine = clampf(float(item.shine),0,0.3)
 		for field in ["wear","leak_timer"]:
 			if not item.has(field): continue
 			if not item.kind in Plumbing.KINDS or not (item[field] is int or item[field] is float) or not is_finite(float(item[field])): return false
@@ -734,6 +901,10 @@ func load_checked(data: Variant) -> bool:
 			if item.has("profile_id") and (not item.profile_id is String or item.profile_id.length() > 16): return false
 			if item.has("appearance") and not Characters.valid(item.appearance): return false
 			loaded_item.appearance = Characters.normalize(item.get("appearance",{}),item.kind)
+			if item.has("staff"):
+				if not Recruits.valid(item.staff): return false
+				loaded_item.staff = Recruits.normalized(item.staff)
+		elif item.has("staff"): return false
 		if not candidate.valid_item(loaded_item):
 			# Older builds used larger footprints for some objects: keep the
 			# project but skip only the pieces that no longer fit.

@@ -28,7 +28,8 @@ static func usable(sim, a: Actor, s: Dictionary, allow_broken: bool = false) -> 
 	return not room.is_empty() and not sim.room_private(room) and sim.model.room_at(s.pos) == room and sim.nav.walkable(s.pos) and sim.nav.reachable(a.world,s.pos)
 
 static func soil(item: Dictionary, amount: float) -> void:
-	item.soil = clampf(float(item.get("soil",0.0))+amount*(.5 if item.get("easy_clean",false) else 1.0),0,100)
+	# a fixture cleaned with care stays clean a little longer
+	item.soil = clampf(float(item.get("soil",0.0))+amount*(.5 if item.get("easy_clean",false) else 1.0)*(1.0-float(item.get("shine",0.0))),0,100)
 
 static func forget(sim, a: Actor) -> void:
 	sim.sanitary_queue.erase(a)
@@ -211,7 +212,11 @@ static func cleaner_tick(sim, a: Actor, arrived: bool, gm: float) -> bool:
 		elif b.state == "cleaning_fixture":
 			b.timer -= gm
 			if b.timer <= 0:
-				item.soil = 0.0
+				# a careless cleaner leaves some of the dirt, a careful one a shine
+				var care = float(b.get("quality",1.0))
+				item.soil = clampf((1.0-care)*120.0,0.0,40.0)
+				if care > 1.0: item.shine = snappedf(clampf(care-1.0,0.0,0.3),0.01)
+				else: item.erase("shine")
 				for spill in fixture_spills(sim,item):
 					spill.node.queue_free()
 					sim.dirt.erase(spill)

@@ -9,6 +9,8 @@ var area = Rect2i()
 var blocked: Dictionary = {}
 var room_of: Dictionary = {}
 var zone: Dictionary = {}     # point -> connected area: who can reach whom, without a search
+var partitions: Dictionary = {}   # edge key -> true: walls put up inside a room
+var walled: Dictionary = {}       # room id -> true when it has partitions
 var model: BuildingModel
 
 func key(c: Vector2i) -> int:
@@ -25,6 +27,12 @@ func rebuild(building: BuildingModel, delivery_road: bool = false, extra_obstacl
 	astar.clear()
 	blocked.clear()
 	room_of.clear()
+	partitions.clear()
+	walled.clear()
+	for room in model.rooms:
+		for k in room.get("walls",[]):
+			partitions[k] = true
+			walled[int(room.id)] = true
 	var b = Rect2(-6,-6,12,12)
 	if not model.rooms.is_empty():
 		b = model.bounds(model.rooms[0])
@@ -91,15 +99,22 @@ func rebuild(building: BuildingModel, delivery_road: bool = false, extra_obstacl
 		count += 1
 
 func passable(a: Vector2i, b: Vector2i) -> bool:
-	if room_of.get(a,0) == room_of.get(b,0): return true
-	# Different rooms: the shared boundary must hold a door.
+	var ra = room_of.get(a,0)
+	var same = ra == room_of.get(b,0)
+	if same and not walled.has(ra): return true
+	# Different rooms: the shared boundary must hold a door. Inside a room
+	# with partitions: a partition is crossed through its door only.
+	var k = ""
 	if a.y == b.y:
-		var x = maxi(a.x,b.x)*CELL
-		var z = floori(center(a).y)
-		return model.openings.get(BuildingModel.edge_key("z",int(x),z),"") == "door"
-	var zz = maxi(a.y,b.y)*CELL
-	var xx = floori(center(a).x)
-	return model.openings.get(BuildingModel.edge_key("x",xx,int(zz)),"") == "door"
+		var m = maxi(a.x,b.x)
+		if same and posmod(m,2) != 0: return true
+		k = BuildingModel.edge_key("z",floori(m*CELL),floori(center(a).y))
+	else:
+		var m = maxi(a.y,b.y)
+		if same and posmod(m,2) != 0: return true
+		k = BuildingModel.edge_key("x",floori(center(a).x),floori(m*CELL))
+	if same and not partitions.has(k): return true
+	return model.openings.get(k,"") == "door"
 
 func walkable(p: Vector2) -> bool:
 	var c = cell_of(p)

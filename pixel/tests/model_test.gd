@@ -216,6 +216,7 @@ func _init() -> void:
 	site_checks()
 	extension_checks()
 	reach_checks()
+	partition_checks()
 	print("MODEL_TESTS: %d checks, %d failures" % [checks,failures])
 	if failures == 0: print("MODEL_TESTS_PASSED")
 	quit(1 if failures > 0 else 0)
@@ -445,3 +446,56 @@ func reach_checks() -> void:
 		if n.reachable(a,b) == searched: agree += 1
 		if not searched: unreachable += 1
 	check(agree == 300 and unreachable > 0,"Reachability from connected areas matches path search (%d/300, %d unreachable)" % [agree,unreachable])
+
+func partition_checks() -> void:
+	# Walls put up inside a room: along the grid, paid by the metre, crossed
+	# through a door only, saved with the room.
+	var m = BuildingModel.new()
+	var a = m.add_room(0,0,6,4,0)
+	m.set_opening("z:0:1","door")
+	var value = m.cost()
+	var keys = BuildingModel.partition_keys(Vector2i(3,0),Vector2i(3,4))
+	check(keys == ["z:3:0","z:3:1","z:3:2","z:3:3"],"A partition is drawn metre by metre along the grid")
+	check(BuildingModel.partition_keys(Vector2i(1,1),Vector2i(3,2)).is_empty(),"Only straight partitions")
+	check(m.partition_check(BuildingModel.partition_keys(Vector2i(0,0),Vector2i(6,0))).is_empty(),"Not on the room's own walls (%s)" % m.error)
+	check(m.partition_check(BuildingModel.partition_keys(Vector2i(3,-2),Vector2i(3,2))).is_empty(),"Not out of the room")
+	var chair = m.add_item("chair",3.0,2.5,0)
+	check(chair != -1 and m.add_partition(keys) == -1 and m.error.begins_with("Déplacez"),"Furniture on the line must move first")
+	m.remove_item(chair)
+	check(m.add_partition(keys) == a and m.cost() == value+4*BuildingModel.PARTITION_PRICE,"Put up, it costs %d $ a metre" % BuildingModel.PARTITION_PRICE)
+	check(m.add_partition(keys) == -1,"Not twice")
+	check(m.edges().has("z:3:1") and m.edges()["z:3:1"].get("partition",false) and m.edges()["z:3:1"].rooms == [a,a],"It counts as a wall, with the room on both sides")
+	check(m.closed_areas(m.room_by_id(a)) == 2,"Wall to wall, it closes off the far side")
+	var n = ClubNav.new()
+	n.rebuild(m)
+	check(n.reachable(Vector2(1,2),Vector2(2.5,1)) and not n.reachable(Vector2(1,2),Vector2(5,2)),"Nobody walks through a partition")
+	check(m.set_opening("z:3:2","door"),"A door can go in a partition")
+	n.rebuild(m)
+	check(n.reachable(Vector2(1,2),Vector2(5,2)) and m.closed_areas(m.room_by_id(a)) == 1,"People go through its door")
+	var path = n.path(Vector2(1,0.5),Vector2(5,0.5))
+	check(path.any(func(q): return absf(q.x-3.0) < 0.6 and q.y > 2.0 and q.y < 3.0),"The way round goes through the door")
+	check(m.add_item("chair",3.0,0.5,0) == -1 and m.error == "Une cloison passe ici.","Nothing straddles a partition")
+	check(m.add_item("chair",2.5,0.5,0) != -1,"Furniture fits right against it")
+	check(m.partition_run("z:3:0").size() == 4 and m.partition_run("x:1:1").is_empty(),"A partition is taken as a whole run")
+	# saved with the room, with its door
+	var copy = BuildingModel.new()
+	check(copy.load_checked(JSON.parse_string(JSON.stringify(m.snapshot()))) and copy.room_by_id(a).walls.size() == 4 and copy.openings.get("z:3:2") == "door","Partitions and their doors are saved")
+	var bad = m.snapshot()
+	bad.rooms[0].walls = ["z:0:1","nonsense","z:3:1",5,"z:3:1"]
+	bad.openings.erase("z:3:2")
+	check(copy.load_checked(JSON.parse_string(JSON.stringify(bad))) and copy.room_by_id(a).walls == ["z:3:1"],"A damaged partition list keeps only the walls inside the room")
+	bad.rooms[0].walls = "z:3:1"
+	check(not copy.load_checked(JSON.parse_string(JSON.stringify(bad))),"A partition list that is not a list is refused")
+	# taken down: refunded, its door goes with it
+	var furnished = m.cost()
+	check(m.remove_partition("z:3:1") == 4 and not m.room_by_id(a).has("walls") and not m.openings.has("z:3:2") and m.cost() == furnished-4*BuildingModel.PARTITION_PRICE,"Taking it down refunds it and its door goes with it")
+	# a smaller room keeps only the partitions still inside it
+	m.add_partition(BuildingModel.partition_keys(Vector2i(0,2),Vector2i(5,2)))
+	m.furniture.clear()
+	var smaller = m.room_by_id(a).duplicate(true)
+	smaller.w = 3
+	check(m.resize_room(a,smaller) and m.room_by_id(a).walls == ["x:0:2","x:1:2","x:2:2"],"Shrinking a room drops the partitions left outside")
+	# not on a building site
+	var site = m.add_room(10,0,4,4,0)
+	m.room_by_id(site).build = SitePlan.start()
+	check(m.add_partition(BuildingModel.partition_keys(Vector2i(12,0),Vector2i(12,4))) == -1,"No partition on a building site")

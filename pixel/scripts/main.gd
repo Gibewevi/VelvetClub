@@ -23,6 +23,7 @@ var rotation_manual = false   # R turns the piece by hand; A gives the orientati
 var parking_rotation = 1
 var parking_pointer = Vector2.ZERO
 var placement_appearance: Dictionary = {}
+var placement_staff: Dictionary = {}   # the candidate being placed: skills, wage, name
 var selected_room = -1
 var selected_item = -1
 var selected_edge = ""
@@ -34,7 +35,6 @@ var undo_stack: Array = []
 var redo_stack: Array = []
 var panning = false
 var save_path = "user://pixel_club.json"
-var legacy_path = "user://building.json"
 var save_timer: Timer
 var autosave_timer: Timer
 var save_status = "Sauvegarde automatique active"
@@ -348,7 +348,7 @@ func _timed_refresh() -> void:
 	hud.refresh_context()
 	if hud.active in ["build","staff","decor"]: hud.fill_drawer()
 	hud.update_dock()
-	var texts = {"select":"","room":"Tracer : "+Catalog.ROOMS[room_type],"door":"Placer une porte","window":"Placer une fenêtre","furniture":Catalog.ITEMS[chosen_item].name+(" · orientation manuelle · A : auto" if rotation_manual or not Orient.applies(chosen_item) else " · orientation auto · R : tourner à la main"),
+	var texts = {"select":"","room":"Tracer : "+Catalog.ROOMS[room_type],"door":"Placer une porte","window":"Placer une fenêtre","partition":"Cloison · glisser le long du quadrillage","furniture":Catalog.ITEMS[chosen_item].name+(" · orientation manuelle · A : auto" if rotation_manual or not Orient.applies(chosen_item) else " · orientation auto · R : tourner à la main"),
 		"parking":"Places · R : tourner", "parking_lane":"Allée · glisser pour tracer"}
 	hud.set_mode_text(texts.get(mode,""))
 	hud.refresh_stats()
@@ -358,11 +358,11 @@ func set_mode(value: String) -> void:
 	clear_selection()
 	view.clear_preview()
 	view.show_edge("")
-	if mode in ["room","parking","parking_lane"]: view.grid.visible = true
+	if mode in ["room","parking","parking_lane","partition"]: view.grid.visible = true
 	elif not hud.active == "build": view.grid.visible = false
 	view.show_street_line(mode in ["parking","parking_lane"])
 	refresh()
-	hud.toast({"select":"Cliquez un meuble, une personne, une ouverture ou le sol d'une pièce.","room":"Glissez depuis le terrain libre : nouvelle pièce (2 × 2 m minimum). Depuis un mur ou le sol d'une pièce : elle s'agrandit.","door":"Cliquez un mur pour y placer une porte.","window":"Cliquez un mur pour y placer une fenêtre.","furniture":"Cliquez pour placer · orientation automatique · R : tourner à la main · Maj : en série · Échap : annuler",
+	hud.toast({"select":"Cliquez un meuble, une personne, une ouverture ou le sol d'une pièce.","room":"Glissez depuis le terrain libre : nouvelle pièce (2 × 2 m minimum). Depuis un mur ou le sol d'une pièce : elle s'agrandit.","door":"Cliquez un mur pour y placer une porte.","window":"Cliquez un mur pour y placer une fenêtre.","partition":"Glissez le long du quadrillage, à l'intérieur d'une pièce, pour monter une cloison (%d $ le mètre). Une porte (P) permet de la traverser." % BuildingModel.PARTITION_PRICE,"furniture":"Cliquez pour placer · orientation automatique · R : tourner à la main · Maj : en série · Échap : annuler",
 		"parking":"Cliquez pour une place · glissez pour une rangée · R : tourner. Les rangées voisines se raccordent.","parking_lane":"Tracez l'allée à côté des places et jusqu'au trottoir. Une largeur de 6 m facilite les manœuvres."}.get(mode,""))
 
 func set_room_type(t: int) -> void:
@@ -393,6 +393,7 @@ func choose_item(kind: String) -> void:
 		return
 	chosen_item = kind
 	placement_appearance = Characters.hire_look(kind,look_rng) if Catalog.is_character(kind) else {}
+	placement_staff = {}
 	placement_rotation = 0
 	rotation_manual = false
 	set_mode("furniture")
@@ -400,6 +401,16 @@ func choose_item(kind: String) -> void:
 	if Catalog.is_character(kind): hud.toast("%s · %d $/h · cliquez dans une pièce pour le poste" % [e.name,int(e.wage)])
 	elif Orient.applies(kind): hud.toast("%s · %s $ · s'oriente tout seul contre les murs et vers ce qu'il sert · R : tourner à la main · Maj : en série" % [e.name,UiKit.money(int(e.price))])
 	else: hud.toast("%s · %s $ · R : tourner · Maj : en série" % [e.name,UiKit.money(int(e.price))])
+
+func hire(c: Dictionary) -> void:
+	# A candidate from the short list: placed like any recruit, then works
+	# with the speed, quality and wage on the card.
+	if Recruits.taken(sim,str(c.key)): return
+	choose_item(str(c.kind))
+	if chosen_item != str(c.kind) or mode != "furniture": return
+	placement_appearance = c.appearance.duplicate(true)
+	placement_staff = Recruits.hired(c)
+	hud.toast("%s · %s · %d $/h · cliquez dans une pièce pour son poste · Échap : annuler" % [c.name,Catalog.ITEMS[c.kind].name,int(c.wage)])
 
 func select_room(id: int) -> void:
 	clear_selection()
@@ -533,7 +544,7 @@ func restore_to(data: Dictionary, message: String) -> void:
 	for saved_item in data.get("furniture",[]):
 		var live = model.item_by_id(int(saved_item.id))
 		if live.is_empty(): continue
-		for field in ["soil","wear","leaking","leak_timer","work_schedule","profile_id"]:
+		for field in ["soil","shine","wear","leaking","leak_timer","work_schedule","profile_id"]:
 			if live.has(field): saved_item[field] = live[field]
 			else: saved_item.erase(field)
 	# Nor does it split an extension that has joined its room since.
@@ -607,13 +618,17 @@ func delete_selection() -> void:
 			hud.toast("Un technicien d'entretien doit nettoyer ce déchet (Personnel).")
 			return
 		if not item.is_empty() and Catalog.is_used(item.kind): what = Catalog.ITEMS[item.kind].name+" jeté."
-		if not item.is_empty() and Catalog.is_character(item.kind): what = Catalog.ITEMS[item.kind].name+" a quitté l'équipe."
+		if not item.is_empty() and Catalog.is_character(item.kind):
+			what = Catalog.ITEMS[item.kind].name+" a quitté l'équipe."
+			Recruits.let_go(sim,item)
 		model.furniture.erase(item)
 	elif selected_room >= 0: model.remove_room(selected_room)
 	elif selected_parking >= 0:
 		model.remove_parking(selected_parking)
 		what = "Parking démoli."
-	elif selected_edge != "": model.openings.erase(selected_edge)
+	elif selected_edge != "":
+		if model.openings.has(selected_edge): model.openings.erase(selected_edge)
+		else: what = "Cloison démolie (%d m)." % model.remove_partition(selected_edge)
 	clear_selection()
 	commit(before,what+" Ctrl + Z pour annuler.")
 
@@ -664,6 +679,10 @@ func start_move() -> void:
 func duplicate_item() -> void:
 	var item = model.item_by_id(selected_item).duplicate()
 	if item.is_empty() or not Catalog.in_shop(item.kind) and not Catalog.is_character(item.kind): return
+	if Catalog.is_character(item.kind):
+		# no clones: each recruit is a candidate of her own
+		hud.toast("Pour embaucher, choisissez un candidat : Personnel › Recrutement.")
+		return
 	choose_item(item.kind)
 	placement_rotation = int(item.rot)
 	placement_appearance = item.get("appearance",{}).duplicate(true)
@@ -734,25 +753,6 @@ func reset_club() -> void:
 	hud.toast("Nouveau départ : un local vétuste à rénover.")
 	request_save()
 
-func import_3d() -> void:
-	if not FileAccess.file_exists(legacy_path):
-		hud.toast("Aucun bâtiment de la version 3D trouvé sur cet ordinateur.")
-		return
-	var data = JSON.parse_string(FileAccess.get_file_as_string(legacy_path))
-	var candidate = BuildingModel.new()
-	if not candidate.load_checked(data):
-		hud.toast("Le bâtiment 3D n'a pas pu être lu.")
-		return
-	var before = model.snapshot()
-	model.restore(candidate.snapshot())
-	undo_stack.append(before)
-	redo_stack.clear()
-	clear_selection()
-	changed_view()
-	center_camera()
-	hud.toast("Bâtiment 3D importé : %d pièces, %d objets. Ctrl + Z pour revenir." % [model.rooms.size(),model.furniture.size()])
-	request_save()
-
 # ------------------------------------------------------------------ input
 
 func ui_blocking() -> bool:
@@ -793,6 +793,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				KEY_P: set_mode("door")
 				KEY_F: set_mode("window")
 				KEY_K: set_mode("parking")
+				KEY_C: set_mode("partition")
 				KEY_SPACE: set_speed(0 if sim.speed != 0 else 1)
 				KEY_O: toggle_open()
 				KEY_R: rotate_item()
@@ -837,6 +838,10 @@ func begin_action(screen: Vector2) -> void:
 		drag = {"kind":mode,"start":grow.get("start",p.floor()),"extend":int(grow.get("room",-1))}
 		update_preview(screen)
 		return
+	if mode == "partition":
+		drag = {"kind":mode,"start":Vector2i(p.round())}
+		update_preview(screen)
+		return
 	if mode == "furniture":
 		var at = snap_point(p)
 		var before = model.snapshot()
@@ -848,9 +853,13 @@ func begin_action(screen: Vector2) -> void:
 		if id == -1:
 			hud.toast(model.error)
 			return
+		var candidate = not placement_staff.is_empty() and moving_item < 0
+		if candidate: model.item_by_id(id).staff = placement_staff.duplicate()
 		# each recruit of a series gets a look of her own
 		if moving_item < 0 and Catalog.is_character(chosen_item): placement_appearance = Characters.hire_look(chosen_item,look_rng)
-		var keep = moving_item < 0 and Input.is_key_pressed(KEY_SHIFT)
+		# a candidate is one person: no series
+		var keep = moving_item < 0 and Input.is_key_pressed(KEY_SHIFT) and not candidate
+		if candidate: placement_staff = {}
 		var moved = moving_item >= 0
 		var name = Catalog.ITEMS[chosen_item].name
 		if not keep:
@@ -896,7 +905,7 @@ func begin_action(screen: Vector2) -> void:
 		if not Catalog.is_debris(item.kind): drag = {"kind":"move","id":selected_item,"start":p,"screen":screen,"original":item.duplicate()}
 	else:
 		var key = view.pick_wall(wp)
-		if key != "" and model.openings.has(key): selected_edge = key
+		if key != "" and (model.openings.has(key) or not model.partition_room(key).is_empty()): selected_edge = key
 		else:
 			room = model.room_at(p)
 			if not room.is_empty(): selected_room = int(room.id)
@@ -1056,6 +1065,12 @@ func update_preview(screen: Vector2) -> void:
 				if diff > 0: price_text = " · +%s $" % UiKit.money(diff)
 				elif diff < 0: price_text = " · %s $ remboursés" % UiKit.money(-diff)
 			hud.toast("%d × %d m%s · %s" % [r.w,r.h,price_text,"Relâchez pour valider" if valid else model.error],1.5)
+		elif drag.kind == "partition":
+			var line = partition_line(drag,screen)
+			var room = model.partition_check(line.keys)
+			view.preview_partition(line.a,line.b,not room.is_empty())
+			if not room.is_empty(): hud.toast("Cloison · %d m · %s $ · Relâchez pour valider" % [line.keys.size(),UiKit.money(line.keys.size()*BuildingModel.PARTITION_PRICE)],1.5)
+			elif not line.keys.is_empty(): hud.toast("Cloison · %s" % model.error,1.5)
 		elif drag.kind in ["parking","parking_lane"]:
 			show_parking_preview(parking_candidate(drag,screen))
 		elif drag.kind == "move" and screen.distance_to(drag.screen) > 6:
@@ -1075,6 +1090,11 @@ func update_preview(screen: Vector2) -> void:
 		view.preview_edge(view.nearest_edge(wp),mode)
 	elif mode in ["parking","parking_lane"]:
 		show_parking_preview(parking_candidate({},screen))
+	elif mode == "partition":
+		var c = Vector2i(ground_at(screen).round())
+		var room = model.room_at(ground_at(screen))
+		view.preview_partition(c,c,not room.is_empty())
+		hud.show_hover(("Cloison dans : "+Catalog.ROOMS[int(room.type)]) if not room.is_empty() else "Cloison : à l'intérieur d'une pièce",screen)
 	elif mode == "room":
 		var grow = growth_start(screen)
 		if grow.is_empty():
@@ -1119,12 +1139,36 @@ func update_preview(screen: Vector2) -> void:
 		view.hover_item(hover_id)
 		hud.show_hover(text,screen)
 
+func partition_line(d: Dictionary, screen: Vector2) -> Dictionary:
+	# a straight wall from the grid point where the drag started, along the
+	# axis the mouse moved most
+	var a: Vector2i = d.start
+	var b = Vector2i(ground_at(screen).round())
+	if absi(b.x-a.x) >= absi(b.y-a.y): b.y = a.y
+	else: b.x = a.x
+	return {"a":a,"b":b,"keys":BuildingModel.partition_keys(a,b)}
+
 func finish_drag(screen: Vector2) -> void:
 	if drag.is_empty(): return
 	var before = model.snapshot()
 	var d = drag
 	drag = {}
 	view.clear_preview()
+	if d.kind == "partition":
+		var line = partition_line(d,screen)
+		if line.keys.is_empty():
+			refresh()
+			return
+		var id = model.add_partition(line.keys)
+		if id == -1:
+			hud.toast(model.error)
+			refresh()
+			return
+		var text = "Cloison montée · %d m · %s $." % [line.keys.size(),UiKit.money(line.keys.size()*BuildingModel.PARTITION_PRICE)]
+		if model.closed_areas(model.room_by_id(id)) > 1: text += " Elle ferme un espace : ajoutez-y une porte (P)."
+		# stay in the tool: the next partition needs no extra click
+		if commit(before,text): refresh()
+		return
 	if d.kind == "room" and int(d.get("extend",-1)) >= 0:
 		var r = room_candidate_from(d,screen)
 		var target = model.room_by_id(int(d.extend))
@@ -1232,6 +1276,9 @@ func capture(path: String) -> void:
 		if arg == "--setup=extension": capture_extension()
 		if arg == "--setup=dust": capture_dust()
 		if arg == "--setup=cloak": capture_cloak()
+		if arg == "--setup=partition": capture_partition()
+		if arg == "--setup=team": capture_recruit(0)
+		if arg == "--setup=recruit": capture_recruit(1)
 		if arg == "--open": toggle_open()
 	hud.toast_time = 0
 	center_camera()
@@ -1376,6 +1423,42 @@ func capture_site() -> void:
 
 var capture_pointer = Vector2.INF   # captures: where the mouse would be (floor point)
 var capture_action: Callable         # captures: done just before the pictures are taken
+
+func capture_partition() -> void:
+	# Documentation: a lounge split by partitions into two quiet corners,
+	# a door through each; the selected partition shows its panel.
+	var before = model.snapshot()
+	model.add_room(14,-9,8,5,0)
+	commit(before,"salon")
+	before = model.snapshot()
+	model.add_partition(BuildingModel.partition_keys(Vector2i(18,-9),Vector2i(18,-4)))
+	model.add_partition(BuildingModel.partition_keys(Vector2i(18,-6),Vector2i(22,-6)))
+	model.set_opening("z:18:-8","door")
+	model.set_opening("x:20:-6","door")
+	model.add_item("sofa",16.0,-8.4,0)
+	model.add_item("coffee",16.0,-7.2,0)
+	model.add_item("armchair",20.0,-8.3,0)
+	model.add_item("plant",21.4,-8.5,0)
+	model.add_item("armchair",19.5,-4.7,2)
+	model.add_item("plant",21.4,-4.6,0)
+	commit(before,"cloisons")
+	selected_edge = "x:21:-6"
+	refresh()
+
+func capture_recruit(tab: int) -> void:
+	# Documentation: the Personnel drawer, the team hired from the lists or
+	# the day's candidates for the bar.
+	sim.day = 4
+	var before = model.snapshot()
+	for entry in [["bartender",Vector2(-1.5,2.8),0],["receptionist",Vector2(1.0,2.8),2],["maid",Vector2(-2.5,4.2),1]]:
+		var c: Dictionary = Recruits.pool(sim,entry[0])[entry[2]]
+		var id = model.add_item(entry[0],entry[1].x,entry[1].y,0,c.appearance)
+		if id >= 0: model.item_by_id(id).staff = Recruits.hired(c)
+	commit(before,"équipe")
+	hud.toggle_drawer("staff")
+	hud.staff_tab = tab
+	hud.recruit_kind = "bartender"
+	hud.fill_drawer()
 
 func capture_cloak() -> void:
 	# Documentation: a cloakroom by the desk, a rack half full, lockers filling.
@@ -1962,6 +2045,8 @@ func smoke_test() -> void:
 	await site_checks()
 	await extension_ui_checks()
 	dust_checks()
+	partition_ui_checks()
+	hire_checks()
 	print("SMOKE_TEST_RESULT: %d failures" % failures)
 	if failures == 0: print("SMOKE_TEST_PASSED")
 	get_tree().quit(1 if failures > 0 else 0)
@@ -2162,6 +2247,95 @@ func dust_checks() -> void:
 
 func screen_of(x: float, z: float) -> Vector2:
 	return (Iso.to_screen(x,z)-camera.position)*float(zoom)
+
+func partition_ui_checks() -> void:
+	# The partition tool: a straight wall along the grid, inside a room.
+	var start = model.snapshot()
+	var keep_undo = undo_stack.duplicate()
+	var rich = sim.money
+	sim.money = 100000
+	var before = model.snapshot()
+	var a = model.add_room(15,-20,6,4,1)
+	model.set_opening("z:15:-19","door")
+	commit(before,"pièce")
+	set_mode("partition")
+	check(view.grid.visible,"The grid shows where partitions can go")
+	var paid = sim.money
+	begin_action(screen_of(18.1,-19.9))
+	check(drag.get("kind","") == "partition" and drag.start == Vector2i(18,-20),"A partition starts on the nearest grid point")
+	finish_drag(screen_of(18.3,-15.8))
+	var room = model.room_by_id(a)
+	check(room.get("walls",[]).size() == 4 and sim.money == paid-4*BuildingModel.PARTITION_PRICE,"Drawn across the room, it is put up and paid by the metre")
+	check(view.statics.any(func(e): return e.get("key","") == "z:18:-18" and e.kind == "wall" and e.has("sprite")),"It is drawn like a wall")
+	check(mode == "partition","The tool stays ready for the next one")
+	check(not sim.nav.reachable(Vector2(16,-18),Vector2(20,-18)),"Without a door the far side is closed off")
+	# a partition outside a room is refused
+	var count = model.rooms.size()
+	paid = sim.money
+	begin_action(screen_of(26.0,-20.0))
+	finish_drag(screen_of(26.0,-17.0))
+	check(sim.money == paid and model.rooms.size() == count,"No partition on open ground")
+	before = model.snapshot()
+	model.set_opening("z:18:-18","door")
+	commit(before,"porte")
+	check(sim.nav.reachable(Vector2(16,-18),Vector2(20,-18)),"A door in the partition lets people through")
+	# selected by a click on it, taken down as a whole, refunded
+	set_mode("select")
+	selected_edge = "z:18:-20"
+	refresh()
+	check(hud.context.visible and hud.context_body.find_children("*","Label",true,false).any(func(l): return l.text == "Cloison · 4 m"),"A selected partition says what it is")
+	paid = sim.money
+	delete_selection()
+	check(not model.room_by_id(a).has("walls") and not model.openings.has("z:18:-18") and sim.money == paid+4*BuildingModel.PARTITION_PRICE,"Taken down, it is refunded and its door goes too")
+	undo()
+	check(model.room_by_id(a).get("walls",[]).size() == 4,"Undo puts it back")
+	model.restore(start)
+	undo_stack = keep_undo
+	redo_stack.clear()
+	sim.money = rich
+	set_mode("select")
+	clear_selection()
+	changed_view()
+
+func hire_checks() -> void:
+	# Hiring from the short list in the Personnel drawer.
+	var start = model.snapshot()
+	var keep_undo = undo_stack.duplicate()
+	var before = model.snapshot()
+	model.add_room(15,-20,6,4,0)
+	commit(before,"pièce")
+	hud.toggle_drawer("staff")
+	hud.staff_tab = 1
+	hud.recruit_kind = "bartender"
+	hud.fill_drawer()
+	var hire_buttons = hud.drawer_body.find_children("*","Button",true,false).filter(func(b): return b.text == "Embaucher")
+	check(hire_buttons.size() == Recruits.PER_ROLE,"The Recrutement tab shows three candidates to hire")
+	var c: Dictionary = Recruits.pool(sim,"bartender")[1]
+	hire_buttons[1].pressed.emit()
+	check(mode == "furniture" and chosen_item == "bartender" and str(placement_staff.get("key","")) == str(c.key),"Choosing a candidate places that very person")
+	var count = model.furniture.size()
+	begin_action(screen_of(17.5,-18.5))
+	var item: Dictionary = model.furniture[-1]
+	check(model.furniture.size() == count+1 and str(item.get("staff",{}).get("key","")) == str(c.key) and int(item.staff.wage) == int(c.wage),"The recruit keeps the candidate's skills and wage")
+	check(sim.profiles.get_profile(str(item.get("profile_id",""))).get("name","") == c.name,"And the candidate's name")
+	check(mode == "select" and placement_staff.is_empty(),"One candidate, one recruit")
+	hud.fill_drawer()
+	check(hud.drawer_body.find_children("*","Button",true,false).any(func(b): return b.text == "Déjà embauché" and b.disabled),"The card shows the candidate hired")
+	selected_item = int(item.id)
+	duplicate_item()
+	check(mode == "select","A recruit cannot be copied")
+	hud.staff_tab = 0
+	hud.fill_drawer()
+	check(hud.drawer_body.find_children("*","Button",true,false).any(func(b): return b.text.begins_with(c.name)),"The Équipe tab lists the new employee")
+	undo()
+	check(not Recruits.taken(sim,str(c.key)),"Undoing the hire puts the candidate back on the list")
+	hud.toggle_drawer("staff")
+	model.restore(start)
+	undo_stack = keep_undo
+	redo_stack.clear()
+	set_mode("select")
+	clear_selection()
+	changed_view()
 
 func extension_ui_checks() -> void:
 	# The room tool reads the player's intent from where the drawing starts.

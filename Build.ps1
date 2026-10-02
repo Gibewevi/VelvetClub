@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 # Jeu de gestion en pixel art isométrique (projet pixel/).
 $projectRoot = $PSScriptRoot
-$version = 'Construction-V66-Vestiaire'
+$version = 'Construction-V67-Cloisons-Recrutement'
 $godotBinary = Join-Path $projectRoot '.tools\godot\Godot_v4.5.1-stable_win64_console.exe'
 if (-not (Test-Path -LiteralPath $godotBinary)) {
     throw 'Godot 4.5.1 est absent de .tools/godot. Voir README.md.'
@@ -56,6 +56,8 @@ try {
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-plumbing.log') -Pattern 'PLUMBING_TESTS_PASSED' -Quiet)) { throw 'Tests de la plomberie échoués.' }
     & $godotBinary --headless --path $gameDir --script res://tests/cloakroom_test.gd --log-file (Join-Path $artifacts 'pixel-cloak.log')
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-cloak.log') -Pattern 'CLOAKROOM_TESTS_PASSED' -Quiet)) { throw 'Tests du vestiaire échoués.' }
+    & $godotBinary --headless --path $gameDir --script res://tests/recruit_test.gd --log-file (Join-Path $artifacts 'pixel-recruit.log')
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-recruit.log') -Pattern 'RECRUIT_TESTS_PASSED' -Quiet)) { throw 'Tests du recrutement échoués.' }
     & $godotBinary --headless --path $gameDir --script res://tests/quick_service_test.gd --log-file (Join-Path $artifacts 'pixel-quick.log')
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-quick.log') -Pattern 'QUICK_SERVICE_TESTS_PASSED' -Quiet)) { throw 'Test de la prestation rapide échoué.' }
     & $godotBinary --headless --path $gameDir --log-file (Join-Path $artifacts 'pixel-delivery.log') -- --delivery-test

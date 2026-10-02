@@ -1499,17 +1499,34 @@ func selection(item_id: int, room: Dictionary = {}, edge: String = "", parking: 
 			r.size = Vector2(5,5)
 			r.position = Iso.pixel(h.x,h.y)-Vector2(2,2)
 			handles_node.add_child(r)
-	show_edge(edge)
+	show_edge(edge,ACCENT,true)
 
-func show_edge(edge: String, color: Color = ACCENT) -> void:
+func show_edge(edge: String, color: Color = ACCENT, whole: bool = false) -> void:
+	# One metre of wall; with whole, a selected partition shows from end to end.
 	edge_marker.visible = edge != ""
 	if edge == "": return
-	var parts = edge.split(":")
-	var x = int(parts[1])
-	var z = int(parts[2])
-	var b = Vector2(x+1,z) if parts[0] == "x" else Vector2(x,z+1)
+	var run: Array = model.partition_run(edge) if whole and not model.openings.has(edge) else []
+	if run.is_empty(): run = [edge]
+	var lo = Vector2(INF,INF)
+	var hi = Vector2(-INF,-INF)
+	for k in run:
+		var parts = k.split(":")
+		var a = Vector2(int(parts[1]),int(parts[2]))
+		var b = a+(Vector2(1,0) if parts[0] == "x" else Vector2(0,1))
+		lo = lo.min(a)
+		hi = hi.max(b)
 	edge_marker.default_color = color
-	edge_marker.points = PackedVector2Array([Iso.to_screen(x,z),Iso.to_screen(b.x,b.y)])
+	edge_marker.points = PackedVector2Array([Iso.to_screen(lo.x,lo.y),Iso.to_screen(hi.x,hi.y)])
+
+func preview_partition(a: Vector2i, b: Vector2i, valid: bool) -> void:
+	# the line a partition being drawn will follow
+	clear_preview()
+	edge_marker.visible = true
+	edge_marker.default_color = Color("7dffa8") if valid else Color("ff6070")
+	var pa = Iso.to_screen(a.x,a.y)
+	var pb = Iso.to_screen(b.x,b.y)
+	if pa == pb: edge_marker.points = PackedVector2Array([pa-Vector2(2,0),pa+Vector2(2,0)])
+	else: edge_marker.points = PackedVector2Array([pa,pb])
 
 func hover_item(id: int) -> void:
 	if hovered_item >= 0 and hovered_item != selected_item:

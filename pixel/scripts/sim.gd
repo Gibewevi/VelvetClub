@@ -55,6 +55,9 @@ var weather_rng = RandomNumberGenerator.new()
 var rain_strength = 0.0
 var weather_remaining = 180.0
 var wage_remainder = 0.0
+var recruit_day = 0        # the day the candidate lists were drawn for
+var recruit_batch = 0      # ads placed that day: each brings new candidates
+var recruit_gone: Array = []   # candidates hired then let go today
 var saved_weather_state = ""
 var saved_weather_ground: Dictionary = {}
 var saved_night: Dictionary = {}
@@ -124,11 +127,12 @@ func to_dict() -> Dictionary:
 	var spills: Array = []
 	for d in dirt: spills.append({"x":d.pos.x,"z":d.pos.y,"kind":d.get("kind","water"),"load":d.get("load",1.0),"work":d.get("work",6.0),"fixture":d.get("fixture",-1),"origin_x":d.get("origin",d.pos).x,"origin_z":d.get("origin",d.pos).y})
 	return {"money":money,"day":day,"minute":minute,"rating":rating,"open":open,"prices":prices.duplicate(),"history":history.duplicate(true),"dirt":spills,"calendar_version":1,"opening_hours":opening_hours.duplicate(),"opening_override":opening_override,"override_window":override_window,
-		"weather":{"rain":rain_strength,"remaining":weather_remaining,"rng_state":str(weather_rng.state),"ground":view.rain_ground.to_dict() if view != null else saved_weather_ground.duplicate()},"wage_remainder":wage_remainder,"night":night.duplicate(true),"characters":profiles.to_dict()}
+		"weather":{"rain":rain_strength,"remaining":weather_remaining,"rng_state":str(weather_rng.state),"ground":view.rain_ground.to_dict() if view != null else saved_weather_ground.duplicate()},"wage_remainder":wage_remainder,"night":night.duplicate(true),"characters":profiles.to_dict(),"recruits":Recruits.to_dict(self)}
 
 func from_dict(data: Variant) -> void:
 	if not data is Dictionary: return
 	profiles.from_dict(data.get("characters",{}))
+	Recruits.from_dict(self,data.get("recruits"))
 	for key in ["money","day","minute","rating"]:
 		var v = data.get(key)
 		if (v is int or v is float) and is_finite(float(v)): set(key,v)
@@ -298,6 +302,12 @@ func sync_staff() -> void:
 			a.kind = item.kind
 		a.brain.profile_id = profile.id
 		a.brain.name = profile.name
+		# what the candidate brought: speed, quality of work, wage
+		var skills = Recruits.stats(item)
+		a.brain.speed = skills.speed
+		a.brain.quality = skills.quality
+		a.brain.wage = skills.wage
+		a.speed = 1.7*sqrt(skills.speed)
 	for id in staff.keys():
 		if not seen.has(id):
 			var a = staff[id]
@@ -526,7 +536,7 @@ func accrue_wages(minutes: float) -> void:
 	var total = 0.0
 	for a in staff.values():
 		if is_instance_valid(a) and a.brain.state != "off_shift":
-			total += float(Catalog.ITEMS[a.kind].get("wage",0))*minutes/60.0
+			total += float(a.brain.get("wage",Catalog.ITEMS[a.kind].get("wage",0)))*minutes/60.0
 	wage_remainder += total
 	var amount = floori(wage_remainder+.0000001)
 	wage_remainder = maxf(0,wage_remainder-amount)
@@ -872,14 +882,17 @@ func client_ai(a: Actor, dt: float) -> void:
 		"checkin":
 			# The entrance is paid to the receptionist in person.
 			if receptionist_at(int(b.get("desk",-1))) != null:
-				b.timer -= gm/profiles.employee_factor(str(receptionist_at(int(b.desk)).brain.get("profile_id","")))
+				var desk_staff = receptionist_at(int(b.desk))
+				b.timer -= gm/profiles.employee_factor(str(desk_staff.brain.get("profile_id","")))*float(desk_staff.brain.get("speed",1.0))
 				if b.timer <= 0:
 					earn(int(prices.entry),"entry",a)
 					b.spent += int(prices.entry)
 					b.paid = true
 					profiles.admit(a,day)
-					b.sat += profiles.welcome_bonus(str(receptionist_at(int(b.desk)).brain.get("profile_id","")))
-					if role_present("security"): b.sat += 2
+					b.sat += profiles.welcome_bonus(str(desk_staff.brain.get("profile_id","")))
+					# a warm welcome pleases, a sullen one does not
+					b.sat += (float(desk_staff.brain.get("quality",1.0))-1.0)*10.0
+					b.sat += 2.0*security_presence()
 					release(a)
 					b.state = "choose"
 			else:
@@ -994,6 +1007,14 @@ func queue_hint(gm: float) -> void:
 		notice.emit("Des clients font la queue dehors : installez un comptoir d'accueil (Mobilier) et embauchez un(e) réceptionniste.")
 	elif free_desk().is_empty() and not staff.values().any(func(r): return staff_available(r) and r.brain.role == "receptionist" and r.brain.state == "working"):
 		notice.emit("Des clients font la queue dehors : personne n'est à l'accueil pour encaisser l'entrée.")
+
+func security_presence() -> float:
+	# 0 without a guard at his post, else how reassuring the best one is
+	var best = 0.0
+	for id in staff:
+		var a = staff[id]
+		if staff_available(a) and a.brain.role == "security" and a.brain.state in ["working","post"] and not a.moving: best = maxf(best,float(a.brain.get("quality",1.0)))
+	return best
 
 func role_present(role: String) -> bool:
 	for id in staff:
@@ -1179,8 +1200,9 @@ func start_activity(a: Actor) -> void:
 			a.play("idle")
 		"bar":
 			b.timer = rng.randf_range(15,30)
-			var drinks = 1 if rng.randf() < 0.6 else 2
 			var staffed = role_present("bartender")
+			# a quick bartender pours a second round more often
+			var drinks = 1 if rng.randf() < 1.0-0.4*bartender_speed() else 2
 			if staffed:
 				earn(int(prices.drink)*drinks,"bar",a)
 				b.spent += int(prices.drink)*drinks
@@ -1227,8 +1249,14 @@ func bartender_serve() -> float:
 		var s = staff[id]
 		if staff_available(s) and s.brain.role == "bartender":
 			s.brain.serve = 6.0
-			return profiles.welcome_bonus(str(s.brain.get("profile_id","")))
+			return profiles.welcome_bonus(str(s.brain.get("profile_id","")))+(float(s.brain.get("quality",1.0))-1.0)*10.0
 	return 0.0
+
+func bartender_speed() -> float:
+	for id in staff:
+		var s = staff[id]
+		if staff_available(s) and s.brain.role == "bartender": return float(s.brain.get("speed",1.0))
+	return 1.0
 
 # ------------------------------------------------------------------ staff
 
@@ -1242,6 +1270,8 @@ func staff_ai(a: Actor, dt: float) -> void:
 		return
 	profiles.employee_work(str(b.get("profile_id","")),gm,day)
 	if b.role != "cleaner": gm /= profiles.employee_factor(str(b.get("profile_id","")))
+	# a quick employee gets through the work sooner (an escort's energy is used apart)
+	if b.role != "escort": gm *= float(b.get("speed",1.0))
 	match b.role:
 		"bartender": work_at(a,arrived,"bar","bartender",gm)
 		"receptionist": receptionist_ai(a,arrived,gm)
@@ -1581,7 +1611,7 @@ func escort_ai(a: Actor, arrived: bool, gm: float) -> void:
 					b.state = "to_lounge"
 					return
 			b.state = "idle_free"
-			b.timer = rng.randf_range(4,8)
+			b.timer = rng.randf_range(4,8)/float(b.get("speed",1.0))
 			a.play("idle")
 		"to_stage":
 			if arrived:
@@ -1604,7 +1634,7 @@ func escort_ai(a: Actor, arrived: bool, gm: float) -> void:
 				b.state = "lounge"
 				b.timer = rng.randf_range(20,40)
 		"lounge":
-			b.flirt = float(b.get("flirt",0.0))-gm
+			b.flirt = float(b.get("flirt",0.0))-gm*float(b.get("speed",1.0))
 			if b.flirt <= 0:
 				b.flirt = rng.randf_range(3,6)
 				# from her seat she keeps an eye out for someone to meet
@@ -1614,7 +1644,7 @@ func escort_ai(a: Actor, arrived: bool, gm: float) -> void:
 						a.emote("heart",2.2)
 						c.emote("heart",2.2)
 						# the higher her standing, the happier the client
-						c.brain.sat = minf(float(c.brain.sat)+2.0+2.0*standing(a),100.0)
+						c.brain.sat = minf(float(c.brain.sat)+(2.0+2.0*standing(a))*float(b.get("quality",1.0)),100.0)
 						break
 			if b.timer <= 0:
 				release(a)
@@ -1883,7 +1913,7 @@ func crowd_tips(e: Actor, activities: Array, radius: float, base: int, per_level
 		var near = c.world.distance_to(e.world) <= radius
 		if not near and not (whole_room and model.room_at(c.world) == room): continue
 		if rng.randf() > (0.6 if near else 0.3): continue
-		var tip = int((base+per_level*standing(e))*rng.randf_range(1.0,2.0))
+		var tip = int((base+per_level*standing(e))*rng.randf_range(1.0,2.0)*float(e.brain.get("quality",1.0)))
 		if int(c.brain.budget) < tip: continue
 		c.brain.budget = int(c.brain.budget)-tip
 		c.brain.spent += tip
@@ -1921,7 +1951,7 @@ func negotiate(e: Actor, c: Actor, bonus: float = 0.0) -> bool:
 	var affordable: Array = []
 	for t in range(SERVICES.size()):
 		if service_price(t,e) <= int(cb.budget): affordable.append(t)
-	var chance = clampf(0.3+bonus+float(cb.sat)/200.0+0.05*standing(e)+0.04*social_count(model.room_at(c.world)),0.1,0.95)
+	var chance = clampf(0.3+bonus+float(cb.sat)/200.0+0.05*standing(e)+0.04*social_count(model.room_at(c.world))+(float(e.brain.get("quality",1.0))-1.0)*0.3,0.1,0.95)
 	var bed = free_bed()
 	if affordable.is_empty() or bed.is_empty() or float(cb.sat) < 25.0 or rng.randf() > chance:
 		night.refused += 1
