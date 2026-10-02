@@ -23,7 +23,7 @@ static func swatch(color: Color, action: Callable, parent: Node, active: bool) -
 	parent.add_child(b)
 	return b
 
-static func color_row(parent: Node, title: String, colors: Array, current: String, on_pick: Callable) -> void:
+static func color_row(parent: Node, title: String, colors: Array, current: String, on_pick: Callable, on_live: Callable = Callable()) -> void:
 	parent.add_child(UiKit.label(title,0,UiKit.MUTED))
 	var g = UiKit.grid(parent,8,1)
 	for c in colors: swatch(Color(c),on_pick.bind(c),g,String(c) == current)
@@ -33,7 +33,17 @@ static func color_row(parent: Node, title: String, colors: Array, current: Strin
 	picker.focus_mode = Control.FOCUS_NONE
 	picker.custom_minimum_size = Vector2(12,12)*UiKit.scale
 	picker.tooltip_text = "Couleur personnalisée"
-	picker.color_changed.connect(func(c): on_pick.call(c.to_html(false)))
+	# While the picker is open its colour only previews (on_live): rebuilding
+	# the window then would free the popup the player is dragging in. The
+	# window is refreshed once, when the popup closes.
+	var picked = {"changed":false}
+	picker.color_changed.connect(func(c):
+		picked.changed = true
+		if on_live.is_valid(): on_live.call(c.to_html(false))
+		else: on_pick.call(c.to_html(false)))
+	if on_live.is_valid():
+		picker.popup_closed.connect(func():
+			if picked.changed: on_pick.call(picker.color.to_html(false)))
 	g.add_child(picker)
 
 static func options_row(parent: Node, title: String, labels: Array, current: int, on_pick: Callable, columns: int = 3) -> void:
@@ -49,8 +59,8 @@ static func appearance(hud: Hud, game, item_id: int) -> void:
 	if item.is_empty(): return
 	var draft: Dictionary = item.appearance.duplicate(true)
 	var state = {"draft":draft}
-	var rebuild: Callable
-	rebuild = func():
+	var ui = {}
+	ui.rebuild = func():
 		hud.open_modal("Personnaliser · "+Catalog.ITEMS[item.kind].name,func(col):
 			var d: Dictionary = state.draft
 			var row = UiKit.hbox(col,6)
@@ -64,7 +74,12 @@ static func appearance(hud: Hud, game, item_id: int) -> void:
 			var set_key = func(key, value):
 				d[key] = value
 				state.draft = Characters.normalize(d,item.kind)
-				rebuild.call()
+				ui.rebuild.call()
+			var live = func(key, value):
+				# custom colour being picked: only the portrait follows
+				d[key] = value
+				state.draft = Characters.normalize(d,item.kind)
+				preview.texture = UiKit.pixel_texture(UiKit.portrait(state.draft,true),2)
 			var body = int(d.body)
 			if Characters.is_escort(item.kind):
 				var st: Dictionary = Characters.STANDINGS[item.kind]
@@ -81,26 +96,26 @@ static func appearance(hud: Hud, game, item_id: int) -> void:
 			options_row(right,"COIFFURE",labels.hairstyle,int(d.hairstyle),func(i): set_key.call("hairstyle",i),3)
 			options_row(right,"VISAGE" if body == 0 else "BARBE",labels.face,int(d.face),func(i): set_key.call("face",i),3)
 			options_row(right,"LUNETTES",Characters.GLASSES,int(d.glasses),func(i): set_key.call("glasses",i),3)
-			color_row(col,"PEAU",Characters.SKINS,d.skin,func(c): set_key.call("skin",c))
-			color_row(col,"CHEVEUX",Characters.HAIRS,d.hair,func(c): set_key.call("hair",c))
-			color_row(col,"TENUE",Characters.OUTFITS,d.outfit,func(c): set_key.call("outfit",c))
+			color_row(col,"PEAU",Characters.SKINS,d.skin,func(c): set_key.call("skin",c),func(c): live.call("skin",c))
+			color_row(col,"CHEVEUX",Characters.HAIRS,d.hair,func(c): set_key.call("hair",c),func(c): live.call("hair",c))
+			color_row(col,"TENUE",Characters.OUTFITS,d.outfit,func(c): set_key.call("outfit",c),func(c): live.call("outfit",c))
 			var actions = UiKit.hbox(col,3)
 			UiKit.button("Appliquer",func():
 				hud.close_modal()
 				game.apply_appearance(item_id,state.draft),actions,"","check")
 			UiKit.button("Annuler",func(): hud.close_modal(),actions,"","close"),300)
-	rebuild.call()
+	ui.rebuild.call()
 
 static func finishes(hud: Hud, game, room_id: int) -> void:
 	var room: Dictionary = game.model.room_by_id(room_id)
 	if room.is_empty(): return
 	var original = {"floor_finish":room.floor_finish,"floor_color":room.floor_color,"wall_finish":room.wall_finish,"wall_color":room.wall_color}
 	var state = {"draft":original.duplicate()}
-	var rebuild: Callable
+	var ui = {}
 	var restore = func():
 		for k in original: room[k] = original[k]
 		game.view.rebuild()
-	rebuild = func():
+	ui.rebuild = func():
 		hud.open_modal("Revêtements · "+Catalog.ROOMS[int(room.type)],func(col):
 			var d: Dictionary = state.draft
 			var set_key = func(key, value):
@@ -109,12 +124,17 @@ static func finishes(hud: Hud, game, room_id: int) -> void:
 				if key == "wall_finish": d.wall_color = Finishes.WALLS[value].color
 				for k in d: room[k] = d[k]
 				game.view.rebuild()
-				rebuild.call()
+				ui.rebuild.call()
+			var live = func(key, value):
+				# custom colour being picked: the building follows, the window waits
+				d[key] = value
+				room[key] = value
+				game.view.request_rebuild()
 			var floor_keys = Finishes.FLOORS.keys()
 			var names: Array = []
 			for k in floor_keys: names.append("%s · %d $/m²" % [Finishes.FLOORS[k].name,int(Finishes.FLOORS[k].value)])
 			options_row(col,"SOL",names,floor_keys.find(d.floor_finish),func(i): set_key.call("floor_finish",floor_keys[i]),2)
-			color_row(col,"COULEUR DU SOL",Finishes.SWATCHES,d.floor_color,func(c): set_key.call("floor_color",c))
+			color_row(col,"COULEUR DU SOL",Finishes.SWATCHES,d.floor_color,func(c): set_key.call("floor_color",c),func(c): live.call("floor_color",c))
 			var wall_keys = Finishes.WALLS.keys()
 			var wnames: Array = []
 			for k in wall_keys: wnames.append("%s · %d $/m" % [Finishes.WALLS[k].name,int(Finishes.WALLS[k].value)])
@@ -122,10 +142,10 @@ static func finishes(hud: Hud, game, room_id: int) -> void:
 			var size = {"x":room.x,"z":room.z,"w":room.w,"h":room.h,"parts":room.get("parts",[])}
 			var price = Finishes.value(d.merged(size))-Finishes.value(original.merged(size))
 			col.add_child(UiKit.label(("Coût de la rénovation : %s $" % UiKit.money(price)) if price > 0 else ("Remboursement : %s $" % UiKit.money(-price) if price < 0 else "Aucun coût"),1,UiKit.GOLD if price > 0 else UiKit.GREEN))
-			color_row(col,"COULEUR DES MURS",Finishes.SWATCHES,d.wall_color,func(c): set_key.call("wall_color",c))
+			color_row(col,"COULEUR DES MURS",Finishes.SWATCHES,d.wall_color,func(c): set_key.call("wall_color",c),func(c): live.call("wall_color",c))
 			var actions = UiKit.hbox(col,3)
 			UiKit.button("Appliquer",func():
 				hud.close_modal()
 				game.apply_finishes(room_id,state.draft),actions,"","check")
 			UiKit.button("Annuler",func(): hud.close_modal(),actions,"","close"),300,restore)
-	rebuild.call()
+	ui.rebuild.call()

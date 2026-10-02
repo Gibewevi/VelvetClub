@@ -47,7 +47,7 @@ func _ready() -> void:
 	get_tree().auto_accept_quit = false
 	Art.load_all()
 	var args = OS.get_cmdline_user_args()
-	test_mode = "--smoke-test" in args or "--ui-test" in args or "--sim-test" in args or "--delivery-test" in args
+	test_mode = "--smoke-test" in args or "--ui-test" in args or "--sim-test" in args or "--delivery-test" in args or "--finishes-test" in args
 	# Screenshots always start from the fresh club and never write a save.
 	var profile_save = ""
 	for arg in args:
@@ -149,6 +149,7 @@ func _ready() -> void:
 	if "--sim-test" in args: sim_test.call_deferred()
 	if "--ui-test" in args: ui_test.call_deferred()
 	if "--delivery-test" in args: delivery_test.call_deferred()
+	if "--finishes-test" in args: finishes_test.call_deferred()
 	if profile_save != "": profile_run.call_deferred()
 	elif not test_mode: perf_open()
 	for arg in args:
@@ -2015,6 +2016,63 @@ func site_checks() -> void:
 	clear_selection()
 	changed_view()
 
+func finishes_test() -> void:
+	# The finishes and appearance windows: a swatch click refreshes the
+	# window; the custom colour picker previews live while its popup stays
+	# open, then refreshes the window once when it closes.
+	get_window().mouse_passthrough = true
+	await get_tree().process_frame
+	var room = model.rooms[0]
+	edit_finishes(int(room.id))
+	await get_tree().process_frame
+	var first_window = hud.modal
+	var swatches: Array = hud.modal.find_children("*","Button",true,false).filter(func(b): return not b is ColorPickerButton and b.tooltip_text.begins_with("#"))
+	var wanted = swatches[3].tooltip_text.trim_prefix("#")
+	swatches[3].pressed.emit()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(room.floor_color == wanted and hud.modal != first_window,"A colour swatch applies and the window refreshes")
+	var picker: ColorPickerButton = hud.modal.find_children("*","ColorPickerButton",true,false)[0]
+	var window = hud.modal
+	picker.get_popup().popup()
+	await get_tree().process_frame
+	for i in range(6):
+		picker.get_picker().color = Color.from_hsv(i/6.0,0.6,0.8)
+		picker.get_picker().color_changed.emit(picker.get_picker().color)
+		await get_tree().process_frame
+	check(is_instance_valid(picker) and hud.modal == window and picker.get_popup().visible,"Dragging in the colour picker keeps its popup and the window")
+	check(room.floor_color == Color.from_hsv(5/6.0,0.6,0.8).to_html(false),"The building follows the picked colour live")
+	picker.get_popup().hide()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(hud.modal != window,"Closing the picker refreshes the window once")
+	hud.close_modal()
+	await get_tree().process_frame
+	# appearance window: an option and a custom colour
+	var person = model.add_item("janitor",-2.5,1.0,0)
+	edit_appearance(person)
+	await get_tree().process_frame
+	window = hud.modal
+	var buttons: Array = hud.modal.find_children("*","Button",true,false).filter(func(b): return b.text == "Homme" or b.text == "Femme")
+	buttons[0].pressed.emit()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(hud.modal != window,"An appearance option refreshes the window")
+	var skin: ColorPickerButton = hud.modal.find_children("*","ColorPickerButton",true,false)[0]
+	window = hud.modal
+	skin.get_popup().popup()
+	await get_tree().process_frame
+	skin.get_picker().color = Color("8a5a3c")
+	skin.get_picker().color_changed.emit(skin.get_picker().color)
+	await get_tree().process_frame
+	check(is_instance_valid(skin) and hud.modal == window,"A custom skin colour previews without closing the picker")
+	skin.get_popup().hide()
+	await get_tree().process_frame
+	hud.close_modal()
+	print("FINISHES_TEST_RESULT: %d failures" % failures)
+	if failures == 0: print("FINISHES_TEST_PASSED")
+	get_tree().quit(1 if failures > 0 else 0)
+
 func dust_checks() -> void:
 	# A small puff of dust when an object is set down, moved or turned; it
 	# plays in real time (even paused) and leaves nothing behind.
@@ -2675,6 +2733,9 @@ func ui_test() -> void:
 	var dir = ""
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--ui-output="): dir = arg.trim_prefix("--ui-output=")
+	# The real mouse goes through the window: only the simulated clicks
+	# count, so someone using the computer meanwhile does not upset the test.
+	get_window().mouse_passthrough = true
 	await get_tree().create_timer(0.5).timeout
 	set_speed(0)
 	hud.toast_time = 0

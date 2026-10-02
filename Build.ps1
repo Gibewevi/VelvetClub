@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 # Jeu de gestion en pixel art isométrique (projet pixel/).
 $projectRoot = $PSScriptRoot
-$version = 'Construction-V64-Pluie-Fluide'
+$version = 'Construction-V65-Couleurs'
 $godotBinary = Join-Path $projectRoot '.tools\godot\Godot_v4.5.1-stable_win64_console.exe'
 if (-not (Test-Path -LiteralPath $godotBinary)) {
     throw 'Godot 4.5.1 est absent de .tools/godot. Voir README.md.'
@@ -65,6 +65,9 @@ try {
     # L'interface se teste dans une vraie fenêtre (clics simulés), quelques secondes.
     & $godotBinary --path $gameDir --log-file (Join-Path $artifacts 'pixel-ui.log') -- --ui-test
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-ui.log') -Pattern 'UI_TEST_PASSED' -Quiet)) { throw "Test d'interface échoué." }
+    # Fenêtres Revêtements et Personnaliser : pastilles, sélecteur de couleur ouvert (vraie fenêtre).
+    & $godotBinary --path $gameDir --log-file (Join-Path $artifacts 'pixel-finishes.log') -- --finishes-test
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-finishes.log') -Pattern 'FINISHES_TEST_PASSED' -Quiet)) { throw 'Test des fenêtres de couleurs échoué.' }
     & $godotBinary --headless --path $gameDir --export-release 'Windows Desktop' (Join-Path $projectRoot "build\$version.exe") --log-file (Join-Path $artifacts 'pixel-export.log')
     if ($LASTEXITCODE -ne 0) { throw 'Export Windows échoué. Fermez le jeu et réessayez.' }
     Write-Host "Jeu prêt : build\$version.exe"
