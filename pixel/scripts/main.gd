@@ -2079,6 +2079,7 @@ func smoke_test() -> void:
 	partition_ui_checks()
 	hire_checks()
 	door_pick_checks()
+	lawn_checks()
 	print("SMOKE_TEST_RESULT: %d failures" % failures)
 	if failures == 0: print("SMOKE_TEST_PASSED")
 	get_tree().quit(1 if failures > 0 else 0)
@@ -2335,6 +2336,29 @@ func partition_ui_checks() -> void:
 	sim.money = rich
 	set_mode("select")
 	clear_selection()
+	changed_view()
+
+func lawn_checks() -> void:
+	# The lawn around the club: drawn once for the whole lot, bushes along
+	# the sidewalks but never on a driveway, a sidewalk or in a room, and a
+	# paved path from the front door to the sidewalk.
+	var start = model.snapshot()
+	model.starter()
+	model.add_parking(8,-12,16,20)
+	changed_view()
+	var lawn_tex = Art.tex(Art.tiles.lawn.file)
+	check(view.ground.get_children().any(func(n): return n is Sprite2D and n.texture == lawn_tex),"The lawn is drawn on the ground")
+	var bushes = view.statics.filter(func(e): return e.kind == "prop" and e.node is Sprite2D and e.node.texture != null and e.node.texture.resource_path.contains("lawn_bush"))
+	check(bushes.size() >= 8,"Bushes line the sidewalks (%d)" % bushes.size())
+	var misplaced = bushes.filter(func(e):
+		var r: Rect2 = e.rect
+		if r.end.y > Street.WALK_NEAR.x and r.position.y < Street.WALK_FAR.y: return true
+		if view.street_blocked.any(func(b): return b.intersects(r)): return true
+		return model.rooms.any(func(room): return model.overlaps(room,r)))
+	check(misplaced.is_empty(),"No bush on a sidewalk, a car park or in a room (%d)" % misplaced.size())
+	var slabs = Art.tex(Art.tiles.floors.slabs)
+	check(view.ground.get_children().any(func(n): return n is Polygon2D and n.texture == slabs and Geometry2D.is_point_in_polygon(Iso.to_screen(-1.5,6.5),n.polygon)),"A paved path leads from the front door to the sidewalk")
+	model.restore(start)
 	changed_view()
 
 func door_pick_checks() -> void:

@@ -178,6 +178,23 @@ func _init() -> void:
 		check(Art.ui.panels.has(name) and Art.image(Art.ui.panels[name]) != null,"Interface frame %s exists" % name)
 	for name in ["select","build","furniture","person","clients","services","reports","menu","undo","redo","save","close"]:
 		check(Art.ui.icons.has(name),"Dock and window icon %s exists" % name)
+	# The lawn: one picture of the whole lot, clear over the street, many shades.
+	var lawn = Art.image(Art.tiles.get("lawn",{}).get("file",""))
+	check(lawn != null and lawn.get_width() == 4*Iso.LOT*16 and lawn.get_height() == 4*Iso.LOT*8,"The lawn covers the whole lot")
+	if lawn != null:
+		var at = func(x: float, z: float) -> Color:
+			var p = Iso.to_screen(x,z)+Vector2(float(Art.tiles.lawn.ox),float(Art.tiles.lawn.oy))
+			return lawn.get_pixel(int(p.x),int(p.y))
+		check(at.call(0,-10).a > 0.99 and at.call(5,22).a > 0.99,"Grass on the lot and beyond the far sidewalk")
+		check(at.call(0,9.3).a == 0.0 and at.call(3,14).a == 0.0 and at.call(-6,18.8).a == 0.0,"Clear over the sidewalks and the road")
+		var shades = {}
+		for i in range(400):
+			var c: Color = at.call(-20.0+float(i%20)*2.1,-22.0+float(i/20)*1.5)
+			if c.a > 0.99 and c.g > c.r and c.g > c.b: shades[c.to_html(false)] = true
+		check(shades.size() >= 12,"The lawn is green in many shades (%d)" % shades.size())
+	for v in range(4):
+		var bush: Dictionary = Art.tiles.props.get("lawn_bush_%d" % v,{})
+		check(not bush.is_empty() and Art.image(bush.file) != null and float(bush.size) > 0.5,"Bush %d exists, with its size" % v)
 	# Palette ramps mirror the generator exactly.
 	var r = Palette.ramp(Color("c58f73"))
 	check(r[0].to_html(false) == "492028" and r[3].to_html(false) == "c58f73" and r[4].to_html(false) == "edc59f","Runtime ramps match the art generator")

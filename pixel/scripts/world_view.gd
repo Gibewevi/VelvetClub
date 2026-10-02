@@ -210,6 +210,11 @@ func build_ground() -> void:
 	for band in [Street.WALK_NEAR,Street.WALK_FAR]:
 		ground.add_child(textured_polygon(Iso.diamond(-L,band.x,L,band.y),slabs,Palette.floor_palette(WALK_COLOR)))
 	ground.add_child(textured_polygon(Iso.diamond(-L,Street.ROAD.x,L,Street.ROAD.y),Art.tex(Art.tiles.floors.asphalt_cracked),Palette.floor_palette(ROAD_COLOR)))
+	# The lawn: one picture of the whole lot, nothing repeats. It is clear
+	# over the street (its verge grows over the slabs); rooms and car parks
+	# are drawn over it.
+	var lawn: Dictionary = Art.tiles.get("lawn",{})
+	if not lawn.is_empty(): ground.add_child(sprite(Art.tex(lawn.file),Vector2.ZERO,Vector2(lawn.ox,lawn.oy),Art.rgba_material()))
 
 func build_floor(room: Dictionary) -> void:
 	# one polygon per rectangle of the room; the texture is laid in screen
@@ -687,7 +692,19 @@ func build_exterior() -> void:
 	while bx < b.end.x:
 		props.append(["bollard",bx,b.end.y+0.6])
 		bx += 2.0
+	var paths: Array = []
 	for d in street_doors:
+		# a paved path across the lawn, from a front door to the sidewalk
+		if d.axis == "x" and d.outside_positive and float(d.z) < Street.WALK_NEAR.x:
+			var path = Rect2(d.x-0.25,d.z,1.5,Street.WALK_NEAR.x-d.z)
+			var free = true
+			var pz = float(d.z)+0.5
+			while pz < Street.WALK_NEAR.x:
+				if not model.room_at(Vector2(d.x+0.5,pz)).is_empty(): free = false
+				pz += 1.0
+			if free:
+				ground.add_child(textured_polygon(Iso.diamond(path.position.x,path.position.y,path.end.x,path.end.y),Art.tex(Art.tiles.floors.slabs),Palette.floor_palette(WALK_COLOR)))
+				paths.append(path)
 		var out = Vector2(d.x+0.5,d.z+1.2) if d.axis == "x" else Vector2(d.x+1.2,d.z+0.5)
 		if not d.outside_positive: out = Vector2(d.x+0.5,d.z-1.2) if d.axis == "x" else Vector2(d.x-1.2,d.z+0.5)
 		var side = Vector2(1,0) if d.axis == "x" else Vector2(0,1)
@@ -711,10 +728,22 @@ func build_exterior() -> void:
 		props.append(["dumpster",out.x-side.x*3.6+away.x*0.2,out.y-side.y*3.6+away.y*0.2])
 		props.append(["dumpster",out.x-side.x*5.2+away.x*0.2,out.y-side.y*5.2+away.y*0.2])
 		props.append(["bush",out.x+side.x*3.6,out.y+side.y*3.6])
+	# round bushes along the sidewalks, at irregular intervals, off the paths
+	for edge in [[Street.WALK_NEAR.x,-1.0],[Street.WALK_FAR.y,1.0]]:
+		var wx = -L+1.0+mix_hash(edge[0],3,5)*2.0
+		while wx < L-1.0:
+			var kind = "lawn_bush_%d" % mini(3,int(mix_hash(wx,edge[0],31)*4.0))
+			var size = float(Art.tiles.props.get(kind,{}).get("size",1.0))
+			var wz = edge[0]+edge[1]*(size*0.5+0.22+mix_hash(wx,7,41)*0.3)
+			if not paths.any(func(r): return r.grow(size*0.5+0.2).has_point(Vector2(wx,wz))): props.append([kind,wx,wz])
+			wx += size+1.2+mix_hash(wx,edge[0],43)*3.8
 	for p in props:
 		if model.room_at(Vector2(p[1],p[2])) != {}: continue
 		if absf(p[1]) > Iso.LOT-1 or absf(p[2]) > Iso.LOT-1: continue
-		var size = {"tree":1.2,"dumpster":1.3}.get(p[0],0.4)
+		var size = float(Art.tiles.props.get(p[0],{}).get("size",{"tree":1.2,"dumpster":1.3}.get(p[0],0.4)))
+		if p[0].begins_with("lawn_bush"):
+			var spot = Rect2(p[1]-size/2,p[2]-size/2,size,size)
+			if model.rooms.any(func(r): return model.overlaps(r,spot)): continue
 		if off_limits(Vector2(p[1],p[2]),size/2.0+0.2,p[0] in ["street_lamp","tree"]): continue
 		var info: Dictionary = Art.tiles.props[p[0]]
 		var key = int(round(p[1]*7.0+p[2]*13.0))

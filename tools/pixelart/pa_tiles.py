@@ -744,6 +744,10 @@ def export():
     man["street"] = pa_street.export()
     import pa_parking
     man["street"].update(pa_parking.export())
+    import pa_lawn
+    lawn = pa_lawn.export()
+    man["lawn"] = lawn["lawn"]
+    man["props"].update(lawn["bushes"])
     man["fx"] = {"puddle": "fx/puddle.png", "urine": "fx/urine.png"}
     save(puddle(), "fx/puddle.png")
     save(puddle(urine=True), "fx/urine.png")
