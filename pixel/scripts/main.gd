@@ -2268,6 +2268,14 @@ func partition_ui_checks() -> void:
 	check(room.get("walls",[]).size() == 4 and sim.money == paid-4*BuildingModel.PARTITION_PRICE,"Drawn across the room, it is put up and paid by the metre")
 	check(view.statics.any(func(e): return e.get("key","") == "z:18:-18" and e.kind == "wall" and e.has("sprite")),"It is drawn like a wall")
 	check(mode == "partition","The tool stays ready for the next one")
+	# where a low wall runs straight on (a T), no dark post sticks out of it
+	var keep_walls = view.wall_mode
+	view.wall_mode = 1
+	view.rebuild()
+	var post_at = func(x, z): return view.statics.any(func(e): return e.kind == "post" and Vector2i(e.rect.position) == Vector2i(x,z))
+	check(not post_at.call(18,-16) and not post_at.call(18,-20) and post_at.call(21,-16) and post_at.call(15,-16),"Low walls: no post where the partition meets a wall, posts at the corners")
+	view.wall_mode = keep_walls
+	view.rebuild()
 	check(not sim.nav.reachable(Vector2(16,-18),Vector2(20,-18)),"Without a door the far side is closed off")
 	# a partition outside a room is refused
 	var count = model.rooms.size()

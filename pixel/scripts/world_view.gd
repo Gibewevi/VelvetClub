@@ -312,6 +312,10 @@ func build_walls() -> void:
 		if list.size() == 2 and list[0].axis == list[1].axis and list[0].full != list[1].full: need = true
 		if not need: continue
 		var post_kind = "full" if any_full else "low"
+		# The dark low posts mark corners, wall ends and door frames. Where a
+		# low wall runs straight on (a T or a crossing), the wall that meets
+		# it simply butts against it: no post.
+		if post_kind == "low" and list.size() >= 3 and runs_through(list): continue
 		var owner: Dictionary = list[0].owner
 		for s in list:
 			if s.full: owner = s.owner
@@ -320,6 +324,13 @@ func build_walls() -> void:
 		var entry = add_static(node,Rect2(p.x,p.y,0,0),"post")
 		entry.sprite = node
 		entry.file = info.file
+
+static func runs_through(list: Array) -> bool:
+	# two walls (not openings) on either side of a point, on the same line
+	var solid = {"x":0,"z":0}
+	for s in list:
+		if s.kind != "" and not s.kind.ends_with("door"): solid[s.axis] += 1
+	return solid.x >= 2 or solid.z >= 2
 
 var cloak_fill: Dictionary = {}   # rack / locker id -> share of its places taken
 
