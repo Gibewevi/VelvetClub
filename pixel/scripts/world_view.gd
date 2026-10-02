@@ -321,9 +321,16 @@ func build_walls() -> void:
 		entry.sprite = node
 		entry.file = info.file
 
+var cloak_fill: Dictionary = {}   # rack / locker id -> share of its places taken
+
 func item_variant(item: Dictionary) -> String:
-	# The picture an item shows right now: a bed in use or unmade, a shower door ajar.
+	# The picture an item shows right now: a bed in use or unmade, a shower door ajar,
+	# a coat rack or lockers as full as the cloakroom is.
 	if item.kind in ClubSim.BED_KINDS: return bed_variant(item)
+	if item.kind == "coat_rack" and not item.get("delivery_pending",false):
+		return "coat_rack_c%d" % clampi(ceili(float(cloak_fill.get(int(item.id),0.0))*7.0-0.001),0,7)
+	if item.kind == "cloak_locker" and not item.get("delivery_pending",false):
+		return "cloak_locker_o%d" % clampi(ceili(float(cloak_fill.get(int(item.id),0.0))*9.0-0.001),0,9)
 	if item.kind == "shower":
 		var frame = int(shower_doors.get(int(item.id),{}).get("shown",0))
 		if frame > 0: return "shower_f%d" % frame
@@ -354,6 +361,17 @@ func apply_look(entry: Dictionary, info: Dictionary, item: Dictionary, nudge: Ve
 			if r != e.rect:
 				e.rect = r
 				relink_static(e)
+
+func set_cloak_fill(id: int, share: float) -> void:
+	# a coat hung or taken back: the rack or the lockers show it
+	var before = item_variant(model.item_by_id(id))
+	cloak_fill[id] = clampf(share,0.0,1.0)
+	var item = model.item_by_id(id)
+	if item.is_empty() or not item_entries.has(id): return
+	var look = item_variant(item)
+	if look == before: return
+	var info = Art.furniture_entry(look,int(item.rot))
+	if not info.is_empty(): apply_look(item_entries[id],info,item)
 
 func bed_variant(item: Dictionary) -> String:
 	# Beds show who is in them and whether they were made again.

@@ -939,9 +939,9 @@ func growth_start(screen: Vector2) -> Dictionary:
 	var target: Dictionary = rooms_on[1] if rooms_on[0].is_empty() else rooms_on[0]
 	return {"room":int(target.id),"start":Vector2(free_cell),"edge":key}
 
-func extension_preview(r: Dictionary) -> Dictionary:
+func extension_preview(r: Dictionary, target_id: int = -1) -> Dictionary:
 	# What an extension drawing would add, and whether it can be built.
-	var target = model.room_by_id(int(drag.get("extend",-1)))
+	var target = model.room_by_id(target_id if target_id >= 0 else int(drag.get("extend",-1)))
 	var area = Rect2(r.x,r.z,r.w,r.h)
 	var pieces = model.extension_parts(target,area)
 	var out = {"target":target,"pieces":pieces,"valid":false,"error":"","price":0,"area":0}
@@ -959,6 +959,12 @@ func extension_preview(r: Dictionary) -> Dictionary:
 	out.area = BuildingModel.area_of(probe.room_by_id(id))
 	out.price = probe.cost()-model.cost()
 	return out
+
+func grows_finished_room(r: Dictionary) -> bool:
+	# a handle of a finished room pulled outwards (pulling inwards shrinks it at once)
+	var room = model.room_by_id(selected_room)
+	if room.is_empty() or SitePlan.building(room): return false
+	return int(r.w*r.h) > int(room.w*room.h)
 
 func room_candidate(screen: Vector2) -> Dictionary:
 	var p = ground_at(screen)
@@ -1022,6 +1028,14 @@ func update_preview(screen: Vector2) -> void:
 			var name = Catalog.ROOMS[int(ext.target.type)] if not ext.target.is_empty() else ""
 			view.preview_parts(ext.pieces,ext.valid,ext.target)
 			if ext.valid: hud.toast("Agrandir : %s · +%d m² · %s $ · Relâchez pour valider" % [name,int(ext.area),UiKit.money(int(ext.price))],1.5)
+			else: hud.toast("Agrandir : %s · %s" % [name,ext.error],1.5)
+			return
+		if drag.kind == "resize" and grows_finished_room(room_candidate(screen)):
+			# pulling a handle of a finished room outwards: an extension site
+			var ext = extension_preview(room_candidate(screen),selected_room)
+			var name = Catalog.ROOMS[int(ext.target.type)] if not ext.target.is_empty() else ""
+			view.preview_parts(ext.pieces,ext.valid,ext.target)
+			if ext.valid: hud.toast("Agrandir : %s · +%d m² · %s $ · chantier · Relâchez pour valider" % [name,int(ext.area),UiKit.money(int(ext.price))],1.5)
 			else: hud.toast("Agrandir : %s · %s" % [name,ext.error],1.5)
 			return
 		if drag.kind in ["room","resize"]:
@@ -1154,6 +1168,20 @@ func finish_drag(screen: Vector2) -> void:
 		drag = d
 		var r = room_candidate(screen)
 		drag = {}
+		if grows_finished_room(r):
+			# A finished room is never enlarged on the spot: the new ground is a
+			# site (workers, slab, walls, paint, floor) that joins it when done.
+			var target = model.room_by_id(selected_room)
+			var id = model.add_extension(selected_room,Rect2(r.x,r.z,r.w,r.h))
+			if id == -1:
+				hud.toast(model.error)
+				refresh()
+				return
+			model.room_by_id(id).build = SitePlan.start()
+			if commit(before,"Agrandissement : %s +%d m² · chantier ouvert." % [Catalog.ROOMS[int(target.type)],BuildingModel.area_of(model.room_by_id(id))]):
+				selected_room = id
+				refresh()
+			return
 		if model.resize_room(selected_room,r): commit(before,"Chantier modifié : nouvelles cases ajoutées aux travaux." if SitePlan.building(model.room_by_id(selected_room)) else "Pièce redimensionnée.")
 		else:
 			hud.toast(model.error)
@@ -1203,6 +1231,7 @@ func capture(path: String) -> void:
 		if arg == "--setup=site": capture_site()
 		if arg == "--setup=extension": capture_extension()
 		if arg == "--setup=dust": capture_dust()
+		if arg == "--setup=cloak": capture_cloak()
 		if arg == "--open": toggle_open()
 	hud.toast_time = 0
 	center_camera()
@@ -1347,6 +1376,20 @@ func capture_site() -> void:
 
 var capture_pointer = Vector2.INF   # captures: where the mouse would be (floor point)
 var capture_action: Callable         # captures: done just before the pictures are taken
+
+func capture_cloak() -> void:
+	# Documentation: a cloakroom by the desk, a rack half full, lockers filling.
+	var before = model.snapshot()
+	model.add_room(14,-7,5,4,5)
+	commit(before,"accueil")
+	before = model.snapshot()
+	var rack = model.add_item("coat_rack",15.2,-6.6,0)
+	var spare = model.add_item("coat_rack",16.7,-6.6,0)
+	var locker = model.add_item("cloak_locker",18.3,-6.6,0)
+	commit(before,"vestiaire")
+	view.set_cloak_fill(rack,1.0)
+	view.set_cloak_fill(spare,0.42)
+	view.set_cloak_fill(locker,0.35)
 
 func capture_dust() -> void:
 	# Documentation: a sofa set down and a plant moved in a lounge, photographed
@@ -2152,6 +2195,22 @@ func extension_ui_checks() -> void:
 	undo()
 	room = model.room_by_id(a)
 	check(BuildingModel.area_of(room) == 16 and model.rooms.all(func(r): return int(r.get("merge_into",-1)) != a),"Undo never splits a finished extension again")
+	# pulling a handle of a finished room outwards: a site, not an instant room
+	before = model.snapshot()
+	var b_id = model.add_room(-22,-22,4,3,1)
+	commit(before,"pièce")
+	var finished = model.room_by_id(b_id)
+	var w_before = int(finished.w)
+	var rooms_before = model.rooms.size()
+	selected_room = b_id
+	var handle = Vector2(finished.x+finished.w,finished.z+1.5)
+	drag = {"kind":"resize","side":1,"original":finished.duplicate(),"start":handle}
+	finish_drag(screen_of(handle.x+2.0,handle.y))
+	var grown = model.rooms[-1]
+	check(model.rooms.size() == rooms_before+1 and int(model.room_by_id(b_id).w) == w_before and int(grown.get("merge_into",-1)) == b_id and SitePlan.building(grown),"Pulling a finished room's handle opens an extension site, never an instant room")
+	check(construction.site_of(int(grown.id)).workers.size() == 3,"Workers come to build it")
+	site_to(int(grown.id),1.0)
+	check(model.room_by_id(int(grown.id)).is_empty() and BuildingModel.area_of(model.room_by_id(b_id)) == 18,"Finished, it joins the room")
 	# a new room drawn from open ground, ending against the room
 	var count = model.rooms.size()
 	set_mode("room")

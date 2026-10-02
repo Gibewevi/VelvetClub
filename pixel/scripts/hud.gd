@@ -56,6 +56,7 @@ var site_time_label: Label
 var site_room = -1
 var site_refresh = 0.0
 var drawer_live = true
+var cloak_label: Label
 var drawer_refresh = 0.0   # lists of people and reports: redrawn every 2 s, not 2 per s
 
 func build(game_ref) -> void:
@@ -238,6 +239,9 @@ func _timed_process(delta: float) -> void:
 			var selected = game.model.item_by_id(game.selected_item)
 			hygiene_label.text = sanitary_details(selected)
 			update_hygiene_gauge(selected)
+		if is_instance_valid(cloak_label):
+			var selected_cloak = game.model.item_by_id(game.selected_item)
+			if Cloakroom.CAPACITY.has(selected_cloak.get("kind","")): cloak_label.text = cloak_text(selected_cloak)
 		if is_instance_valid(staff_context_label):
 			var employee = game.sim.staff.get(game.selected_item)
 			if is_instance_valid(employee): staff_context_label.text = staff_state(employee)
@@ -585,6 +589,7 @@ func fill_decor_grid(g: GridContainer = null) -> void:
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.focus_mode = Control.FOCUS_NONE
 		b.tooltip_text = "%s · %s · %.1f × %.1f m" % [e.name,e.tag,e.size.x,e.size.y]
+		if Cloakroom.CAPACITY.has(kind): b.tooltip_text += " · %d manteaux" % int(Cloakroom.CAPACITY[kind])
 		b.pressed.connect(game.choose_item.bind(kind))
 		UiKit.set_active(b,game.mode == "furniture" and game.chosen_item == kind)
 		g.add_child(b)
@@ -689,6 +694,9 @@ func room_size(room: Dictionary) -> String:
 	if not room.get("parts",[]).is_empty(): return "%d m² (agrandie)" % BuildingModel.area_of(room)
 	return "%d × %d m · %d m²" % [room.w,room.h,room.w*room.h]
 
+func cloak_text(item: Dictionary) -> String:
+	return "Vestiaire : %d / %d manteaux" % [Cloakroom.used(game.sim,int(item.id)),int(Cloakroom.CAPACITY[item.kind])]
+
 func site_lines(works: Dictionary) -> Array:
 	return ["Avancement : %d %%" % int(works.percent),"Phase : "+String(works.phase_name),
 		"Temps restant : %s (≈ %d s)" % [SitePlan.duration_text(works.minutes),ceili(works.real_seconds)]]
@@ -715,6 +723,7 @@ func refresh_context() -> void:
 
 func _timed_refresh_context() -> void:
 	staff_context_label = null
+	cloak_label = null
 	site_room = -1
 	site_label = null
 	site_bar = null
@@ -809,6 +818,9 @@ func _timed_refresh_context() -> void:
 			context.reset_size()
 			return
 		if not item.get("delivery_pending",false):
+			if Cloakroom.CAPACITY.has(item.kind):
+				cloak_label = UiKit.label(cloak_text(item),1,UiKit.GOLD)
+				context_body.add_child(cloak_label)
 			if item.kind in Plumbing.KINDS:
 				hygiene_label = wrap_label(sanitary_details(item),1,UiKit.GOLD)
 				context_body.add_child(hygiene_label)

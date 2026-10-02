@@ -68,7 +68,7 @@ static func accident(sim, a: Actor) -> void:
 	sim.night.accidents = int(sim.night.get("accidents",0))+1
 	a.emote("help",2.5)
 	for other in sim.clients.duplicate():
-		if other == a or not is_instance_valid(other) or not other.brain.get("paid",false) or other.brain.state == "leave": continue
+		if other == a or not is_instance_valid(other) or not other.brain.get("paid",false) or other.brain.state in ["leave","to_cloak_out","cloak_out"]: continue
 		if other.world.distance_to(a.world) > 3.0 or sim.model.room_at(other.world) != sim.model.room_at(a.world): continue
 		other.brain.sat = maxf(0.0,float(other.brain.sat)-10.0)
 		other.emote("help",2.0)
@@ -79,7 +79,7 @@ static func accident(sim, a: Actor) -> void:
 
 static func tick(sim, a: Actor, gm: float, arrived: bool) -> bool:
 	var b = a.brain
-	if gm <= 0 or not b.get("paid",false) or b.state in ["enter","entering","to_desk","checkin","queue","to_queue","leave"]: return false
+	if gm <= 0 or not b.get("paid",false) or b.state in ["enter","entering","to_desk","checkin","queue","to_queue","leave","to_cloak","cloak_in","to_cloak_out","cloak_out"]: return false
 	if sim.model.room_at(a.world).is_empty(): return false
 	if Sanitation.wash_tick(sim,a,gm,arrived): return true
 	var dirty: int = sim.dirt_near(a.world,3.0)

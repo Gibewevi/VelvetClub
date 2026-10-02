@@ -14569,5 +14569,635 @@
    "split": "pixels"
   },
   "flat": false
+ },
+ "coat_rack_c0": {
+  "0": {
+   "file": "furniture/coat_rack_c0_0.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/coat_rack_c0_1.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/coat_rack_c0_2.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/coat_rack_c0_3.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "flat": false
+ },
+ "coat_rack_c1": {
+  "0": {
+   "file": "furniture/coat_rack_c1_0.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/coat_rack_c1_1.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/coat_rack_c1_2.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/coat_rack_c1_3.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "flat": false
+ },
+ "coat_rack_c2": {
+  "0": {
+   "file": "furniture/coat_rack_c2_0.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/coat_rack_c2_1.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/coat_rack_c2_2.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/coat_rack_c2_3.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "flat": false
+ },
+ "coat_rack_c3": {
+  "0": {
+   "file": "furniture/coat_rack_c3_0.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/coat_rack_c3_1.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/coat_rack_c3_2.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/coat_rack_c3_3.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "flat": false
+ },
+ "coat_rack_c4": {
+  "0": {
+   "file": "furniture/coat_rack_c4_0.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/coat_rack_c4_1.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/coat_rack_c4_2.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/coat_rack_c4_3.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "flat": false
+ },
+ "coat_rack_c5": {
+  "0": {
+   "file": "furniture/coat_rack_c5_0.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/coat_rack_c5_1.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/coat_rack_c5_2.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/coat_rack_c5_3.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "flat": false
+ },
+ "coat_rack_c6": {
+  "0": {
+   "file": "furniture/coat_rack_c6_0.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/coat_rack_c6_1.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/coat_rack_c6_2.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/coat_rack_c6_3.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "flat": false
+ },
+ "coat_rack_c7": {
+  "0": {
+   "file": "furniture/coat_rack_c7_0.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/coat_rack_c7_1.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/coat_rack_c7_2.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/coat_rack_c7_3.png",
+   "ox": 17,
+   "oy": 48,
+   "w": 34,
+   "h": 58,
+   "lights": []
+  },
+  "flat": false
+ },
+ "cloak_locker_o0": {
+  "0": {
+   "file": "furniture/cloak_locker_o0_0.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/cloak_locker_o0_1.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/cloak_locker_o0_2.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/cloak_locker_o0_3.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "flat": false
+ },
+ "cloak_locker_o1": {
+  "0": {
+   "file": "furniture/cloak_locker_o1_0.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/cloak_locker_o1_1.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/cloak_locker_o1_2.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/cloak_locker_o1_3.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "flat": false
+ },
+ "cloak_locker_o2": {
+  "0": {
+   "file": "furniture/cloak_locker_o2_0.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/cloak_locker_o2_1.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/cloak_locker_o2_2.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/cloak_locker_o2_3.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "flat": false
+ },
+ "cloak_locker_o3": {
+  "0": {
+   "file": "furniture/cloak_locker_o3_0.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/cloak_locker_o3_1.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/cloak_locker_o3_2.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/cloak_locker_o3_3.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "flat": false
+ },
+ "cloak_locker_o4": {
+  "0": {
+   "file": "furniture/cloak_locker_o4_0.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/cloak_locker_o4_1.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/cloak_locker_o4_2.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/cloak_locker_o4_3.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "flat": false
+ },
+ "cloak_locker_o5": {
+  "0": {
+   "file": "furniture/cloak_locker_o5_0.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/cloak_locker_o5_1.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/cloak_locker_o5_2.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/cloak_locker_o5_3.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "flat": false
+ },
+ "cloak_locker_o6": {
+  "0": {
+   "file": "furniture/cloak_locker_o6_0.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/cloak_locker_o6_1.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/cloak_locker_o6_2.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/cloak_locker_o6_3.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "flat": false
+ },
+ "cloak_locker_o7": {
+  "0": {
+   "file": "furniture/cloak_locker_o7_0.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/cloak_locker_o7_1.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/cloak_locker_o7_2.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/cloak_locker_o7_3.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "flat": false
+ },
+ "cloak_locker_o8": {
+  "0": {
+   "file": "furniture/cloak_locker_o8_0.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/cloak_locker_o8_1.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/cloak_locker_o8_2.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/cloak_locker_o8_3.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "flat": false
+ },
+ "cloak_locker_o9": {
+  "0": {
+   "file": "furniture/cloak_locker_o9_0.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "1": {
+   "file": "furniture/cloak_locker_o9_1.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "2": {
+   "file": "furniture/cloak_locker_o9_2.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "3": {
+   "file": "furniture/cloak_locker_o9_3.png",
+   "ox": 15,
+   "oy": 54,
+   "w": 30,
+   "h": 63,
+   "lights": []
+  },
+  "flat": false
  }
 }

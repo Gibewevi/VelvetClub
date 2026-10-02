@@ -737,20 +737,34 @@ def item(kind: str, r: int = 0) -> Item:
                  box(0.25, 1.13, 0.14, 0.43, 1.16, 0.32, m["dark"]), box(0.28, 1.16, 0.17, 0.4, 1.19, 0.25, m["screen_g"]),
                  cyl(0.72, 1.13, 0.24, 0.05, 0.04, m["gold"]), box(-0.1, 1.13, 0.16, 0.12, 1.14, 0.32, m["paper"])]
         return Item(prims, (2.0, 0.8), lights=[dict(p=(-0.44, 1.05, -0.2), color="7fc0ff", radius=0.8, power=0.3)])
-    if kind == "coat_rack":
+    if kind == "coat_rack" or kind.startswith("coat_rack_c"):
+        # coat_rack_cN: N of the 7 coats hanging (the cloakroom filling up);
+        # the plain kind is the full rack shown in the shop
+        shown = 7 if kind == "coat_rack" else int(kind.rsplit("_c", 1)[1])
+        hung = set([3, 0, 6, 1, 5, 2, 4][:shown])
         prims = [box(-0.6, 0.36, -0.2, 0.6, 0.42, 0.2, m["wood_warm"]),
                  box(-0.58, 0, -0.18, -0.52, 0.36, 0.18, m["wood_warm"]), box(0.52, 0, -0.18, 0.58, 0.36, 0.18, m["wood_warm"]),
                  rod((-0.56, 0.42, -0.02), (-0.56, 1.66, -0.02), 0.025, m["dark"]), rod((0.56, 0.42, -0.02), (0.56, 1.66, -0.02), 0.025, m["dark"]),
                  rod((-0.56, 1.62, -0.02), (0.56, 1.62, -0.02), 0.02, m["chrome"])]
         coats = ["navy", "purple", "black", "velvet", "grey", "purple", "navy"]
         for i, c in enumerate(coats):
+            if i not in hung:
+                continue
             x = -0.44 + i * 0.147
             length = 0.72 + 0.14 * ((i * 5) % 3) / 2
             prims.append(box(x - 0.055, 1.58 - length, -0.17, x + 0.055, 1.58, 0.15, m[c]))
             prims.append(box(x - 0.065, 1.5, -0.18, x + 0.065, 1.6, 0.16, m[c]))
-        prims += [box(-0.4, 0.42, -0.1, -0.22, 0.5, 0.12, m["black"]), box(0.2, 0.42, -0.08, 0.4, 0.49, 0.12, m["velvet"])]
+        if shown >= 4:
+            prims += [box(-0.4, 0.42, -0.1, -0.22, 0.5, 0.12, m["black"])]
+        if shown >= 6:
+            prims += [box(0.2, 0.42, -0.08, 0.4, 0.49, 0.12, m["velvet"])]
         return Item(prims, (1.25, 0.5))
-    if kind == "cloak_locker":
+    if kind == "cloak_locker" or kind.startswith("cloak_locker_o"):
+        # cloak_locker_oN: N of the 9 lockers taken (key gone, red tag on the door)
+        taken_n = 0 if kind == "cloak_locker" else int(kind.rsplit("_o", 1)[1])
+        doors = [(0.0, 0.0), (-0.32, 0.0), (0.32, 0.0), (0.0, -0.6), (-0.32, 0.6), (0.32, -0.6), (0.0, 0.6), (-0.32, -0.6), (0.32, 0.6)]
+        taken = set(doors[:taken_n])
+
         def grid(p, ln, w, n):
             d = np.zeros(len(p), dtype=int)
             paint = np.zeros((len(p), 4), dtype=np.uint8)
@@ -760,9 +774,13 @@ def item(kind: str, r: int = 0) -> Item:
             for cx in (-0.32, 0.0, 0.32):
                 for cy in (-0.6, 0.0, 0.6):
                     lab = f & (np.abs(p[:, 0] - cx) < 0.05) & (np.abs(p[:, 1] - (cy + 0.18)) < 0.025)
-                    paint[lab] = (232, 222, 196, 255)
                     key = f & (np.abs(p[:, 0] - (cx + 0.1)) < 0.03) & (np.abs(p[:, 1] - cy) < 0.03)
-                    paint[key] = (230, 190, 90, 255)
+                    if (cx, cy) in taken:
+                        paint[lab] = (196, 54, 72, 255)
+                        paint[key] = (52, 44, 58, 255)
+                    else:
+                        paint[lab] = (232, 222, 196, 255)
+                        paint[key] = (230, 190, 90, 255)
             return d, paint
         prims = [box(-0.48, 0.06, -0.24, 0.48, 1.86, 0.2, m["grey"], pattern=grid), box(-0.46, 0, -0.22, 0.46, 0.06, 0.18, m["dark"])]
         return Item(prims, (1.0, 0.5))
@@ -1305,6 +1323,7 @@ KINDS = ["bar", "backbar", "stool", "table", "coffee", "chair", "sofa", "armchai
          "shower_f1", "shower_f2", "shower_f3"]
 KINDS += [f"{k}_s{s}_f{f}" for k in ("dancefloor", "dance") for s in range(len(DANCE_SCHEMES)) for f in range(4)]
 KINDS += ["heart_bed", "heart_bed_unmade", "heart_bed_busy", "heart_bed_busy_1", "heart_bed_busy_2", "heart_bed_busy_3"]
+KINDS += [f"coat_rack_c{n}" for n in range(8)] + [f"cloak_locker_o{n}" for n in range(10)]
 
 
 def part_names(prims):

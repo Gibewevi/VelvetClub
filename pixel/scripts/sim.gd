@@ -34,7 +34,7 @@ const MINUTES_PER_SECOND = 2.5
 # frame longer still, until the window stopped answering).
 const MAX_FRAME = 0.1
 const NAMES = ["Alex","Bastien","Chloé","David","Élodie","Farid","Gaël","Hugo","Inès","Jules","Karim","Léa","Marc","Nadia","Olivier","Paul","Quentin","Rémi","Sofia","Théo","Ugo","Victor","Wassim","Yanis","Zoé","Mehdi","Lucas","Nathan","Hélène","Manon"]
-const ACTIVITY = {"look":"Fait le tour","entering":"Entre","bar":"Au bar","lounge":"Au salon","dance":"Danse","stage":"Devant la scène","private":"En chambre","toilet":"Aux toilettes","toilet_seek":"Cherche les toilettes","toilet_wait":"Attend un sanitaire libre","wash_hands":"Se lave les mains","wash_wait":"Attend un lavabo","checkin":"À la réception","queue":"Fait la queue","enter":"Arrive","leave":"S'en va","walk":"Se déplace"}
+const ACTIVITY = {"look":"Fait le tour","entering":"Entre","bar":"Au bar","lounge":"Au salon","dance":"Danse","stage":"Devant la scène","private":"En chambre","toilet":"Aux toilettes","toilet_seek":"Cherche les toilettes","toilet_wait":"Attend un sanitaire libre","wash_hands":"Se lave les mains","wash_wait":"Attend un lavabo","checkin":"À la réception","queue":"Fait la queue","enter":"Arrive","leave":"S'en va","walk":"Se déplace","cloak":"Au vestiaire"}
 
 var model: BuildingModel
 var view: WorldView
@@ -601,7 +601,7 @@ func set_open(value: bool, manual: bool = true) -> void:
 	spawn_timer = 1.0
 	if not open:
 		for c in clients.duplicate():
-			if is_instance_valid(c) and c.brain.state != "leave": leave(c)
+			if is_instance_valid(c) and not c.brain.state in ["leave","to_cloak_out","cloak_out"]: leave(c)
 	open_changed.emit(open)
 	stats_changed.emit()
 
@@ -812,7 +812,7 @@ func spawn_client() -> void:
 		"patience":profile.patience,"paid":not FEATURES.reception,"slot":-1,"grumble":0.0,
 		"budget":int(profile.budget_base+rating*90.0),"refused":[],
 		"generous":profile.generous,
-		"bladder":rng.randf_range(12.0,28.0),"digestion":0.0,"drinks":0}
+		"bladder":rng.randf_range(12.0,28.0),"digestion":0.0,"drinks":0,"coat":Cloakroom.has_coat(self)}
 	clients.append(a)
 	view.add_actor(a)
 	night.clients += 1
@@ -836,6 +836,7 @@ func remove_client(a: Actor) -> void:
 		var e = a.brain.escort
 		if is_instance_valid(e) and e.brain.get("client") == a: drop_client(e)
 	clients.erase(a)
+	Cloakroom.forget(self,a)
 	recent_satisfaction.append(a.brain.sat)
 	if recent_satisfaction.size() > 12: recent_satisfaction.pop_front()
 	night.satisfaction.append(a.brain.sat)
@@ -847,6 +848,7 @@ func client_ai(a: Actor, dt: float) -> void:
 	var arrived = a.step(dt,1.0)
 	var gm = dt*MINUTES_PER_SECOND
 	if FEATURES.toilets and ClientNeeds.tick(self,a,gm,arrived): return
+	if Cloakroom.tick(self,a,arrived,gm): return
 	match b.state:
 		"enter":
 			if arrived:
@@ -883,7 +885,8 @@ func client_ai(a: Actor, dt: float) -> void:
 			else:
 				impatience(a,gm)
 		"choose":
-			choose_activity(a)
+			# a coat goes to the cloakroom first
+			if not Cloakroom.deposit(self,a): choose_activity(a)
 		"walk":
 			if arrived:
 				settle(a)
@@ -1008,6 +1011,17 @@ func leave(a: Actor) -> void:
 	a.visible = true
 	release(a)
 	queue.erase(a)
+	var b = a.brain
+	b.state = "leave"
+	b.activity = "leave"
+	if entrance.is_empty():
+		remove_client(a)
+		return
+	# his coat first, if he left one
+	if Cloakroom.collect(self,a): return
+	head_out(a)
+
+func head_out(a: Actor) -> void:
 	var b = a.brain
 	b.state = "leave"
 	b.activity = "leave"
