@@ -1,10 +1,10 @@
 """The lawn around the club, and the round bushes along the sidewalks.
 
 The whole lot (48 x 48 m) is painted as one picture, pixel by pixel, so
-nothing repeats: a deep green field whose tone drifts at three scales (a
-few lighter, drier stretches, darker lush ones), short blades everywhere,
-taller tufts, and little clusters of flowers (daisies, pink, lilac,
-buttercups), denser in a few meadow spots and along the sidewalks. Where
+nothing repeats: an olive-green field with broad shaded patches and
+irregular groups of yellow-green blades, without a repeating dither grid,
+taller tufts, and sparse little clusters of pink flowers, daisies and
+buttercups, denser in a few meadow spots and along the sidewalks. Where
 the lawn meets a sidewalk the edge is darker (soil) and tufts grow over the
 slabs. The picture is transparent over the street: the sidewalks and the
 road are drawn under it, the rooms and car parks over it.
@@ -27,8 +27,8 @@ W, H = 4 * LOT * HALF_W, 4 * LOT * HALF_H      # 1536 x 768
 OX, OY = W // 2, H // 2                        # world origin in the picture
 
 # deep shade .. sunlit tips, a little blue in the shade, yellow in the light
-GREENS = [hexrgb(c) for c in ("102a1a", "173a20", "1f4a25", "285a2a", "326b2e", "3f7c33", "52903a", "6ea743", "92bf4f", "b4d460")]
-DRY = [tuple(int(round(c * 0.8 + y * 0.2)) for c, y in zip(g, (196, 196, 84))) for g in GREENS]
+GREENS = [hexrgb(c) for c in ("112c21", "173721", "1f4221", "294c22", "325523", "3a5f23", "436824", "4c7225", "597d29", "668a2d", "749733", "86a637", "9ab642", "b0c647", "c3d452", "d7df6b")]
+DRY = [tuple(int(round(c * 0.88 + y * 0.12)) for c, y in zip(g, (177, 160, 58))) for g in GREENS]
 SOIL = hexrgb("1a1712")
 FLOWERS = {
     "daisy": [hexrgb("f4f1e8"), hexrgb("f2cf45")],
@@ -37,7 +37,6 @@ FLOWERS = {
     "butter": [hexrgb("f6d84c"), hexrgb("d8a832")],
     "poppy": [hexrgb("ee5a4e"), hexrgb("2a1418")],
 }
-BAYER = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]) / 16.0 - 0.47
 
 
 def hash2(ix, iz, seed):
@@ -78,22 +77,23 @@ class Lawn:
         self.X, self.Z = X, Z
         inside = (np.abs(X) < LOT) & (np.abs(Z) < LOT)
         self.mask = inside & ((Z <= WALK_NEAR[0]) | (Z >= WALK_FAR[1]))
-        # tone: broad drifts, medium patches, fine grain
+        # Solid colour clusters at three scales. No screen-space stippling:
+        # the visible texture comes from irregular blades, not a dot grid.
         n1 = vnoise(X, Z, 7.0, 11)
         n2 = vnoise(X, Z, 2.2, 23)
         n3 = vnoise(X, Z, 0.7, 37)
-        tone = 0.44 + 0.30 * (n1 - 0.5) + 0.22 * (n2 - 0.5) + 0.14 * (n3 - 0.5)
+        tone = 4.4 + 3.0 * (n1 - 0.5) + 4.0 * (n2 - 0.5) + 2.0 * (n3 - 0.5)
         # a few drier, yellower stretches
         self.dry = np.clip((vnoise(X, Z, 5.0, 53) - 0.62) * 3.0, 0.0, 1.0) * np.clip((vnoise(X, Z, 1.1, 59) - 0.2) * 2.0, 0.0, 1.0)
         # meadow spots where flowers gather
         self.meadow = vnoise(X, Z, 3.5, 71)
-        bay = BAYER[np.arange(H)[:, None] % 4, np.arange(W)[None, :] % 4]
-        self.tone = np.clip(np.floor(1.0 + tone * 4.6 + bay * 0.6), 0, 9).astype(int)
+        self.growth = vnoise(X, Z, 0.65, 83)
+        self.tone = np.clip(np.floor(tone), 2, 10).astype(int)
         # darker soil where the lawn meets a sidewalk
         edge = ((Z > WALK_NEAR[0] - 0.09) & (Z <= WALK_NEAR[0])) | ((Z >= WALK_FAR[1]) & (Z < WALK_FAR[1] + 0.09))
         self.tone[edge] = np.maximum(self.tone[edge] - 3, 0)
         self.soil = edge & self.mask
-        use_dry = (self.dry + bay * 0.9) > 0.55
+        use_dry = self.dry > 0.28
         self.use_dry = use_dry
         self.img = np.zeros((H, W, 4), dtype=np.uint8)
         g = np.array(GREENS, dtype=np.uint8)
@@ -107,7 +107,7 @@ class Lawn:
 
     def colour(self, x, y, tone):
         ramp = DRY if self.use_dry[y, x] else GREENS
-        return ramp[max(0, min(9, tone))]
+        return ramp[max(0, min(len(ramp)-1, tone))]
 
     def put(self, x, y, rgb, free=False):
         if 0 <= x < W and 0 <= y < H and (free or self.mask[y, x]):
@@ -118,22 +118,23 @@ class Lawn:
         """A blade rising from (x, y): darker at the foot, lit at the tip."""
         for k in range(height):
             px = x + int(round(lean * k / max(1, height - 1)))
-            tone = base + (1 if k > 0 else 0) + (2 if k == height - 1 else 0)
+            tone = base + (2 if k > 0 else 0) + (4 if k == height - 1 else 0)
             if not (0 <= px < W and 0 <= y - k < H):
                 continue
-            self.put(px, y - k, self.colour(min(max(px, 0), W - 1), y - k if free else y - k, tone), free)
+            self.put(px, y - k, self.colour(px, y - k, tone), free)
 
-    def short_blades(self, density=1 / 26.0):
-        """Small clumps all over: three to five short blades fanning from a
+    def short_blades(self, density=1 / 23.0):
+        """Small clumps all over: two or three short blades fanning from a
         dark foot, lit at the tips. They make the grain of the lawn."""
         n = int(self.mask.sum() * density)
-        xs = self.rng.integers(0, W, n)
-        ys = self.rng.integers(0, H, n)
-        for x, y in zip(xs, ys):
-            if not self.mask[y, x] or self.soil[y, x]:
+        ys, xs = np.where(self.mask)
+        choices = self.rng.integers(0, len(xs), n)
+        for idx in choices:
+            x, y = int(xs[idx]), int(ys[idx])
+            if self.soil[y, x] or self.rng.random() > 0.18 + 0.85*self.growth[y, x]:
                 continue
-            base = self.tone[y, x]
-            blades = int(self.rng.integers(2, 5))
+            base = int(self.tone[y, x]) + int(self.rng.choice([0, 1, 1, 2]))
+            blades = int(self.rng.integers(2, 4))
             for b in range(blades):
                 dx = int(self.rng.integers(-2, 3))
                 h = int(self.rng.choice([2, 2, 3, 3, 4]))
@@ -146,12 +147,12 @@ class Lawn:
         """A taller clump: blades fanning out from a dark root."""
         if not (0 <= x < W and 0 <= y < H):
             return
-        base = max(3, min(5, self.tone[min(max(y, 0), H - 1), min(max(x, 0), W - 1)] + 1))
+        base = max(5, min(9, int(self.tone[y, x]) + 2))
         for dx in range(-size // 2 - 1, size // 2 + 2):
             self.put(x + dx, y + 1, self.colour(min(max(x + dx, 0), W - 1), y, base - 2), free)
-        for b in range(size + 2):
+        for b in range(size + 1):
             root = x + int(self.rng.integers(-size // 2 - 1, size // 2 + 2))
-            height = int(self.rng.integers(3, 5 + size))
+            height = int(self.rng.integers(2, 4 + size))
             lean = float(self.rng.uniform(-1.0, 1.0)) * (1 + (root - x) * 0.5)
             self.blade(root, y, height, lean, base, free)
 
@@ -181,10 +182,10 @@ class Lawn:
         self.short_blades()
         area = float(self.mask.sum()) / (2 * HALF_W * HALF_H)      # m2
         # tufts scattered on the lawn, thicker along the sidewalks
-        for _ in range(int(area / 2.2)):
+        for _ in range(int(area / 2.7)):
             x, z = self.rng.uniform(-LOT, LOT), self.rng.uniform(-LOT, LOT)
             px, py = to_px(x, z)
-            if 0 <= px < W and 0 <= py < H and self.mask[py, px]:
+            if 0 <= px < W and 0 <= py < H and self.mask[py, px] and self.rng.random() < 0.2 + self.growth[py, px]:
                 self.tuft(px, py, int(self.rng.integers(1, 4)))
         for edge, side in ((WALK_NEAR[0], -1), (WALK_FAR[1], 1)):
             x = -LOT + 0.1
@@ -192,23 +193,23 @@ class Lawn:
                 # the verge: tall clumps, some growing over the slabs
                 z = edge + side * float(self.rng.uniform(0.05, 0.6))
                 self.tuft(*to_px(x, z), int(self.rng.integers(1, 4)))
-                if self.rng.random() < 0.55:
+                if self.rng.random() < 0.38:
                     over = edge - side * float(self.rng.uniform(0.02, 0.16))
                     px, py = to_px(x + float(self.rng.uniform(-0.2, 0.2)), over)
                     self.tuft(px, py, int(self.rng.integers(1, 3)), free=True)
-                x += float(self.rng.uniform(0.25, 0.7))
+                x += float(self.rng.uniform(0.3, 0.85))
         # flower clusters: a few everywhere, many in the meadow spots and the verges
-        kinds = ["daisy", "daisy", "daisy", "pink", "pink", "lilac", "butter", "butter", "poppy"]
+        kinds = ["daisy", "pink", "pink", "pink", "butter"]
         for _ in range(int(area * 0.5)):
             x, z = self.rng.uniform(-LOT, LOT), self.rng.uniform(-LOT, LOT)
             px, py = to_px(x, z)
             if not (0 <= px < W and 0 <= py < H) or not self.mask[py, px]:
                 continue
             verge = (WALK_NEAR[0] - 1.6 < z <= WALK_NEAR[0]) or (WALK_FAR[1] <= z < WALK_FAR[1] + 1.6)
-            chance = 0.07 + 0.5 * max(0.0, self.meadow[py, px] - 0.62) * 3.0 + (0.3 if verge else 0.0)
+            chance = 0.025 + 0.35 * max(0.0, self.meadow[py, px] - 0.62) * 3.0 + (0.16 if verge else 0.0)
             if self.rng.random() < chance:
                 kind = kinds[int(self.meadow[py, px] * 97 + x * 3) % len(kinds)] if self.rng.random() < 0.7 else kinds[int(self.rng.integers(0, len(kinds)))]
-                self.flowers(px, py, kind, int(self.rng.integers(3, 9)))
+                self.flowers(px, py, kind, int(self.rng.integers(2, 6)))
         return self.img
 
 
