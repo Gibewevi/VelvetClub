@@ -1,0 +1,65 @@
+{
+ "lawn": {
+  "kind": 0,
+  "mask": "seasons/lawn_mask.png",
+  "snow": "seasons/lawn_snow.png"
+ },
+ "tree_0": {
+  "kind": 1,
+  "mask": "seasons/tree_0_mask.png",
+  "snow": "seasons/tree_0_snow.png",
+  "bare": "seasons/tree_0_bare.png"
+ },
+ "tree_pit_0": {
+  "kind": 3,
+  "mask": "seasons/tree_pit_0_mask.png",
+  "snow": "seasons/tree_pit_0_snow.png"
+ },
+ "tree_1": {
+  "kind": 1,
+  "mask": "seasons/tree_1_mask.png",
+  "snow": "seasons/tree_1_snow.png",
+  "bare": "seasons/tree_1_bare.png"
+ },
+ "tree_pit_1": {
+  "kind": 3,
+  "mask": "seasons/tree_pit_1_mask.png",
+  "snow": "seasons/tree_pit_1_snow.png"
+ },
+ "tree_2": {
+  "kind": 1,
+  "mask": "seasons/tree_2_mask.png",
+  "snow": "seasons/tree_2_snow.png",
+  "bare": "seasons/tree_2_bare.png"
+ },
+ "tree_pit_2": {
+  "kind": 3,
+  "mask": "seasons/tree_pit_2_mask.png",
+  "snow": "seasons/tree_pit_2_snow.png"
+ },
+ "bush": {
+  "kind": 2,
+  "mask": "seasons/bush_mask.png",
+  "snow": "seasons/bush_snow.png"
+ },
+ "lawn_bush_0": {
+  "kind": 2,
+  "mask": "seasons/lawn_bush_0_mask.png",
+  "snow": "seasons/lawn_bush_0_snow.png"
+ },
+ "lawn_bush_1": {
+  "kind": 2,
+  "mask": "seasons/lawn_bush_1_mask.png",
+  "snow": "seasons/lawn_bush_1_snow.png"
+ },
+ "lawn_bush_2": {
+  "kind": 2,
+  "mask": "seasons/lawn_bush_2_mask.png",
+  "snow": "seasons/lawn_bush_2_snow.png"
+ },
+ "lawn_bush_3": {
+  "kind": 2,
+  "mask": "seasons/lawn_bush_3_mask.png",
+  "snow": "seasons/lawn_bush_3_snow.png"
+ }
+}

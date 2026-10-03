@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 # Jeu de gestion en pixel art isométrique (projet pixel/).
 $projectRoot = $PSScriptRoot
-$version = 'Construction-V84-Tarifs'
+$version = 'Construction-V85-Saisons'
 $godotBinary = Join-Path $projectRoot '.tools\godot\Godot_v4.5.1-stable_win64_console.exe'
 if (-not (Test-Path -LiteralPath $godotBinary)) {
     throw 'Godot 4.5.1 est absent de .tools/godot. Voir README.md.'
@@ -48,6 +48,8 @@ try {
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-tariffs.log') -Pattern 'TARIFFS_TESTS_PASSED' -Quiet)) { throw 'Tests des tarifs et de leur sauvegarde échoués.' }
     & $godotBinary --headless --path $gameDir --script res://tests/calendar_test.gd --log-file (Join-Path $artifacts 'pixel-calendar.log')
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-calendar.log') -Pattern 'CALENDAR_TESTS_PASSED' -Quiet)) { throw 'Tests des plannings et du calendrier échoués.' }
+    & $godotBinary --headless --path $gameDir --script res://tests/seasons_test.gd --log-file (Join-Path $artifacts 'pixel-seasons.log')
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-seasons.log') -Pattern 'SEASONS_TESTS_PASSED' -Quiet)) { throw 'Tests du calendrier saisonnier et des feuilles échoués.' }
     & $godotBinary --headless --path $gameDir --script res://tests/weather_test.gd --log-file (Join-Path $artifacts 'pixel-weather.log')
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-weather.log') -Pattern 'WEATHER_TESTS_PASSED' -Quiet)) { throw 'Tests des effets météo échoués.' }
     & $godotBinary --headless --path $gameDir --script res://tests/client_needs_test.gd --log-file (Join-Path $artifacts 'pixel-client-needs.log')

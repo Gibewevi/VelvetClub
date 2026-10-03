@@ -30,6 +30,7 @@ var bounds = Rect2(-8,-6,18,17)
 var dirt_layer: Node2D
 var rain: RainOverlay
 var rain_ground: RainGround
+var seasons: SeasonEnvironment
 var weather_surfaces: Array = []
 var weather_intensity = 0.0
 var club_open = false
@@ -67,6 +68,9 @@ func setup(building: BuildingModel) -> void:
 	rain_ground.z_index = -240
 	add_child(rain_ground)
 	rain_ground.setup(model)
+	seasons = SeasonEnvironment.new()
+	add_child(seasons)
+	seasons.setup(self)
 	grid = GridLines.new()
 	grid.z_index = -180
 	grid.visible = false
@@ -129,6 +133,7 @@ func _timed_rebuild() -> void:
 	animated.clear()
 	anim_items.clear()
 	weather_surfaces.clear()
+	seasons.begin_layout()
 	var p0 = Prof.t()
 	compute_bounds()
 	build_ground()
@@ -157,6 +162,7 @@ func _timed_rebuild() -> void:
 	Prof.add("rb.exterior",p0)
 	p0 = Prof.t()
 	rain_ground.layout_changed(statics)
+	seasons.layout_changed()
 	rain.layout_changed()
 	rain.drawn_key = []
 	shaded_at = -1.0   # the new surfaces take the current weather
@@ -214,7 +220,10 @@ func build_ground() -> void:
 	# over the street (its verge grows over the slabs); rooms and car parks
 	# are drawn over it.
 	var lawn: Dictionary = Art.tiles.get("lawn",{})
-	if not lawn.is_empty(): ground.add_child(sprite(Art.tex(lawn.file),Vector2.ZERO,Vector2(lawn.ox,lawn.oy),Art.rgba_material()))
+	if not lawn.is_empty():
+		var meadow = sprite(Art.tex(lawn.file),Vector2.ZERO,Vector2(lawn.ox,lawn.oy),Art.rgba_material())
+		ground.add_child(meadow)
+		seasons.register(meadow,"lawn")
 
 func build_floor(room: Dictionary) -> void:
 	# one polygon per rectangle of the room; the texture is laid in screen
@@ -850,8 +859,12 @@ func build_exterior() -> void:
 		var key = int(round(p[1]*7.0+p[2]*13.0))
 		if p[0] == "tree" and Art.tiles.props.has("tree_%d" % posmod(key,3)): info = Art.tiles.props["tree_%d" % posmod(key,3)]
 		var s = sprite(Art.tex(info.file),Iso.pixel(p[1],p[2]),Vector2(info.ox,info.oy),Art.rgba_material())
+		var season_key: String = "tree_%d" % posmod(key,3) if p[0] == "tree" else p[0]
+		seasons.register(s,season_key,Vector2(p[1],p[2]))
 		if info.has("pit"):
-			ground.add_child(sprite(Art.tex(info.pit.file),Iso.pixel(p[1],p[2]),Vector2(info.pit.ox,info.pit.oy),Art.rgba_material()))
+			var pit = sprite(Art.tex(info.pit.file),Iso.pixel(p[1],p[2]),Vector2(info.pit.ox,info.pit.oy),Art.rgba_material())
+			ground.add_child(pit)
+			seasons.register(pit,"tree_pit_%d" % posmod(key,3))
 		if int(info.get("frames",1)) > 1:
 			# each animated prop runs on its own beat
 			s.hframes = int(info.frames)
@@ -1517,6 +1530,7 @@ func _timed_process(delta: float) -> void:
 	if rebuild_pending: rebuild()
 	rain.refresh()
 	rain_ground.refresh()
+	seasons.refresh()
 	clock += delta
 	for a in anim_items:
 		# dance floor tiles and neon, fairy lights: the next picture of the loop
@@ -1552,7 +1566,7 @@ func _timed_process(delta: float) -> void:
 	for d in doors:
 		var open = false
 		for a in actors:
-			if is_instance_valid(a) and a.world.distance_to(d.center) < float(d.get("reach",0.9)):
+			if is_instance_valid(a) and not a.has_meta("season_leaf") and a.world.distance_to(d.center) < float(d.get("reach",0.9)):
 				open = true
 				break
 		# the leaf swings through its pictures: closed, ajar, open (and back)

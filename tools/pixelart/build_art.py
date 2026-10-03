@@ -13,6 +13,7 @@ import pa_ui
 import pa_delivery
 import pa_sanitary
 import pa_site
+import pa_seasons
 from pa_core import write_json, OUT
 
 
@@ -21,6 +22,7 @@ def main():
     pa_charsheet.export()
     write_json("furniture.json", pa_furniture.export())
     pa_tiles.export()
+    pa_seasons.export()
     pa_ui.export()
     pa_delivery.export()
     pa_sanitary.export()

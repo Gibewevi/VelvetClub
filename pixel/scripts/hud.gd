@@ -15,6 +15,7 @@ var S = 2
 var money_label: Label
 var time_label: Label
 var day_label: Label
+var season_label: Label
 var stars: HBoxContainer
 var clients_label: Label
 var debris_label: Label
@@ -128,6 +129,8 @@ func build_status() -> void:
 	day_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	day_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	row3.add_child(day_label)
+	season_label = UiKit.label("",1,UiKit.MUTED)
+	col.add_child(season_label)
 	UiKit.separator(col)
 	var speeds = UiKit.hbox(col,2)
 	for entry in [["pause",0,"Pause · Espace"],["play",1,"Vitesse normale · 1"],["fast",3,"Accéléré · 2"]]:
@@ -268,6 +271,8 @@ func refresh_stats() -> void:
 	money_label.add_theme_color_override("font_color",UiKit.INK if sim.money >= 0 else UiKit.RED)
 	time_label.text = sim.clock_text()
 	day_label.text = "%s · J%d" % [ClubCalendar.SHORT_DAYS[ClubCalendar.weekday(sim.day)],sim.day]
+	season_label.text = ClubSeasons.text(sim.day)
+	season_label.tooltip_text = "Calendrier du club · année %d. Végétation et neige évoluent progressivement avec les mois." % ClubSeasons.date(sim.day).year
 	var full = int(round(sim.rating))
 	for i in range(stars.get_child_count()):
 		(stars.get_child(i) as TextureRect).modulate = UiKit.GOLD if i < full else UiKit.DIM

@@ -1,0 +1,11 @@
+# Branches d’hiver — source et préparation
+
+Source : `tree_bare.png`, créée avec l’outil intégré `image_gen` le 3 octobre 2026, sur fond transparent. Image d’entrée : l’arbre droit actuel `../trees/tree_full.png`. La référence saisonnière du joueur guide la direction artistique ; aucun ancien modèle d’arbre n’est repris.
+
+`pa_seasons.py` prépare cette peinture aux tailles natives des deux arbres droits (160 ou 168 pixels de hauteur, canevas 160 × 192), avec un ancrage identique au centre des racines et une palette de 32 couleurs sans tramage. Le troisième emplacement garde le même arbre droit que le premier. Les surcouches de neige, la pelouse hivernale et les masques de feuillage sont produits à leur résolution native par ce générateur : des amas fixes, quelques teintes bleu-blanc, aucune animation de texture ni bruit variable dans le temps. Les arbres verts et les buissons actuels restent les sources du printemps, de l’été et de la coloration automnale.
+
+La source est utilisée pour les assets `pixel/art/seasons/tree_0_bare.png`, `tree_1_bare.png`, `tree_2_bare.png` et leurs versions enneigées. Les autres couches sont déclarées dans `pixel/art/seasons.json`. Une reconstruction complète des sprites régénère aussi ces variantes.
+
+## Prompt exact
+
+Edit target: the referenced new game tree painting. Create its completely leafless dormant-season version on genuine transparent alpha. Preserve EXACTLY the upright reddish orange-brown trunk, exposed root fan, base position, lower fork positions, pixel-art shading and overall image framing of this tree. Remove ALL green foliage and ALL flowers, revealing believable thick branches and a few simple smaller twigs following the existing forks and former crown. Branches reach into the same tall broad irregular crown silhouette as the original; bold readable stepped pixel-art clusters, dark outlines, warm bark, upper-left light. No snow yet: clean bare brown branches only, no green pixels, no ground, no planter, no scenery, no cast shadow, no text. Keep a modest simplified branch count suitable for a native 160 x 192 game sprite. Do not turn it into a photo, smooth illustration or fine twig noise. Single full tree, including roots, centered with transparent margin. This is an edit of the CURRENT supplied upright tree, never any previous game model.

@@ -65,6 +65,7 @@ var recruit_batch = 0      # ads placed that day: each brings new candidates
 var recruit_gone: Array = []   # candidates hired then let go today
 var saved_weather_state = ""
 var saved_weather_ground: Dictionary = {}
+var saved_seasons: Dictionary = {}
 var saved_night: Dictionary = {}
 var speed = 1
 var rating = 1.0
@@ -132,6 +133,8 @@ func setup(building: BuildingModel, world: WorldView) -> void:
 	view.rain_ground.from_dict(saved_weather_ground)
 	view.rain.phase = view.rain_ground.phase
 	view.rain.step(0,rain_strength)
+	view.seasons.from_dict(saved_seasons)
+	view.seasons.step(0,day,minute)
 
 func reset_night() -> void:
 	night = {"entry":0,"bar":0,"dance":0,"private":0,"wages":0,"clients":0,"served":0,"satisfaction":[],"day":day,"impatient":0,
@@ -151,7 +154,7 @@ func to_dict() -> Dictionary:
 		if is_instance_valid(client): profiles.sync_spending(client)
 	var spills: Array = []
 	for d in dirt: spills.append({"x":d.pos.x,"z":d.pos.y,"kind":d.get("kind","water"),"load":d.get("load",1.0),"work":d.get("work",6.0),"fixture":d.get("fixture",-1),"origin_x":d.get("origin",d.pos).x,"origin_z":d.get("origin",d.pos).y})
-	return {"money":money,"day":day,"minute":minute,"rating":rating,"open":open,"prices":prices.duplicate(),"history":history.duplicate(true),"dirt":spills,"calendar_version":1,"opening_hours":opening_hours.duplicate(),"opening_override":opening_override,"override_window":override_window,
+	return {"money":money,"day":day,"minute":minute,"rating":rating,"open":open,"prices":prices.duplicate(),"history":history.duplicate(true),"dirt":spills,"calendar_version":1,"seasons":view.seasons.to_dict() if view != null else saved_seasons.duplicate(true),"opening_hours":opening_hours.duplicate(),"opening_override":opening_override,"override_window":override_window,
 		"weather":{"rain":rain_strength,"remaining":weather_remaining,"rng_state":str(weather_rng.state),"ground":view.rain_ground.to_dict() if view != null else saved_weather_ground.duplicate()},"wage_remainder":wage_remainder,"night":night.duplicate(true),"characters":profiles.to_dict(),"recruits":Recruits.to_dict(self),"traffic":traffic.to_dict()}
 
 func from_dict(data: Variant) -> void:
@@ -178,6 +181,7 @@ func from_dict(data: Variant) -> void:
 		opening_override = int(manual)
 		override_window = data.get("override_window",false)
 	var weather = data.get("weather",{})
+	saved_seasons = data.seasons.duplicate(true) if data.get("seasons") is Dictionary else {}
 	saved_weather_ground = {}
 	if weather is Dictionary:
 		if weather.get("ground") is Dictionary: saved_weather_ground = weather.ground.duplicate()
@@ -195,6 +199,8 @@ func from_dict(data: Variant) -> void:
 		view.rain_ground.from_dict(saved_weather_ground)
 		view.rain.phase = view.rain_ground.phase
 		view.rain.step(0,rain_strength)
+		view.seasons.from_dict(saved_seasons)
+		view.seasons.step(0,day,minute)
 	if data.get("night") is Dictionary:
 		saved_night = data.night.duplicate(true)
 		if not night.is_empty():
@@ -642,6 +648,7 @@ func _timed_process(delta: float) -> void:
 			minute = maxf(0,minute-DAY_MINUTES)
 			day += 1
 			reset_night()
+		view.seasons.step(gm,day,minute)
 		remaining -= gm
 	refresh_schedule_state()
 	stats_changed.emit()

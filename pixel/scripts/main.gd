@@ -747,6 +747,9 @@ func reset_club() -> void:
 	sim.opening_override = -1
 	sim.rain_strength = 0.0
 	sim.weather_remaining = 180.0
+	view.seasons.reset()
+	view.seasons.update_date(1,1080.0)
+	sim.saved_seasons.clear()
 	sim.wage_remainder = 0.0
 	view.rain.step(0,0)
 	sim.set_open(false)
@@ -1293,6 +1296,10 @@ func capture(path: String) -> void:
 		if arg.begins_with("--zoom="): await set_zoom(int(arg.trim_prefix("--zoom=")))
 		if arg == "--walls-low": toggle_walls()
 		if arg.begins_with("--drawer="): hud.toggle_drawer(arg.trim_prefix("--drawer="))
+		if arg.begins_with("--season-day="):
+			sim.day = maxi(1,int(arg.trim_prefix("--season-day=")))
+			view.seasons.step(0,sim.day,sim.minute)
+			hud.refresh_stats()
 		if arg == "--setup=reception": capture_reception()
 		if arg == "--setup=depth": capture_depth()
 		if arg == "--setup=parking": capture_parking()
@@ -2261,9 +2268,11 @@ func smoke_test() -> void:
 	waste_ui_checks()
 	sim.money = 998500
 	sim.set_price("private",225)
+	view.seasons.step(0,195,1080)
 	reset_club()
 	check(sim.money == ClubSim.START_MONEY and not sim.open and sim.staff.is_empty(),"New club resets the balance and starts closed without staff")
 	check(sim.prices == ClubSim.default_prices(),"New club restores recommended tariffs instead of retaining the previous club's prices")
+	check(view.seasons.fallen.is_empty() and view.seasons.falling.is_empty() and view.seasons.current.snow == 0 and view.seasons.current.loss == 0,"New club returns to a green spring without old leaf litter")
 	print("SMOKE_TEST_RESULT: %d failures" % failures)
 	if failures == 0: print("SMOKE_TEST_PASSED")
 	get_tree().quit(1 if failures > 0 else 0)
