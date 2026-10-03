@@ -56,7 +56,8 @@ var site_time_label: Label
 var site_room = -1
 var site_refresh = 0.0
 var drawer_live = true
-var staff_tab = 0          # Personnel: 0 the team, 1 hiring
+var staff_tab = 0          # Personnel: 0 team, 1 hiring, 2 management
+var management_day_offset = 0
 var recruit_kind = ""      # the job whose candidates are shown
 var cloak_label: Label
 var drawer_refresh = 0.0   # lists of people and reports: redrawn every 2 s, not 2 per s
@@ -244,6 +245,7 @@ func _timed_process(delta: float) -> void:
 		if is_instance_valid(cloak_label):
 			var selected_cloak = game.model.item_by_id(game.selected_item)
 			if Cloakroom.CAPACITY.has(selected_cloak.get("kind","")): cloak_label.text = cloak_text(selected_cloak)
+			elif Waste.is_bin(selected_cloak): cloak_label.text = bin_text(selected_cloak)
 		if is_instance_valid(staff_context_label):
 			var employee = game.sim.staff.get(game.selected_item)
 			if is_instance_valid(employee): staff_context_label.text = staff_state(employee)
@@ -430,22 +432,23 @@ func portrait_texture(app: Dictionary, mult: int = 1) -> Texture2D:
 	if not portrait_cache.has(key): portrait_cache[key] = UiKit.pixel_texture(UiKit.portrait(app),mult)
 	return portrait_cache[key]
 
-const STAFF_WIDTH = 246   # both Personnel tabs are this wide (in UI pixels)
+const STAFF_WIDTH = 246   # Personnel tabs share this width (in UI pixels)
 
 func fill_staff() -> void:
-	# Two tabs: the people already in the club, and the candidates to hire.
+	# Team, recruitment and management.
 	# They share one width, so the drawer does not jump from one to the other.
 	drawer_body.custom_minimum_size.x = STAFF_WIDTH*S
 	var team: Array = game.model.furniture.filter(func(i): return Catalog.is_character(i.kind))
 	var tabs = UiKit.hbox(drawer_body,3)
-	for i in range(2):
-		var b = UiKit.button(["Équipe (%d)" % team.size(),"Recrutement"][i],func():
+	for i in range(3):
+		var b = UiKit.button(["Équipe (%d)" % team.size(),"Recrutement","Gestion"][i],func():
 			staff_tab = i
-			fill_drawer(),tabs,["Les employés du club, leur poste et leur planning","Choisir parmi les candidats du jour"][i])
+			fill_drawer(),tabs,["Les employés du club, leur poste et leur planning","Choisir parmi les candidats du jour","Affluence, occupation et prévisions pour adapter les équipes"][i])
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		UiKit.set_active(b,staff_tab == i)
 	if staff_tab == 0: fill_team(team)
-	else: fill_recruiting()
+	elif staff_tab == 1: fill_recruiting()
+	else: TrafficManagement.populate(self)
 
 func fill_team(team: Array) -> void:
 	var wages = 0
@@ -680,6 +683,7 @@ func fill_decor_grid(g: GridContainer = null) -> void:
 		b.focus_mode = Control.FOCUS_NONE
 		b.tooltip_text = "%s · %s · %.1f × %.1f m" % [e.name,e.tag,e.size.x,e.size.y]
 		if Cloakroom.CAPACITY.has(kind): b.tooltip_text += " · %d manteaux" % int(Cloakroom.CAPACITY[kind])
+		if kind == "bin": b.tooltip_text += " · %d déchets, vidée par les femmes de ménage" % Waste.CAPACITY
 		b.pressed.connect(game.choose_item.bind(kind))
 		UiKit.set_active(b,game.mode == "furniture" and game.chosen_item == kind)
 		g.add_child(b)
@@ -782,6 +786,10 @@ func room_size(room: Dictionary) -> String:
 	# an extended room is no longer a rectangle: its area says it all
 	if not room.get("parts",[]).is_empty(): return "%d m² (agrandie)" % BuildingModel.area_of(room)
 	return "%d × %d m · %d m²" % [room.w,room.h,room.w*room.h]
+
+func bin_text(item: Dictionary) -> String:
+	var n = int(item.get("waste",0))
+	return "Poubelle : %d / %d%s" % [n,Waste.CAPACITY," · pleine" if n >= Waste.CAPACITY else (" · à vider" if n >= Waste.EMPTY_AT else "")]
 
 func cloak_text(item: Dictionary) -> String:
 	return "Vestiaire : %d / %d manteaux" % [Cloakroom.used(game.sim,int(item.id)),int(Cloakroom.CAPACITY[item.kind])]
@@ -912,6 +920,12 @@ func _timed_refresh_context() -> void:
 			if Cloakroom.CAPACITY.has(item.kind):
 				cloak_label = UiKit.label(cloak_text(item),1,UiKit.GOLD)
 				context_body.add_child(cloak_label)
+			if Waste.is_bin(item):
+				# the same live line as the cloakroom: how full it is right now
+				cloak_label = UiKit.label(bin_text(item),1,UiKit.GOLD)
+				context_body.add_child(cloak_label)
+				if not model.furniture.any(func(i): return i.kind in Waste.EMPTIERS):
+					context_body.add_child(wrap_label("Embauchez une femme de ménage : elle la videra dans les conteneurs dehors."))
 			if item.kind in Plumbing.KINDS:
 				hygiene_label = wrap_label(sanitary_details(item),1,UiKit.GOLD)
 				context_body.add_child(hygiene_label)

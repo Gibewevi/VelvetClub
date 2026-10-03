@@ -884,6 +884,10 @@ func load_checked(data: Variant) -> bool:
 		if item.has("shine"):
 			if not (item.shine is float or item.shine is int) or not is_finite(float(item.shine)) or not item.kind in Plumbing.KINDS: return false
 			loaded_item.shine = clampf(float(item.shine),0,0.3)
+		if item.has("waste"):
+			# pieces in a bin
+			if item.kind != "bin" or not (item.waste is float or item.waste is int) or not is_finite(float(item.waste)): return false
+			loaded_item.waste = clampi(int(item.waste),0,Waste.CAPACITY)
 		for field in ["wear","leak_timer"]:
 			if not item.has(field): continue
 			if not item.kind in Plumbing.KINDS or not (item[field] is int or item[field] is float) or not is_finite(float(item[field])): return false

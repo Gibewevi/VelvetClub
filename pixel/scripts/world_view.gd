@@ -426,6 +426,7 @@ static func runs_through(list: Array) -> bool:
 const DOOR_SWING = 14.0   # door pictures per second: closed to open in about 0.15 s
 
 var cloak_fill: Dictionary = {}   # rack / locker id -> share of its places taken
+var containers: Array = []         # dumpsters by the street: {pos, away} (where the maids empty the bins)
 
 func item_variant(item: Dictionary) -> String:
 	# The picture an item shows right now: a bed in use or unmade, a shower door ajar,
@@ -435,6 +436,7 @@ func item_variant(item: Dictionary) -> String:
 		return "coat_rack_c%d" % clampi(ceili(float(cloak_fill.get(int(item.id),0.0))*7.0-0.001),0,7)
 	if item.kind == "cloak_locker" and not item.get("delivery_pending",false):
 		return "cloak_locker_o%d" % clampi(ceili(float(cloak_fill.get(int(item.id),0.0))*9.0-0.001),0,9)
+	if item.kind == "bin" and not item.get("delivery_pending",false): return "bin_f%d" % Waste.level(item)
 	if item.kind == "shower":
 		var frame = int(shower_doors.get(int(item.id),{}).get("shown",0))
 		if frame > 0: return "shower_f%d" % frame
@@ -475,6 +477,13 @@ func set_cloak_fill(id: int, share: float) -> void:
 	var look = item_variant(item)
 	if look == before: return
 	var info = Art.furniture_entry(look,int(item.rot))
+	if not info.is_empty(): apply_look(item_entries[id],info,item)
+
+func refresh_bin(id: int) -> void:
+	# something thrown in or the bin emptied: it shows how full it is
+	var item = model.item_by_id(id)
+	if item.is_empty() or not item_entries.has(id): return
+	var info = Art.furniture_entry(item_variant(item),int(item.rot))
 	if not info.is_empty(): apply_look(item_entries[id],info,item)
 
 func bed_variant(item: Dictionary) -> String:
@@ -596,6 +605,10 @@ func place_dust(item: Dictionary, light: bool = false) -> void:
 		if light or i % 2 == 0:
 			layer.add(pt.at+pt.dir*0.1,flecks,Vector2(-4,-6),0.04+i*0.02,0.4,pt.dir*0.5,4.0,i % 2 == 0)
 		i += 1
+
+func outfit_poof(at: Vector2) -> void:
+	# a little cloud round her feet as she slips into (or out of) her lingerie
+	place_dust({"kind":"stool","x":at.x,"z":at.y,"rot":0})
 
 func puff(at: Vector2, icon: String, seconds: float) -> void:
 	# A bubble rising from a spot where the characters are out of sight.
@@ -747,6 +760,7 @@ func add_glow(entry: Dictionary, at: Vector2, color: Color, radius_m: float, pow
 func build_exterior() -> void:
 	var b = bounds
 	var props: Array = []
+	containers.clear()
 	# Street lamps and trees stand on the sidewalks, never in the screen
 	# column of a room (the tall posts would hide it), never on a driveway.
 	var cmin = INF
@@ -812,8 +826,8 @@ func build_exterior() -> void:
 			for g in glows: g.visible = club_open
 			signs.append({"sprite":ss,"on":Art.tex(on.file),"off":Art.tex(off.file),"glows":glows})
 		# the bins stand a little aside: the entrance line runs along the facade on this side
-		props.append(["dumpster",out.x-side.x*3.6+away.x*0.2,out.y-side.y*3.6+away.y*0.2])
-		props.append(["dumpster",out.x-side.x*5.2+away.x*0.2,out.y-side.y*5.2+away.y*0.2])
+		props.append(["dumpster",out.x-side.x*3.6+away.x*0.2,out.y-side.y*3.6+away.y*0.2,away])
+		props.append(["dumpster",out.x-side.x*5.2+away.x*0.2,out.y-side.y*5.2+away.y*0.2,away])
 		props.append(["bush",out.x+side.x*3.6,out.y+side.y*3.6])
 	# round bushes along the sidewalks, at irregular intervals, off the paths
 	for edge in [[Street.WALK_NEAR.x,-1.0],[Street.WALK_FAR.y,1.0]]:
@@ -843,6 +857,7 @@ func build_exterior() -> void:
 			s.hframes = int(info.frames)
 			animated.append({"sprite":s,"frames":int(info.frames),"fps":float(info.fps)*(0.85+posmod(key,5)*0.07),"phase":float(posmod(key*3,int(info.frames)))})
 		var entry = add_static(s,Rect2(p[1]-size/2,p[2]-size/2,size,size),"prop")
+		if p[0] == "dumpster": containers.append({"pos":Vector2(p[1],p[2]),"away":p[3]})
 		for light in info.get("lights",[]):
 			add_glow(entry,s.position+Vector2(light.x,light.y),Color(light.color),float(light.radius),float(light.power))
 

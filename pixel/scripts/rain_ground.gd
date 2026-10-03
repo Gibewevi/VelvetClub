@@ -4,7 +4,9 @@ extends Node2D
 # Weather water is scenery, separate from indoor plumbing/cleaning jobs.
 # Fixed world positions and native-sized growth pictures avoid crawling noise.
 const SEED = 20260956
-const PATCH_COUNT = 260
+# Few and scattered: a handful of puddles here and there, most of them small.
+const PATCH_COUNT = 44
+const PATCH_CAPS = [2,2,2,3,3,4,5]   # the largest picture each puddle may reach
 const IMPACT_COUNT = 950
 static var pictures: Array = []
 var model: BuildingModel
@@ -28,7 +30,8 @@ func setup(building: BuildingModel) -> void:
 	for i in range(PATCH_COUNT+IMPACT_COUNT):
 		var p = Vector2(rng.randf_range(-Iso.LOT+1,Iso.LOT-1),rng.randf_range(-Iso.LOT+1,Iso.LOT-1))
 		if i < PATCH_COUNT:
-			patches.append({"world":p,"pixel":Iso.pixel(p.x,p.y),"variant":rng.randi_range(0,7),"threshold":rng.randf_range(.015,.42),"exposed":false})
+			patches.append({"world":p,"pixel":Iso.pixel(p.x,p.y),"variant":rng.randi_range(0,7),"threshold":rng.randf_range(.015,.65),
+				"cap":PATCH_CAPS[rng.randi_range(0,PATCH_CAPS.size()-1)],"exposed":false})
 		else:
 			impacts.append({"world":p,"pixel":Iso.pixel(p.x,p.y),"beat":rng.randf_range(0,2.4),"rank":rng.randf(),"exposed":false})
 
@@ -94,7 +97,8 @@ func from_dict(data: Variant) -> void:
 
 func stage(patch: Dictionary) -> int:
 	var growth = (wetness-float(patch.threshold))/(1.0-float(patch.threshold))
-	return clampi(int(ceil(growth*5)),0,5)
+	var cap = int(patch.get("cap",5))
+	return clampi(int(ceil(growth*cap)),0,cap)
 
 func _draw() -> void:
 	drawn_puddles = 0

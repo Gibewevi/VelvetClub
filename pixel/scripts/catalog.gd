@@ -118,6 +118,10 @@ const ITEMS = {
 	"trash_cardboard": {"name":"Cartons écrasés", "size":Vector2(0.9,0.9), "group":-1, "tag":"DÉCHETS", "price":0, "debris":true, "clean":7},
 	"trash_tissues": {"name":"Mouchoirs et serviettes usagés", "size":Vector2(0.6,0.6), "group":-1, "tag":"DÉCHETS", "price":0, "debris":true, "clean":3},
 	"trash_rubble": {"name":"Gravats de plâtre", "size":Vector2(0.8,0.7), "group":-1, "tag":"DÉCHETS", "price":0, "debris":true, "clean":6},
+	# Litter dropped by clients when no bin is at hand: quick to pick up.
+	"litter_glass": {"name":"Verre abandonné", "size":Vector2(0.4,0.4), "group":-1, "tag":"DÉCHETS", "price":0, "debris":true, "litter":true, "clean":2},
+	"litter_tissue": {"name":"Mouchoirs par terre", "size":Vector2(0.35,0.35), "group":-1, "tag":"DÉCHETS", "price":0, "debris":true, "litter":true, "clean":2},
+	"litter_paper": {"name":"Papiers par terre", "size":Vector2(0.4,0.4), "group":-1, "tag":"DÉCHETS", "price":0, "debris":true, "litter":true, "clean":2},
 	"escort": {"name":"Escort débutante", "size":Vector2(0.6,0.6), "group":6, "tag":"PERSONNEL", "price":0, "wage":15, "stars":0},
 	"escort_pro": {"name":"Escort confirmée", "size":Vector2(0.6,0.6), "group":6, "tag":"PERSONNEL", "price":0, "wage":24, "stars":2},
 	"escort_chic": {"name":"Escort élégante", "size":Vector2(0.6,0.6), "group":6, "tag":"PERSONNEL", "price":0, "wage":38, "stars":3},

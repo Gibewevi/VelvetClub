@@ -25,6 +25,8 @@ var bubble: Sprite2D
 var bubble_time = 0.0
 var shadow: Sprite2D
 static var shadow_tex: Texture2D
+var carry: Sprite2D               # a rubbish bag in hand (a maid on her way to the containers)
+static var bag_tex: Texture2D
 
 func configure(app: Dictionary) -> void:
 	appearance = app
@@ -101,6 +103,39 @@ func apply_frame() -> void:
 		s.flip_h = flip
 	# Flipped sprites mirror around the anchor column.
 	for s in layers: s.offset = Vector2(-16 if not flip else -16,-46)
+	place_carry()
+
+func set_carry(on: bool) -> void:
+	# a rubbish bag in hand, on the way to the containers outside
+	if not on:
+		if carry != null: carry.visible = false
+		return
+	if carry == null:
+		carry = Sprite2D.new()
+		carry.texture = bag_texture()
+		carry.centered = false
+		add_child(carry)
+	carry.visible = true
+	place_carry()
+
+func place_carry() -> void:
+	# held at her side, down by the hip, on the side away from the viewer's
+	# eye line so it always shows beside her
+	if carry == null or not carry.visible: return
+	carry.position = Vector2(4 if not flip else -11,-17)
+	move_child(carry,get_child_count()-1)
+
+static func bag_texture() -> Texture2D:
+	if bag_tex == null:
+		var rows = ["..t.t..","...t...",".#####.","##hh##o","#hh###o","#h####o","######o","######o",".ooooo."]
+		var colors = {"#":Color("56627a"),"h":Color("8c98ae"),"o":Color("2c3242"),"t":Color("e8c440")}
+		var img = Image.create(7,rows.size(),false,Image.FORMAT_RGBA8)
+		for y in range(rows.size()):
+			for x in range(7):
+				var ch = rows[y][x]
+				if colors.has(ch): img.set_pixel(x,y,colors[ch])
+		bag_tex = ImageTexture.create_from_image(img)
+	return bag_tex
 
 func advance_animation(delta: float) -> void:
 	clock += delta*FPS.get(anim,2.0)

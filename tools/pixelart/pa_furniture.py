@@ -679,8 +679,24 @@ def item(kind: str, r: int = 0) -> Item:
                  rod((0, 0.84, -0.22), (0, 1.0, -0.22), 0.02, m["chrome"]), rod((0, 1.0, -0.22), (0, 1.0, -0.12), 0.018, m["chrome"]),
                  box(-0.3, 1.12, -0.325, 0.3, 1.8, -0.3, m["chrome"], pattern=glass)]
         return Item(prims, (0.9, 0.65))
-    if kind == "bin":
+    if kind == "bin" or kind.startswith("bin_f"):
+        # bin_fN: how full it is, 0 empty .. 3 overflowing (the shop shows it empty)
+        fill = 0 if kind == "bin" else int(kind.rsplit("_f", 1)[1])
         prims = lathe(0, 0, 0, [(0, 0.16), (0.48, 0.19)], m["black"]) + [cyl(0, 0.48, 0, 0.2, 0.03, m["steel"])]
+        prims.append(cyl(0, 0.51, 0, 0.16, 0.004, Mat("16141c")))          # the dark opening inside the rim
+        junk = [Mat("f2eee8"), Mat("c9d3dc"), Mat("e8508c"), Mat("8fb8dc"), Mat("e6e0d2"), Mat("d0a040"), Mat("6ab06a")]
+        rng = np.random.default_rng(31)
+        count = (0, 3, 7, 11)[fill]
+        for i in range(count):
+            a = rng.uniform(0, 6.28)
+            rr = rng.uniform(0.0, 0.11 if fill < 3 else 0.14)
+            y = 0.5 + (0.0 if fill == 1 else rng.uniform(0.02, 0.06) if fill == 2 else rng.uniform(0.04, 0.12))
+            r = rng.uniform(0.04, 0.06)
+            prims.append(ell(math.cos(a) * rr, y, math.sin(a) * rr, r, r * 0.8, r, junk[i % len(junk)]))
+        if fill == 3:
+            # it spills over: a paper and a cup on the floor beside it
+            prims.append(ell(0.24, 0.03, 0.12, 0.05, 0.035, 0.05, junk[0]))
+            prims.append(rod((-0.2, 0.03, 0.2), (-0.1, 0.03, 0.26), 0.03, junk[3]))
         return Item(prims, (0.5, 0.5))
     if kind == "shelf":
         prims = []
@@ -1184,6 +1200,25 @@ def item(kind: str, r: int = 0) -> Item:
                  box(0.26, 0.0, 0.28, 0.4, 0.06, 0.33, Mat("c42a40")), box(0.3, 0.0, 0.36, 0.44, 0.06, 0.41, Mat("c42a40"))]
         prims = [q.transformed(np.diag([1.6, 1.6, 1.6])) for q in prims]
         return Item(prims, (1.4, 1.3), shadow=False)
+    if kind == "litter_glass":
+        # a cocktail glass on its side and what was left in it
+        glass = Mat("d8ecf6")
+        prims = [ell(0.05, 0.003, 0.03, 0.17, 0.003, 0.11, Mat("8fb3cf")),
+                 rod((-0.1, 0.05, -0.03), (0.04, 0.05, 0.02), 0.05, glass),
+                 rod((0.04, 0.035, 0.02), (0.12, 0.03, 0.05), 0.012, glass),
+                 cyl(0.13, 0.0, 0.055, 0.04, 0.012, glass)]
+        return Item(prims, (0.4, 0.4), shadow=False)
+    if kind == "litter_tissue":
+        tissue = Mat("f2eee8")
+        prims = [ell(-0.05, 0.05, -0.02, 0.085, 0.06, 0.075, tissue), ell(0.08, 0.04, 0.05, 0.065, 0.045, 0.06, tissue),
+                 ell(-0.02, 0.035, 0.1, 0.055, 0.04, 0.05, Mat("e4dcd6"))]
+        return Item(prims, (0.35, 0.35), shadow=False)
+    if kind == "litter_paper":
+        paper = Mat("e6e0d2")
+        prims = [box(-0.13, 0.0, -0.08, 0.11, 0.012, 0.08, paper).transformed(rot_y(25), (0, 0, 0)),
+                 ell(0.09, 0.045, -0.07, 0.06, 0.045, 0.05, Mat("e8508c")),
+                 rod((-0.12, 0.012, 0.09), (0.04, 0.012, 0.13), 0.01, Mat("d0a040"))]
+        return Item(prims, (0.4, 0.4), shadow=False)
     if kind == "trash_tissues":
         prims = [box(-0.22, 0.0, -0.08, 0.12, 0.035, 0.14, m["rose"]).transformed(rot_y(20), (-0.05, 0, 0.03))]
         rng = np.random.default_rng(17)
@@ -1324,6 +1359,7 @@ KINDS = ["bar", "backbar", "stool", "table", "coffee", "chair", "sofa", "armchai
 KINDS += [f"{k}_s{s}_f{f}" for k in ("dancefloor", "dance") for s in range(len(DANCE_SCHEMES)) for f in range(4)]
 KINDS += ["heart_bed", "heart_bed_unmade", "heart_bed_busy", "heart_bed_busy_1", "heart_bed_busy_2", "heart_bed_busy_3"]
 KINDS += [f"coat_rack_c{n}" for n in range(8)] + [f"cloak_locker_o{n}" for n in range(10)]
+KINDS += [f"bin_f{n}" for n in range(4)] + ["litter_glass", "litter_tissue", "litter_paper"]
 
 
 def part_names(prims):

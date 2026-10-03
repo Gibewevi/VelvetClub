@@ -79,7 +79,7 @@ static func accident(sim, a: Actor) -> void:
 
 static func tick(sim, a: Actor, gm: float, arrived: bool) -> bool:
 	var b = a.brain
-	if gm <= 0 or not b.get("paid",false) or b.state in ["enter","entering","to_desk","checkin","queue","to_queue","leave","to_cloak","cloak_in","to_cloak_out","cloak_out"]: return false
+	if gm <= 0 or not b.get("paid",false) or b.state in ["enter","entering","to_desk","checkin","queue","to_queue","leave","to_cloak","cloak_in","to_cloak_out","cloak_out","to_bin","binning"]: return false
 	if sim.model.room_at(a.world).is_empty(): return false
 	if Sanitation.wash_tick(sim,a,gm,arrived): return true
 	var dirty: int = sim.dirt_near(a.world,3.0)
@@ -103,6 +103,7 @@ static func tick(sim, a: Actor, gm: float, arrived: bool) -> bool:
 			if float(fixture.get("soil",0)) >= 60: b.sat = maxf(0,float(b.sat)-5)
 			Sanitation.soil(fixture,sim.maintenance_rng.randf_range(6.0,10.0))
 			Plumbing.after_use(sim,fixture)
+			Waste.pick_up(sim,a,"toilet")
 			sim.release(a)
 			a.set_world(exit)
 			a.lift = 0

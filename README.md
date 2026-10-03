@@ -15,6 +15,7 @@ La partie est enregistrée dans `%APPDATA%\Godot\app_userdata\Construction\pixel
 - On meuble les pièces (orientation automatique, livraison par camionnette), puis on embauche le personnel (accueil, bar, ménage, technique, escorts).
 - On ouvre le club. Les clients font la queue, paient à l'accueil, boivent, dansent, rencontrent les escorts et ont des besoins sanitaires. Leur satisfaction fait la réputation.
 - Météo, plannings, parkings et fiches de personnages complètent la gestion.
+- Personnel → Gestion affiche les arrivées, les entrées, les abandons, l'occupation et les prévisions des prochaines 24 heures. Voir [le guide de l'affluence](AFFLUENCE.md).
 
 | Action | Commande |
 |---|---|
