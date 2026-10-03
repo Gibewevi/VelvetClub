@@ -18,11 +18,12 @@ OX, OY = 80, 178
 # The world position is the middle of the root fan, not its lowest tip.
 ROOT_FRONT = 6
 SOURCE_DIR = Path(__file__).resolve().parent / "sources" / "trees"
-# Individual new paintings, with different crown silhouettes and branches.
+# Keep all placement IDs stable; the former leaning variant now uses the
+# upright full crown, including when rebuilding assets or loading old clubs.
 VARIANTS = [
     {"source": "tree_full.png", "height": 160},
     {"source": "tree_tall.png", "height": 168},
-    {"source": "tree_wide.png", "height": 152},
+    {"source": "tree_full.png", "height": 160},
 ]
 # Only the flat planting pit uses this ramp; no old tree pixels are retained.
 LEAVES = [hexrgb(c) for c in ("0f2618", "1b4322", "2a6226", "43822a", "74ae2e", "a9d140")]

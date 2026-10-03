@@ -2106,7 +2106,7 @@ func smoke_test() -> void:
 	check(model.rooms.size() == 5,"The modest derelict premises have five rooms, with a small reception at the street")
 	check(model.debris().size() >= 10,"Debris litters the building (%d)" % model.debris().size())
 	check(sim.staff.is_empty() and not sim.open,"No staff yet and the club is closed")
-	check(sim.money == ClubSim.START_MONEY and ClubSim.START_MONEY >= 1000000,"The player starts with the temporary test budget")
+	check(sim.money == ClubSim.START_MONEY,"A fresh club starts with its normal operating budget")
 	check(view.statics.size() > 40,"World view built walls and furniture (%d)" % view.statics.size())
 	var start_money = sim.money
 	# Build a room and furnish it, paying for both.
@@ -2220,6 +2220,12 @@ func smoke_test() -> void:
 	check(copy.load_checked(data.model),"Saved club loads back")
 	check(copy.snapshot().rooms.size() == model.rooms.size(),"Reload keeps rooms")
 	check(data.club.get("open",true) == false,"The open state is saved")
+	var saved_sim = ClubSim.new()
+	saved_sim.from_dict(data.club)
+	check(saved_sim.money == sim.money,"Reload restores the remaining balance after purchases")
+	saved_sim.from_dict({"money":998500})
+	check(saved_sim.money == 998500,"Existing saves keep their balance even above the new starting budget")
+	saved_sim.free()
 	# Picking: the old sofa is pickable where it is drawn.
 	var old_sofa = model.furniture.filter(func(i): return i.kind == "old_sofa")[0]
 	var entry: Dictionary = view.item_entries[int(old_sofa.id)]
@@ -2246,6 +2252,9 @@ func smoke_test() -> void:
 	post_depth_checks()
 	double_door_checks()
 	waste_ui_checks()
+	sim.money = 998500
+	reset_club()
+	check(sim.money == ClubSim.START_MONEY and not sim.open and sim.staff.is_empty(),"New club resets the balance and starts closed without staff")
 	print("SMOKE_TEST_RESULT: %d failures" % failures)
 	if failures == 0: print("SMOKE_TEST_PASSED")
 	get_tree().quit(1 if failures > 0 else 0)
@@ -2605,6 +2614,7 @@ func door_pick_checks() -> void:
 	# A door is easy to pick to close it up: on its own picture when walls
 	# stand high, by its gap when they are cut, with the door tool too.
 	var start = model.snapshot()
+	var keep_cash = sim.money
 	var keep_undo = undo_stack.duplicate()
 	var keep_walls = view.wall_mode
 	var before = model.snapshot()
@@ -2654,6 +2664,7 @@ func door_pick_checks() -> void:
 	check(mode == "select" and selected_edge == "x:19:-16" and model.openings.get("x:19:-16") == "door","The door tool on an existing door selects it")
 	view.wall_mode = keep_walls
 	model.restore(start)
+	sim.money = keep_cash
 	undo_stack = keep_undo
 	redo_stack.clear()
 	set_mode("select")
@@ -2663,6 +2674,7 @@ func door_pick_checks() -> void:
 func waste_ui_checks() -> void:
 	# A bin in the hall: its picture and its panel say how full it is.
 	var start = model.snapshot()
+	var keep_cash = sim.money
 	var keep_undo = undo_stack.duplicate()
 	var before = model.snapshot()
 	model.add_room(15,-20,6,4,0)
@@ -2683,6 +2695,7 @@ func waste_ui_checks() -> void:
 		item.waste = Waste.CAPACITY
 		check(hud.bin_text(item) == "Poubelle : 10 / 10 · pleine","And when it is full")
 	model.restore(start)
+	sim.money = keep_cash
 	undo_stack = keep_undo
 	redo_stack.clear()
 	set_mode("select")
@@ -2692,6 +2705,7 @@ func waste_ui_checks() -> void:
 func hire_checks() -> void:
 	# Hiring from the short list in the Personnel drawer.
 	var start = model.snapshot()
+	var keep_cash = sim.money
 	var keep_undo = undo_stack.duplicate()
 	var before = model.snapshot()
 	model.add_room(15,-20,6,4,0)
@@ -2723,6 +2737,7 @@ func hire_checks() -> void:
 	check(not Recruits.taken(sim,str(c.key)),"Undoing the hire puts the candidate back on the list")
 	hud.toggle_drawer("staff")
 	model.restore(start)
+	sim.money = keep_cash
 	undo_stack = keep_undo
 	redo_stack.clear()
 	set_mode("select")
@@ -2825,6 +2840,7 @@ func parking_checks() -> void:
 	undo()
 	check(model.parkings.size() == 1,"Undo brings it back")
 	model.parkings.clear()
+	sim.money = money0
 	changed_view()
 
 func orient_checks() -> void:

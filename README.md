@@ -10,7 +10,7 @@ La partie est enregistrée dans `%APPDATA%\Godot\app_userdata\Construction\pixel
 
 ## En bref
 
-- On reprend un petit local vétuste, que l'on rénove et agrandit.
+- On reprend un petit local vétuste avec **15 000 $** pour les premiers équipements, les travaux et les salaires. Le mobilier récupéré peut être conservé gratuitement.
 - On trace des pièces : elles se construisent sur un chantier avec des ouvriers. Tracer depuis le mur ou le sol d'une pièce l'agrandit.
 - On meuble les pièces (orientation automatique, livraison par camionnette), puis on embauche le personnel (accueil, bar, ménage, technique, escorts).
 - On ouvre le club. Les clients font la queue, paient à l'accueil, boivent, dansent, rencontrent les escorts et ont des besoins sanitaires. Leur satisfaction fait la réputation.

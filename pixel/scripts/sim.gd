@@ -45,8 +45,9 @@ var traffic = TrafficHistory.new()
 var admission = ClubAdmission.new()
 var maintenance_rng = RandomNumberGenerator.new()
 var maintenance_clock = 0.0
-# TEMPORARY for testing: a huge starting budget, to be rebalanced later.
-const START_MONEY = 1000000
+# Seed capital for a modest club: initial equipment and a payroll reserve.
+# Loading a saved club restores its actual balance through from_dict().
+const START_MONEY = 15000
 var money = START_MONEY
 var day = 1
 var minute = 1080.0
