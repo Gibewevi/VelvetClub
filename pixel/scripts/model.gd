@@ -1099,6 +1099,10 @@ func load_checked(data: Variant) -> bool:
 	for id in ids: candidate.next_id = maxi(candidate.next_id,id+1)
 	candidate.next_id = maxi(candidate.next_id,int(data.get("next_id",1)))
 	for pk in candidate.parkings.duplicate(): candidate.modularize_parking(int(pk.id))
+	# partitions drawn before V86 that already close part of a room off: that
+	# part becomes a room of its own, as it would now
+	for room in candidate.rooms.duplicate():
+		if room.has("walls") and not SitePlan.building(room): candidate.split_by_partitions(room)
 	restore(candidate.snapshot())
 	return true
 

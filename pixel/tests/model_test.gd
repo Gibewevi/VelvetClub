@@ -475,6 +475,15 @@ func split_checks() -> void:
 	# saved, with what it cost
 	var copy = BuildingModel.new()
 	check(copy.load_checked(JSON.parse_string(JSON.stringify(m.snapshot()))) and copy.room_by_id(a).cuts.size() == 4 and copy.cost() == m.cost(),"Saved and loaded at the same value")
+	# an older save, partition drawn wall to wall but the room never cut: cut on loading
+	var old = BuildingModel.new()
+	var whole = old.add_room(0,0,6,4,1)
+	old.room_by_id(whole).walls = BuildingModel.partition_keys(Vector2i(2,0),Vector2i(2,4))
+	old.set_opening("z:2:1","door")
+	var old_value = old.cost()
+	var reloaded = BuildingModel.new()
+	check(reloaded.load_checked(JSON.parse_string(JSON.stringify(old.snapshot()))) and reloaded.rooms.size() == 2 and reloaded.openings.get("z:2:1") == "door","An older save with a room closed by a partition loads as two rooms, door kept")
+	check(int(reloaded.room_at(Vector2(0.5,1)).type) == 1 and reloaded.room_at(Vector2(0.5,1)) != reloaded.room_at(Vector2(4,1)) and reloaded.cost() == old_value,"Both bedrooms, at the same value")
 	# a partition closing off a corner leaves an L-shaped room
 	var l = BuildingModel.new()
 	var big = l.add_room(0,0,6,6,0)
