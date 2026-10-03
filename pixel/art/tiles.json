@@ -4034,48 +4034,48 @@
  "openings": {
   "door:x": {
    "file": "tiles/door_x.png",
-   "ox": 10,
-   "oy": 57
+   "ox": 6,
+   "oy": 59
   },
   "door_ajar:x": {
    "file": "tiles/door_ajar_x.png",
-   "ox": 10,
-   "oy": 57
+   "ox": 6,
+   "oy": 59
   },
   "door_open:x": {
    "file": "tiles/door_open_x.png",
-   "ox": 10,
-   "oy": 57
+   "ox": 6,
+   "oy": 59
   },
   "door2_l:x": {
    "file": "tiles/door2_l_x.png",
-   "ox": 12,
-   "oy": 57
+   "ox": 9,
+   "oy": 59
   },
   "door2_l_ajar:x": {
    "file": "tiles/door2_l_ajar_x.png",
-   "ox": 12,
-   "oy": 57
+   "ox": 9,
+   "oy": 59
   },
   "door2_l_open:x": {
    "file": "tiles/door2_l_open_x.png",
-   "ox": 12,
-   "oy": 57
+   "ox": 9,
+   "oy": 59
   },
   "door2_r:x": {
    "file": "tiles/door2_r_x.png",
-   "ox": 8,
-   "oy": 57
+   "ox": 22,
+   "oy": 67
   },
   "door2_r_ajar:x": {
    "file": "tiles/door2_r_ajar_x.png",
-   "ox": 8,
-   "oy": 57
+   "ox": 22,
+   "oy": 67
   },
   "door2_r_open:x": {
    "file": "tiles/door2_r_open_x.png",
-   "ox": 8,
-   "oy": 57
+   "ox": 22,
+   "oy": 67
   },
   "window:x": {
    "file": "tiles/window_x.png",
@@ -4089,48 +4089,48 @@
   },
   "door:z": {
    "file": "tiles/door_z.png",
-   "ox": 21,
-   "oy": 57
+   "ox": 22,
+   "oy": 59
   },
   "door_ajar:z": {
    "file": "tiles/door_ajar_z.png",
-   "ox": 21,
-   "oy": 57
+   "ox": 22,
+   "oy": 59
   },
   "door_open:z": {
    "file": "tiles/door_open_z.png",
-   "ox": 21,
-   "oy": 57
+   "ox": 22,
+   "oy": 59
   },
   "door2_l:z": {
    "file": "tiles/door2_l_z.png",
-   "ox": 22,
-   "oy": 57
+   "ox": 38,
+   "oy": 59
   },
   "door2_l_ajar:z": {
    "file": "tiles/door2_l_ajar_z.png",
-   "ox": 22,
-   "oy": 57
+   "ox": 38,
+   "oy": 59
   },
   "door2_l_open:z": {
    "file": "tiles/door2_l_open_z.png",
-   "ox": 22,
-   "oy": 57
+   "ox": 38,
+   "oy": 59
   },
   "door2_r:z": {
    "file": "tiles/door2_r_z.png",
-   "ox": 21,
-   "oy": 57
+   "ox": 22,
+   "oy": 67
   },
   "door2_r_ajar:z": {
    "file": "tiles/door2_r_ajar_z.png",
-   "ox": 21,
-   "oy": 57
+   "ox": 22,
+   "oy": 67
   },
   "door2_r_open:z": {
    "file": "tiles/door2_r_open_z.png",
-   "ox": 21,
-   "oy": 57
+   "ox": 22,
+   "oy": 67
   },
   "window:z": {
    "file": "tiles/window_z.png",

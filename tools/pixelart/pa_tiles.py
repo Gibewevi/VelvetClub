@@ -467,12 +467,16 @@ BRASS = Mat("e0ae48")
 
 
 DOOR_ANGLES = (0, 35, 80)      # closed, ajar, open: the frames of a swing
-LEAF_T = 0.06                  # a leaf set against the back of the wall: the frame shows the wall's whole depth
+LEAF_T = 0.06                  # a leaf set against the back of the wall
+FRAME_W = 0.22                 # the frame is as broad as the wall is thick, all around
+LEAF_TOP = 2.02                # the head of the frame runs from here to the cap
+FRAME_TOP = WALL_M - 0.06
 
 
 def door_frame_prims(axis, a0, a1, left=True, right=True):
-    """The casing around a door: jambs and lintel through the whole wall,
-    standing a little proud of both faces."""
+    """The frame of a door: jambs and head as broad as the wall is thick
+    (seen from the front, the frame reads like the wall's own section) and
+    through the whole depth of the wall, a little proud of both faces."""
     t2 = WALL_T / 2
 
     def B(a, y0, b, y1, z0, z1, mat, **kw):
@@ -481,10 +485,10 @@ def door_frame_prims(axis, a0, a1, left=True, right=True):
         return box(z0, y0, a, z1, y1, b, mat, **kw)
     prims = []
     if left:
-        prims.append(B(0.07, 0, 0.13, 2.16, -t2 - 0.03, t2 + 0.03, DOOR_FRAME))
+        prims.append(B(0.0, 0, FRAME_W, FRAME_TOP, -t2 - 0.03, t2 + 0.03, DOOR_FRAME))
     if right:
-        prims.append(B(0.87, 0, 0.93, 2.16, -t2 - 0.03, t2 + 0.03, DOOR_FRAME))
-    prims.append(B(a0, 2.1, a1, 2.18, -t2 - 0.03, t2 + 0.03, DOOR_FRAME))
+        prims.append(B(1.0 - FRAME_W, 0, 1.0, FRAME_TOP, -t2 - 0.03, t2 + 0.03, DOOR_FRAME))
+    prims.append(B(a0, LEAF_TOP, a1, FRAME_TOP, -t2 - 0.03, t2 + 0.03, DOOR_FRAME))
     return prims
 
 
@@ -502,9 +506,9 @@ def swing(prims, axis, hinge, toward, angle):
 
 
 def door_prims(axis, state=0):
-    """A single door: a frame lining the whole depth of the opening (the
-    wall's thickness shows all around the door), the leaf against the back
-    of the wall with a glazed top, a panel and a brass knob.
+    """A single door: a frame as broad as the wall is thick, all around and
+    through the whole depth of the wall, the leaf against the back of the
+    wall with a glazed top, a panel and a brass knob.
     state 0 closed, 1 ajar, 2 open: the leaf swings into the room in front."""
     t2 = WALL_T / 2
 
@@ -513,24 +517,27 @@ def door_prims(axis, state=0):
             return box(a, y0, z0, b, y1, z1, mat, **kw)
         return box(z0, y0, a, z1, y1, b, mat, **kw)
 
+    a0, a1 = FRAME_W, 1.0 - FRAME_W
+    half = (a1 - a0) / 2
+
     def panel(p, ln, w, n):
         # in the leaf's own frame, so the pattern swings with it
         u = p[:, 0] if axis == "x" else p[:, 2]
-        v = p[:, 1] + 1.045
+        v = p[:, 1] + LEAF_TOP / 2
         d = np.zeros(len(p), dtype=int)
         paint = np.zeros((len(p), 4), dtype=np.uint8)
         face = (np.abs(ln[:, 2]) > 0.5) if axis == "x" else (np.abs(ln[:, 0]) > 0.5)
-        win = face & (np.abs(u) < 0.2) & (v > 1.45) & (v < 1.85)
+        win = face & (np.abs(u) < half - 0.1) & (v > 1.42) & (v < 1.82)
         paint[win] = (138, 170, 200, 255)
-        paint[win & (np.abs(u + (v - 1.65) * 0.8) < 0.04)] = (196, 222, 240, 255)
-        ins = face & (np.abs(u) < 0.28) & (v > 0.2) & (v < 1.2)
-        edge = ins & ((np.abs(np.abs(u) - 0.27) < 0.03) | (np.abs(v - 0.21) < 0.025) | (np.abs(v - 1.19) < 0.025))
+        paint[win & (np.abs(u + (v - 1.62) * 0.8) < 0.035)] = (196, 222, 240, 255)
+        ins = face & (np.abs(u) < half - 0.06) & (v > 0.2) & (v < 1.2)
+        edge = ins & ((np.abs(np.abs(u) - (half - 0.07)) < 0.025) | (np.abs(v - 0.21) < 0.025) | (np.abs(v - 1.19) < 0.025))
         d[edge] = -1
         return d, paint
     front = -t2 + LEAF_T
-    leaf = [B(0.13, 0.0, 0.87, 2.09, -t2, front, DOOR, pattern=panel),
-            B(0.74, 0.98, 0.8, 1.02, front, front + 0.04, BRASS)]
-    return door_frame_prims(axis, 0.07, 0.93) + swing(leaf, axis, 0.13, 1, DOOR_ANGLES[state])
+    leaf = [B(a0, 0.0, a1, LEAF_TOP, -t2, front, DOOR, pattern=panel),
+            B(a1 - 0.1, 0.98, a1 - 0.05, 1.02, front, front + 0.04, BRASS)]
+    return door_frame_prims(axis, 0.0, 1.0) + swing(leaf, axis, a0, 1, DOOR_ANGLES[state])
 
 
 STEEL = Mat("8e8c98")
@@ -549,12 +556,14 @@ def double_door_prims(axis, side, state=0):
         if axis == "x":
             return box(a, y0, z0, b, y1, z1, mat, **kw)
         return box(z0, y0, a, z1, y1, b, mat, **kw)
+    # each half draws the whole 2 m head: the two pictures lay the same
+    # pixels there, so the head shows no seam in the middle
     if side == "l":
-        prims = door_frame_prims(axis, 0.07, 1.0, True, False)
-        a0, a1, hinge, meet = 0.13, 0.99, 0.13, 1.0
+        prims = door_frame_prims(axis, 0.0, 2.0, True, False)
+        a0, a1, hinge, meet = FRAME_W, 0.995, FRAME_W, 1.0
     else:
-        prims = door_frame_prims(axis, 0.0, 0.93, False, True)
-        a0, a1, hinge, meet = 0.01, 0.87, 0.87, -1.0
+        prims = door_frame_prims(axis, -1.0, 1.0, False, True)
+        a0, a1, hinge, meet = 0.005, 1.0 - FRAME_W, 1.0 - FRAME_W, -1.0
     half = (a1 - a0) / 2
 
     def leaf(p, ln, w, n):
@@ -578,7 +587,7 @@ def double_door_prims(axis, side, state=0):
         edge = face & ~glass & ~ring & ~kick & ((np.abs(np.abs(u) - (half - 0.06)) < 0.022) | (np.abs(v - 0.94) < 0.02))
         d[edge] = -1
         return d, paint
-    panel = [B(a0, 0.02, a1, 2.08, -t2, -t2 + LEAF_T, DOOR, pattern=leaf)]
+    panel = [B(a0, 0.02, a1, LEAF_TOP, -t2, -t2 + LEAF_T, DOOR, pattern=leaf)]
     return prims + swing(panel, axis, hinge, 1 if side == "l" else -1, DOOR_ANGLES[state])
 
 

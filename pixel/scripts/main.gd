@@ -1480,9 +1480,12 @@ func capture_door_walk(path: String) -> void:
 	var before = model.snapshot()
 	model.add_room(14,-12,8,4,1)
 	model.add_room(14,-8,8,4,1)
+	model.add_room(8,-12,6,8,1)
 	commit(before,"chambres")
 	before = model.snapshot()
-	for key in ["x:15:-8","x:18:-8","x:19:-8"]: model.set_opening(key,"door")
+	# doors on both wall directions: x walls (between the two bedrooms),
+	# z walls (towards the room on the left)
+	for key in ["x:15:-8","x:18:-8","x:19:-8","z:14:-11","z:14:-7","z:14:-6"]: model.set_opening(key,"door")
 	commit(before,"portes")
 	set_speed(0)
 	hud.toast_time = 0
@@ -1490,14 +1493,16 @@ func capture_door_walk(path: String) -> void:
 	a.kind = "client"
 	a.configure(Characters.random_client(look_rng))
 	view.add_actor(a)
-	var focus = Iso.to_screen(17.5,-8.0)
+	var focus = Iso.to_screen(15.5,-8.0)
 	camera.position = (focus-Vector2(viewport.size)/2.0).round()
 	var n = 0
-	for door in [Vector2(15.5,-8.0),Vector2(19.0,-8.0)]:
+	for walk in [[Vector2(15.5,-8.0),Vector2(0,1)],[Vector2(19.0,-8.0),Vector2(0,1)],[Vector2(14.0,-10.5),Vector2(1,0)],[Vector2(14.0,-6.0),Vector2(1,0)]]:
+		var door: Vector2 = walk[0]
+		var way: Vector2 = walk[1]
 		for i in range(36):
 			# from 1.6 m behind the wall to 1.6 m in front of it
-			a.set_world(door+Vector2(0.0,-1.6+3.2*float(i)/35.0))
-			a.face(Vector2(0,1))
+			a.set_world(door+way*(-1.6+3.2*float(i)/35.0))
+			a.face(way)
 			a.play("walk")
 			await get_tree().process_frame
 			await RenderingServer.frame_post_draw
