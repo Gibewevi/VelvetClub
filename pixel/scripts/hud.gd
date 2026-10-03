@@ -360,6 +360,7 @@ func _timed_fill_drawer() -> void:
 	if active == "": return
 	var scroll = drawer_scroll.scroll_vertical
 	clear(drawer_body)
+	drawer_body.custom_minimum_size.x = 0
 	match active:
 		"build": fill_build()
 		"staff": fill_staff()
@@ -429,8 +430,12 @@ func portrait_texture(app: Dictionary, mult: int = 1) -> Texture2D:
 	if not portrait_cache.has(key): portrait_cache[key] = UiKit.pixel_texture(UiKit.portrait(app),mult)
 	return portrait_cache[key]
 
+const STAFF_WIDTH = 246   # both Personnel tabs are this wide (in UI pixels)
+
 func fill_staff() -> void:
 	# Two tabs: the people already in the club, and the candidates to hire.
+	# They share one width, so the drawer does not jump from one to the other.
+	drawer_body.custom_minimum_size.x = STAFF_WIDTH*S
 	var team: Array = game.model.furniture.filter(func(i): return Catalog.is_character(i.kind))
 	var tabs = UiKit.hbox(drawer_body,3)
 	for i in range(2):
@@ -485,6 +490,7 @@ func fill_recruiting() -> void:
 	section("POSTE")
 	# one portrait per job; the name and what it does in the tooltip
 	var row = UiKit.hbox(drawer_body,2)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	for kind in jobs:
 		var entry: Dictionary = Catalog.ITEMS[kind]
 		var need = Catalog.stars_needed(kind)
@@ -505,6 +511,14 @@ Demande un club de %d étoiles." % need]
 		b.pressed.connect(func():
 			recruit_kind = kind
 			fill_drawer())
+		# compact portrait buttons: the eight jobs fit in the drawer's width
+		for state in ["normal","hover","pressed","hover_pressed","disabled"]:
+			var st: StyleBoxTexture = UiKit.button_box({"normal":"button","hover":"button_hover","pressed":"button_pressed","hover_pressed":"button_pressed","disabled":"button_disabled"}[state])
+			st.content_margin_left = 2*S
+			st.content_margin_right = 3*S
+			st.content_margin_top = 2*S
+			st.content_margin_bottom = 3*S
+			b.add_theme_stylebox_override(state,st)
 		UiKit.set_active(b,recruit_kind == kind)
 		row.add_child(b)
 	var entry: Dictionary = Catalog.ITEMS[recruit_kind]
