@@ -70,14 +70,18 @@ func run() -> void:
 	another.free()
 	var seen: Dictionary = {}
 	var saved: Dictionary = {}
+	var refill_amount = mini(BarStock.CARTON,Catalog.stock_capacity(shelf.kind))
 	for i in range(800):
 		sim.staff_ai(worker,.1)
 		seen[worker.brain.state] = true
 		if worker.brain.state == "stock_carry" and saved.is_empty(): saved = sim.bar_stock.to_dict()
-		if int(shelf.stock) == 48 and worker.brain.state == "working": break
+		if int(shelf.stock) == refill_amount and worker.brain.state == "working": break
 	check(seen.has("stock_pick") and seen.has("stock_carry") and seen.has("stock_fill"),"Pickup, carrying and progressive unpacking are real timed states")
-	check(int(crate.stock) == 0 and int(shelf.stock) == 48 and sim.bar_stock.tasks.is_empty(),"The carton is transferred without creating stock and the bartender returns to work")
-	check(world.item_variant(crate) == "bottle_crate_fill_0" and worker.bar_carry_kind == "","The empty reserve carton flattens and the employee frees his hands")
+	check(int(crate.stock) == BarStock.CARTON-refill_amount and int(shelf.stock) == refill_amount and sim.bar_stock.tasks.is_empty(),"A smaller shelf takes only the bottles that fit; the remainder stays in the reserve carton")
+	check(world.item_variant(crate) == "bottle_crate" and worker.bar_carry_kind == "","A partly used carton remains packed and the employee frees his hands")
+	sim.bar_stock.set_stock(crate,0)
+	check(world.item_variant(crate) == "bottle_crate_fill_0","Only an entirely empty carton flattens")
+	sim.bar_stock.set_stock(crate,BarStock.CARTON-refill_amount)
 	check(not saved.is_empty() and int(saved.ledger[crate.stock_key]) == 48,"Saving during carrying preserves the full unfinished carton in reserve")
 	# Reload, undo and malformed data cannot refill shelves for free.
 	var qty = int(shelf.stock)
@@ -99,6 +103,39 @@ func run() -> void:
 		if item.kind == "bottle_crate": item.stock_key = shelf.stock_key
 	check(not copy.load_checked(duplicate),"Two shelves/cartons cannot share one inventory identity")
 	check(model.cost_parts().furniture >= 0,"Consumed cartons have no full-price resale value")
+	# Lower capacities must not silently discard paid alcohol from old saves.
+	var old_model = model.snapshot()
+	for item in old_model.furniture:
+		if item.kind == "backbar": item.stock = 64
+	var legacy_model = BuildingModel.new()
+	check(legacy_model.load_checked(JSON.parse_string(JSON.stringify(old_model))),"The old shelf capacity remains loadable")
+	var legacy_sim = ClubSim.new()
+	legacy_sim.model = legacy_model
+	legacy_sim.bar_stock.setup(legacy_sim)
+	legacy_sim.money = 1000
+	legacy_sim.bar_stock.sync()
+	var refund = (64-Catalog.stock_capacity("backbar"))*2
+	check(legacy_sim.money == 1000+refund and int(legacy_model.item_by_id(shelf.id).stock) == Catalog.stock_capacity("backbar"),"Old excess bottles are refunded at their purchase price")
+	check(Ledger.total(legacy_sim.ledger.totals,"in") == refund,"The refund is recorded in the club accounts")
+	legacy_sim.bar_stock.sync()
+	check(legacy_sim.money == 1000+refund,"Repeating sync cannot refund the same old stock twice")
+	var migrated = JSON.parse_string(JSON.stringify(legacy_sim.to_dict()))
+	var migrated_model = BuildingModel.new()
+	check(migrated_model.load_checked(JSON.parse_string(JSON.stringify(legacy_model.snapshot()))),"The smaller stock survives a JSON save")
+	var migrated_sim = ClubSim.new()
+	migrated_sim.from_dict(migrated)
+	migrated_sim.model = migrated_model
+	migrated_sim.bar_stock.setup(migrated_sim)
+	migrated_sim.bar_stock.sync()
+	check(migrated_sim.money == 1000+refund,"Reloading the migrated club cannot repeat the refund")
+	migrated_sim.free()
+	var ledger_model = BuildingModel.new()
+	check(ledger_model.load_checked(old_model),"An older building snapshot can still load")
+	legacy_sim.model = ledger_model
+	legacy_sim.bar_stock.from_dict({"ledger":{shelf.stock_key:8}})
+	legacy_sim.bar_stock.sync()
+	check(int(ledger_model.item_by_id(shelf.id).stock) == 8 and legacy_sim.money == 1000+refund,"The authoritative ledger beats a stale snapshot's higher stock")
+	legacy_sim.free()
 	# No door: reachable supplies are a prerequisite, not a teleport.
 	sim.bar_stock.set_stock(crate,48)
 	sim.bar_stock.set_stock(shelf,0)

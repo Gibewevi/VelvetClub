@@ -49,7 +49,7 @@ func run() -> void:
 	model.add_room(-4,-4,8,8,0)
 	var counter_id = model.add_item("bar",0,0,0)
 	var shelf_id = model.add_item("backbar",0,-3,0)
-	model.item_by_id(shelf_id).stock = 96
+	model.item_by_id(shelf_id).stock = Catalog.stock_capacity("backbar")
 	var bartender_id = model.add_item("bartender",0,-1,0)
 	var world = WorldView.new()
 	root.add_child(world)

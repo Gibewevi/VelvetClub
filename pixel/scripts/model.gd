@@ -1066,7 +1066,11 @@ func load_checked(data: Variant) -> bool:
 			var value = item.get("stock",Catalog.stock_capacity(item.kind))
 			if not (value is float or value is int) or not is_finite(float(value)): return false
 			if item.has("stock_key") and (not item.stock_key is String or item.stock_key.length() > 128): return false
-			loaded_item.stock = clampi(int(value),0,Catalog.stock_capacity(item.kind))
+			var previous_stock = clampi(int(value),0,Catalog.legacy_stock_capacity(item.kind))
+			loaded_item.stock = mini(previous_stock,Catalog.stock_capacity(item.kind))
+			loaded_item.erase("stock_overflow")
+			if previous_stock > loaded_item.stock:
+				loaded_item.stock_overflow = previous_stock-int(loaded_item.stock)
 			BarStock.initialize(loaded_item,true)
 			if stock_keys.has(loaded_item.stock_key): return false
 			stock_keys[loaded_item.stock_key] = true

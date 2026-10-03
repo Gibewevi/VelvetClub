@@ -6,10 +6,11 @@ from PIL import Image
 from pa_iso import box, cyl, rod, ell, Mat, stroke
 from pa_draw2d import heart_points
 from pa_furniture import Item, M, bottle, panels, tag, combine, grain
+from pa_bar_polish import remove_islands, finish_rims, shelf_interior, stock_bottles
 
 COUNTERS = ["bar_module", "bar_round", "bar_l", "bar_luxe"]
-SHELVES = {"backbar": (2, .5, 8, 2), "bottles_small": (1.2, .5, 3, 4),
-           "bottles_arch": (2.4, .55, 9, 3), "bottles_luxe": (2.6, .6, 12, 3)}
+SHELVES = {"backbar": (2, .5, 5, 1), "bottles_small": (1.2, .5, 2, 2),
+           "bottles_arch": (2.4, .55, 5, 2), "bottles_luxe": (2.6, .6, 6, 2)}
 STOCK = list(SHELVES) + ["bottle_crate"]
 SOURCES = Path(__file__).parent / "sources" / "bars"
 NEON = Mat(tones=["72133d", "ff278f", "ff73c5", "fff3ed", "fff9f4", "ffffff"], emissive=True, line=False)
@@ -40,7 +41,7 @@ def inventory(*prims):
 
 
 def paint(cv,it,kind,r):
-    """Paintings retain native geometry; only stocked bottle pixels change.
+    """Keep approved paintings, with narrow rim corrections and aligned stock.
 
     Never recolour the cabinet as stock changes. The four paintings share
     exactly the same anchors/extent across every inventory level.
@@ -50,20 +51,19 @@ def paint(cv,it,kind,r):
     if not path.exists(): return
     pic=np.array(Image.open(path).convert("RGBA"))
     if pic.shape != cv.rgba.shape: raise ValueError(f"Painting geometry changed: {path}")
+    remove_islands(pic)
+    finish_rims(pic,base,r)
+    if base in SHELVES:
+        shelf_interior(pic,base,r)
+        _,_,cols,rows=SHELVES[base]
+        n=int(kind.split("_fill_")[1]) if "_fill_" in kind else cols*rows
+        stock_bottles(pic,base,r,n,cols)
     native=cv.rgba.copy()
     # Keep the old contact shadow, replace the whole solid furniture.
     under=native.copy();under[under[...,3]>128]=0
     alpha=pic[...,3:4].astype(float)/255
     under[...,:3]=(pic[...,:3]*alpha+under[...,:3]*(1-alpha)).astype(np.uint8)
     under[...,3]=np.maximum(under[...,3],pic[...,3])
-    owned=[i for i,p in enumerate(it.prims) if getattr(p,"stock_bottle",False)]
-    mask=np.isin(cv.pid,owned) if owned else np.zeros(cv.pid.shape,dtype=bool)
-    # A one-pixel ink contour belongs to the bottle, never an adjacent shelf.
-    outline=np.zeros_like(mask)
-    for dy,dx in [(0,1),(0,-1),(1,0),(-1,0)]:
-        shifted=np.roll(mask,(dy,dx),(0,1))
-        outline |= shifted & (cv.pid<0) & (native[...,3]>128)
-    under[mask|outline]=native[mask|outline]
     cv.rgba=under
 
 

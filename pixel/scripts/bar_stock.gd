@@ -35,8 +35,17 @@ func sync() -> void:
 		if Catalog.stock_capacity(item.kind) <= 0: continue
 		initialize(item,not item.has("stock"))
 		var key: String = item.stock_key
-		if not ledger.has(key): ledger[key] = int(item.stock)
-		item.stock = clampi(int(ledger[key]),0,Catalog.stock_capacity(item.kind))
+		if not ledger.has(key): ledger[key] = int(item.stock)+int(item.get("stock_overflow",0))
+		item.erase("stock_overflow")
+		var previous_stock = clampi(int(ledger[key]),0,Catalog.legacy_stock_capacity(item.kind))
+		var cap = Catalog.stock_capacity(item.kind)
+		if previous_stock > cap:
+			# Old saved stock that no longer fits is bought back at its carton price,
+			# once. The inventory ledger is authoritative even after undo or reload.
+			var refund = roundi((previous_stock-cap)*int(Catalog.ITEMS.bottle_crate.price)/float(CARTON))
+			sim.money += refund
+			sim.ledger.book(sim.day,"in","resale",refund)
+		item.stock = mini(previous_stock,cap)
 		ledger[key] = int(item.stock)
 		refresh(item)
 

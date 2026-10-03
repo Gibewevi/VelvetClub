@@ -1879,8 +1879,17 @@ func profile_run() -> void:
 	var worst = 0
 	var slow = 0
 	var shown = ""
+	var staff_changes: Dictionary = {}   # employee -> how often her task changed (a dither shows here)
+	var staff_last: Dictionary = {}
 	while float(Time.get_ticks_usec()-start)/1e6 < seconds:
 		await get_tree().process_frame
+		for sid in sim.staff:
+			var who = sim.staff[sid]
+			if not is_instance_valid(who): continue
+			var st = String(who.brain.get("state",""))
+			if staff_last.get(sid,"") != st:
+				staff_changes[sid] = int(staff_changes.get(sid,0))+1
+				staff_last[sid] = st
 		var now = Time.get_ticks_usec()
 		var d = now-last
 		last = now
@@ -1912,6 +1921,11 @@ func profile_run() -> void:
 			frames = 0
 			worst = 0
 			slow = 0
+	var busiest = staff_changes.keys()
+	busiest.sort_custom(func(x,y): return int(staff_changes[x]) > int(staff_changes[y]))
+	for sid in busiest.slice(0,4):
+		var who = sim.staff.get(sid)
+		print("PROFILE_STAFF %s #%d: %d changes of task" % [who.kind if is_instance_valid(who) else "?",int(sid),int(staff_changes[sid])])
 	var litter_now = model.furniture.filter(func(i): return Catalog.ITEMS[i.kind].get("litter",false)).size()
 	var undressed = sim.staff.values().filter(func(e): return is_instance_valid(e) and e.brain.has("dressed")).size()
 	print("PROFILE_WASTE littered=%d binned=%d emptied=%d litter_now=%d bins=%d undressed_now=%d" % [int(sim.night.get("littered",0)),int(sim.night.get("binned",0)),int(sim.night.get("bins_emptied",0)),litter_now,model.furniture.filter(func(i): return i.kind == "bin").size(),undressed])
@@ -3264,7 +3278,7 @@ func sim_test() -> void:
 	var bar = model.add_item("bar",5.0,-2.6,0)
 	var bartender = model.add_item("bartender",6.4,-0.6,0)
 	var stock_shelf = model.add_item("bottles_small",4.25,-5.5,0)
-	if stock_shelf > 0: model.item_by_id(stock_shelf).stock = 48
+	if stock_shelf > 0: model.item_by_id(stock_shelf).stock = Catalog.stock_capacity("bottles_small")
 	model.add_item("bottle_crate",.5,-2.7,0)
 	var shower = model.add_item("shower",3.5,3.55,3)
 	var floor_id = model.add_item("dancefloor",-1.5,1.2,0)
