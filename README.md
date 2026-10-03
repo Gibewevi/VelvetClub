@@ -14,6 +14,7 @@ La partie est enregistrée dans `%APPDATA%\Godot\app_userdata\Construction\pixel
 - On trace des pièces : elles se construisent sur un chantier avec des ouvriers. Tracer depuis le mur ou le sol d'une pièce l'agrandit.
 - On meuble les pièces (orientation automatique, livraison par camionnette), puis on embauche le personnel (accueil, bar, ménage, technique, escorts).
 - On ouvre le club. Les clients font la queue, paient à l'accueil, boivent, dansent, rencontrent les escorts et ont des besoins sanitaires. Leur satisfaction fait la réputation.
+- Le bouton **Tarifs** (également accessible depuis Personnel → Gestion) permet de régler l'entrée, les boissons, les pourboires scène et les trois prestations. Les prix par standing sont affichés ; les prestations déjà acceptées gardent leur montant. Les tarifs sont sauvegardés et « Nouveau club » rétablit les prix conseillés.
 - Météo, plannings, parkings et fiches de personnages complètent la gestion.
 - Personnel → Gestion affiche les arrivées, les entrées, les abandons, l'occupation et les prévisions des prochaines 24 heures. Voir [le guide de l'affluence](AFFLUENCE.md).
 

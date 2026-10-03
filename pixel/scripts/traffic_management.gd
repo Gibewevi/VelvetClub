@@ -15,6 +15,7 @@ static func chart(hud, parent: Node, values: Array, labels: Array, secondary: Ar
 static func populate(hud) -> void:
 	var sim = hud.game.sim
 	var body: VBoxContainer = hud.drawer_body
+	UiKit.button("Régler les tarifs",hud.toggle_drawer.bind("services"),body,"Entrées, boissons, scène et prestations")
 	hud.section("EN DIRECT",body)
 	var inside = sim.inside_count()
 	var capacity = sim.admission.capacity

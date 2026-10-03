@@ -20,7 +20,7 @@ signal open_changed(value: bool)
 # reception: clients queue outside and pay at the desk; bar: drinks served by a bartender;
 # private: escorts meet clients in the public room, agree on a service and take them to a bedroom.
 const FEATURES = {"reception":true,"bar":true,"stage":true,"lounge_company":true,"private":true,
-	"toilets":true,"client_mess":false,"night_cycle":false,"staff_roles":false,"services":false}
+	"toilets":true,"client_mess":false,"night_cycle":false,"staff_roles":false,"services":true}
 # Which feature switches each staff role on (cleaners always work).
 const ROLE_FEATURE = {"receptionist":"reception","bartender":"bar","escort":"lounge_company","security":"staff_roles"}
 const QUEUE_MAX = ClubAdmission.QUEUE_LIMIT
@@ -70,7 +70,26 @@ var speed = 1
 var rating = 1.0
 var open = false
 var debris_taken: Dictionary = {}
-var prices = {"entry":20,"drink":12,"dance":30,"private":150}
+# "private" remains the classic service key for compatibility with old saves.
+const PRICE_RULES = {
+	"entry":{"name":"Entrée","default":20,"max":80},
+	"drink":{"name":"Boisson","default":12,"max":40},
+	"dance":{"name":"Pourboire scène","default":30,"max":120},
+	"quick":{"name":"Prestation rapide","default":80,"max":400},
+	"private":{"name":"Prestation classique","default":150,"max":400},
+	"full":{"name":"Prestation complète","default":260,"max":800}}
+var prices: Dictionary = default_prices()
+
+static func default_prices() -> Dictionary:
+	var result = {}
+	for key in PRICE_RULES: result[key] = int(PRICE_RULES[key].default)
+	return result
+
+func set_price(key: String, value: int) -> bool:
+	if not PRICE_RULES.has(key): return false
+	prices[key] = clampi(value,0,int(PRICE_RULES[key].max))
+	return true
+
 var night: Dictionary = {}
 var history: Array = []
 var staff: Dictionary = {}
@@ -182,10 +201,11 @@ func from_dict(data: Variant) -> void:
 			restore_night(saved_night)
 			saved_night.clear()
 	var p = data.get("prices",{})
+	prices = default_prices()
 	if p is Dictionary:
 		for k in prices:
 			var v = p.get(k)
-			if (v is int or v is float) and is_finite(float(v)): prices[k] = clampi(int(v),0,999)
+			if (v is int or v is float) and is_finite(float(v)): set_price(k,int(v))
 	var h = data.get("history",[])
 	if h is Array: history = h.slice(maxi(0,h.size()-14))
 	saved_dirt.clear()
@@ -1786,9 +1806,9 @@ func escort_ai(a: Actor, arrived: bool, gm: float) -> void:
 # ------------------------------------------------------------------ encounters
 
 const SERVICES = [
-	{"key":"quick","name":"Prestation rapide","price":80,"minutes":20},
-	{"key":"classic","name":"Prestation classique","price":150,"minutes":26},
-	{"key":"full","name":"Prestation complète","price":260,"minutes":40}]
+	{"key":"quick","price_key":"quick","name":"Prestation rapide","price":80,"minutes":20},
+	{"key":"classic","price_key":"private","name":"Prestation classique","price":150,"minutes":26},
+	{"key":"full","price_key":"full","name":"Prestation complète","price":260,"minutes":40}]
 # Price factor by standing (1 débutante .. 4 prestige).
 const STANDING_RATE = [1.0,1.0,1.3,1.7,2.2]
 # Furniture where people cross paths in the public room.
@@ -1801,7 +1821,11 @@ static func infection_risk(client_washed: bool, bed_unmade: bool, mess: int) -> 
 	return clampf(0.02+(0.0 if client_washed else 0.07)+(0.06 if bed_unmade else 0.0)+0.03*mini(mess,3),0.0,0.5)
 
 func service_price(tier: int, e: Actor) -> int:
-	return int(round(SERVICES[tier].price*STANDING_RATE[clampi(standing(e),0,4)]))
+	return service_price_for_standing(tier,standing(e))
+
+func service_price_for_standing(tier: int, level: int) -> int:
+	var service: Dictionary = SERVICES[clampi(tier,0,SERVICES.size()-1)]
+	return int(round(int(prices[service.price_key])*STANDING_RATE[clampi(level,0,4)]))
 
 func social_count(room: Dictionary) -> int:
 	if room.is_empty(): return 0

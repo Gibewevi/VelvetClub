@@ -470,8 +470,14 @@ func set_selected_room_type(t: int) -> void:
 	commit(before,"Pièce transformée en "+Catalog.ROOMS[t]+".")
 
 func set_price(key: String, value: int) -> void:
-	sim.prices[key] = value
+	if not sim.set_price(key,value): return
+	hud.refresh_tariff_summary()
 	request_save()
+
+func reset_prices() -> void:
+	sim.prices = ClubSim.default_prices()
+	request_save()
+	hud.fill_drawer()
 
 func buy_sanitary_upgrade(id: int, key: String) -> void:
 	var item = model.item_by_id(id)
@@ -733,6 +739,7 @@ func reset_club() -> void:
 	deliveries.reset()
 	model.starter()
 	sim.money = ClubSim.START_MONEY
+	sim.prices = ClubSim.default_prices()
 	sim.rating = 1.0
 	sim.day = 1
 	sim.minute = 1080.0
@@ -2253,8 +2260,10 @@ func smoke_test() -> void:
 	double_door_checks()
 	waste_ui_checks()
 	sim.money = 998500
+	sim.set_price("private",225)
 	reset_club()
 	check(sim.money == ClubSim.START_MONEY and not sim.open and sim.staff.is_empty(),"New club resets the balance and starts closed without staff")
+	check(sim.prices == ClubSim.default_prices(),"New club restores recommended tariffs instead of retaining the previous club's prices")
 	print("SMOKE_TEST_RESULT: %d failures" % failures)
 	if failures == 0: print("SMOKE_TEST_PASSED")
 	get_tree().quit(1 if failures > 0 else 0)
@@ -3387,13 +3396,14 @@ func ui_test() -> void:
 	set_speed(0)
 	hud.toast_time = 0
 	await ui_capture(dir,"01-club.png")
-	for key in ["build","decor","staff","clients","settings"]:
+	for key in ["build","decor","staff","clients","services","settings"]:
 		await ui_click(hud.tool_buttons[key])
 		await get_tree().process_frame
 		check(hud.active == key and hud.drawer.visible,"Toolbar opens "+key)
 		await ui_capture(dir,"02-panel-%s.png" % key)
 	await ui_click(hud.tool_buttons["settings"])
 	check(not hud.drawer.visible,"Clicking the active tool closes its panel")
+	await tariff_ui_checks(dir)
 	# Dialog windows can be dragged by their title bar.
 	hud.show_help()
 	await get_tree().process_frame
@@ -3518,6 +3528,50 @@ func ui_test() -> void:
 	print("UI_TEST_RESULT: %d failures" % failures)
 	if failures == 0: print("UI_TEST_PASSED")
 	get_tree().quit(1 if failures > 0 else 0)
+
+func tariff_ui_checks(dir: String) -> void:
+	var previous = sim.prices.duplicate()
+	hud.toggle_drawer("services")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(hud.drawer.title.text == "Tarifs" and hud.price_inputs.size() == 6,"Tariffs panel exposes all six real charges")
+	var field: LineEdit = hud.price_inputs.entry.get_line_edit()
+	await ui_click(field)
+	for stroke in [[KEY_A,0,true],[KEY_2,50,false],[KEY_7,55,false],[KEY_ENTER,0,false]]:
+		for pressed in [true,false]:
+			var event = InputEventKey.new()
+			event.keycode = stroke[0]
+			event.unicode = stroke[1]
+			event.ctrl_pressed = stroke[2]
+			event.pressed = pressed
+			Input.parse_input_event(event)
+			await get_tree().process_frame
+	check(sim.prices.entry == 27 and sim.speed == 0,"Typing an entry tariff applies it without activating game speed shortcuts")
+	for entry in [["drink",17],["dance",33],["quick",65],["private",175],["full",290]]:
+		hud.price_inputs[entry[0]].value = entry[1]
+		check(sim.prices[entry[0]] == entry[1],"Each price control changes its own live charge")
+	check(hud.tariff_rates.text.contains("Standing 1 : 65 / 175 / 290 $") and hud.tariff_rates.text.contains("Standing 4 : 143 / 385 / 638 $"),"Effective standing prices refresh immediately")
+	save_game()
+	var restored = ClubSim.new()
+	restored.from_dict(JSON.parse_string(FileAccess.get_file_as_string(save_path)).club)
+	check(restored.prices == sim.prices,"Editing tariffs saves all changes through the game save path")
+	restored.free()
+	await ui_capture(dir,"02-tariffs.png")
+	var reset = hud.drawer_body.get_children().filter(func(n): return n is Button and n.text == "Rétablir les tarifs conseillés")
+	if not reset.is_empty(): await ui_click(reset[0])
+	check(sim.prices == ClubSim.default_prices(),"Recommended tariffs button restores the original prices")
+	check(hud.drawer.get_global_rect().end.x <= hud.size.x and hud.tool_buttons.services.get_global_rect().end.x <= hud.size.x,"Tariffs panel and toolbar stay inside the window")
+	hud.close_drawer()
+	hud.staff_tab = 2
+	hud.toggle_drawer("staff")
+	await get_tree().process_frame
+	var shortcut = hud.drawer_body.get_children().filter(func(n): return n is Button and n.text == "Régler les tarifs")
+	check(shortcut.size() == 1,"Management also provides a tariff shortcut")
+	if not shortcut.is_empty(): await ui_click(shortcut[0])
+	check(hud.active == "services","Management shortcut opens the same tariffs panel")
+	sim.prices = previous
+	hud.staff_tab = 0
+	hud.close_drawer()
 
 func delivery_test() -> void:
 	await get_tree().process_frame

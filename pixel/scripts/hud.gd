@@ -7,9 +7,9 @@ extends Control
 # window with a title bar.
 const DOCK = [["select","Sélection","select","Sélection · Échap"],["build","Construire","build","Pièces, cloisons, portes, fenêtres, parkings · T C P F K"],
 	["decor","Mobilier","furniture","Catalogue du mobilier · B"],["staff","Personnel","person","Embaucher et suivre l'équipe"],
-	["clients","Clients","clients","Clients présents"],["services","Services","services","Tarifs"],
+	["clients","Clients","clients","Clients présents"],["services","Tarifs","services","Régler les entrées, les boissons et les prestations"],
 	["reports","Rapports","reports","Recettes et nuits précédentes"],["settings","Menu","menu","Vue et partie"]]
-const TITLES = {"build":"Construire","decor":"Mobilier","staff":"Personnel","clients":"Clients","services":"Services","reports":"Rapports","settings":"Menu"}
+const TITLES = {"build":"Construire","decor":"Mobilier","staff":"Personnel","clients":"Clients","services":"Tarifs","reports":"Rapports","settings":"Menu"}
 var game
 var S = 2
 var money_label: Label
@@ -61,6 +61,9 @@ var management_day_offset = 0
 var recruit_kind = ""      # the job whose candidates are shown
 var cloak_label: Label
 var drawer_refresh = 0.0   # lists of people and reports: redrawn every 2 s, not 2 per s
+var price_inputs: Dictionary = {}
+var tariff_demand: Label
+var tariff_rates: Label
 
 func build(game_ref) -> void:
 	game = game_ref
@@ -689,29 +692,54 @@ func fill_decor_grid(g: GridContainer = null) -> void:
 		g.add_child(b)
 
 func fill_services() -> void:
-	section("TARIFS")
-	for entry in [["entry","Entrée",0,80,"Payée à la réception."],["drink","Boisson",4,40,"Servie au bar si un barman est en poste."],["dance","Pourboire scène",0,120,"Quand une escort danse sur la scène."],["private","Salon privé",40,400,"Une chambre libre et une escort disponible."]]:
-		var key: String = entry[0]
+	drawer_body.custom_minimum_size.x = STAFF_WIDTH*S
+	price_inputs.clear()
+	drawer_body.add_child(wrap_label("Tarifs enregistrés automatiquement."))
+	UiKit.button("Rétablir les tarifs conseillés",game.reset_prices,drawer_body)
+	for key in ClubSim.PRICE_RULES:
+		if key == "entry": section("ENTRÉE ET BAR")
+		elif key == "dance": section("SCÈNE")
+		elif key == "quick": section("PRESTATIONS · PRIX DE BASE")
+		var rule: Dictionary = ClubSim.PRICE_RULES[key]
 		var row = UiKit.hbox(drawer_body,3)
-		var name = UiKit.label(entry[1],1)
+		var name = UiKit.label(rule.name,1)
 		name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(name)
-		var value = UiKit.label("%d $" % int(game.sim.prices[key]),1,UiKit.GOLD)
-		row.add_child(value)
-		var slider = HSlider.new()
-		slider.min_value = entry[2]
-		slider.max_value = entry[3]
-		slider.step = 1
-		slider.value = game.sim.prices[key]
-		slider.focus_mode = Control.FOCUS_NONE
-		slider.custom_minimum_size.y = 10*S
-		slider.value_changed.connect(func(v):
-			game.set_price(key,int(v))
-			value.text = "%d $" % int(v))
-		drawer_body.add_child(slider)
-		drawer_body.add_child(wrap_label(entry[4]))
+		var input = SpinBox.new()
+		input.name = "Price_"+key
+		input.min_value = 0
+		input.max_value = int(rule.max)
+		input.step = 1
+		input.suffix = "$"
+		input.value = game.sim.prices[key]
+		input.custom_minimum_size.x = 74*S
+		input.get_line_edit().add_theme_font_size_override("font_size",UiKit.fs(1))
+		input.tooltip_text = "Saisissez un montant ou utilisez les flèches. 0 $ : gratuit."
+		input.value_changed.connect(func(v): game.set_price(key,int(v)))
+		row.add_child(input)
+		price_inputs[key] = input
 	UiKit.separator(drawer_body)
-	drawer_body.add_child(wrap_label("Des prix élevés rapportent plus par client mais en attirent moins et pèsent sur la satisfaction."))
+	section("PRIX SELON LE STANDING")
+	tariff_rates = wrap_label("",1,UiKit.GOLD)
+	drawer_body.add_child(tariff_rates)
+	drawer_body.add_child(wrap_label("Rapide / classique / complète. Le standing majore le prix de base. Les prestations déjà acceptées gardent leur prix. Les clients choisissent selon leur budget."))
+	tariff_demand = wrap_label("",1,UiKit.INK)
+	drawer_body.add_child(tariff_demand)
+	drawer_body.add_child(wrap_label("L'entrée et les boissons influencent l'affluence. Leurs prix élevés attirent moins de clients."))
+	refresh_tariff_summary()
+
+func refresh_tariff_summary() -> void:
+	if active != "services": return
+	if is_instance_valid(tariff_rates):
+		var lines: Array[String] = []
+		for level in range(1,5):
+			var amounts: Array[String] = []
+			for tier in range(ClubSim.SERVICES.size()): amounts.append("%d" % game.sim.service_price_for_standing(tier,level))
+			lines.append("Standing %d : %s $" % [level," / ".join(amounts)])
+		tariff_rates.text = "\n".join(lines)
+	if is_instance_valid(tariff_demand):
+		tariff_demand.text = "Effet des tarifs sur l'affluence : %+.0f %%" % ((float(game.sim.demand_factors().price)-1.0)*100.0)
 
 func fill_reports() -> void:
 	var sim: ClubSim = game.sim

@@ -111,11 +111,14 @@ func run() -> void:
 	sim.remove_client(released)
 	sim.wait_in_line(first,true,1)
 	check(first.brain.state == "to_desk" and not first in sim.queue,"One freed place admits the first waiting customer")
+	sim.set_price("entry",37)
+	var cash_before_entry = sim.money
 	check(sim.admission.occupancy_load(sim) == sim.admission.capacity and not sim.admission.can_enter(sim),"Admission reserves a place during the walk to reception")
 	for step in range(300):
 		sim.client_ai(first,.1)
 		if first.brain.get("paid",false): break
 	check(first.brain.paid and sim.traffic.summary(sim.traffic.day_rows(sim.day)).admitted == 1,"Successful admission enters the hourly statistics once")
+	check(sim.money == cash_before_entry+37 and sim.night.entry == 37 and first.brain.spent == 37,"Reception collects the configured entry tariff exactly once")
 	sim.spawn_client()
 	var impatient: Actor = sim.queue.back()
 	impatient.set_world(sim.queue_slot(0))

@@ -26,6 +26,7 @@ func run() -> void:
 	sim.setup(model,world)
 	sim.active = false
 	sim.open = true
+	sim.set_price("quick",59)
 	sim.spawn_client()
 	var c: Actor = sim.clients[0]
 	var e: Actor = sim.staff[id]
@@ -98,6 +99,8 @@ func run() -> void:
 						root.get_texture().get_image().save_png(arg.trim_prefix("--capture="))
 						captured = true
 			var price = sim.service_price(0,e)
+			check(price == int(round(59*ClubSim.STANDING_RATE[sim.standing(e)])),"The agreed quotation uses the player's custom tariff")
+			sim.set_price("quick",96)
 			if mode == "layout":
 				sim.layout_changed()
 			else:
@@ -109,6 +112,7 @@ func run() -> void:
 			check(bed.unmade == (mode == "unmade"),"The quick visit preserves the bed's previous state")
 			check(c.anim != "stand" and e.anim != "kneel","Both actors leave the static poses")
 		check(not c.brain.has("service") and not e.brain.has("client") and sim.busy_beds.is_empty() and sim.reserved.is_empty(),"Completion or cancellation releases both actors and the room")
+		sim.set_price("quick",59)
 	check(not model.furniture.any(func(i): return i.kind == "trash_tissues"),"Floor poses leave no bed-related litter")
 	print("QUICK_SERVICE_TESTS: %d checks, %d failures" % [checks,failures])
 	if failures == 0: print("QUICK_SERVICE_TESTS_PASSED")
