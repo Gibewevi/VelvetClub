@@ -529,6 +529,25 @@ func fill_team(team: Array) -> void:
 		var row = UiKit.hbox(card,3)
 		UiKit.button("Fiche",show_profile.bind(str(item.get("profile_id","")),0),row,"Son histoire, ses souvenirs")
 		UiKit.button("Planning",show_schedule.bind(int(item.id)),row,ClubCalendar.summary(item.get("work_schedule",ClubCalendar.default_shift())))
+		if not Duties.options(item.kind).is_empty():
+			# what this employee sees to first, chosen right from the list
+			var duty = String(item.get("duty",""))
+			var pick = MenuButton.new()
+			pick.text = "Priorité : "+(Duties.name_of(item.kind,duty) if Duties.valid(item.kind,duty) else "Aucune")
+			pick.flat = false
+			pick.focus_mode = Control.FOCUS_NONE
+			pick.add_theme_font_size_override("font_size",UiKit.fs(1))
+			pick.tooltip_text = "Ce que cet employé fait en premier dès qu'il est libre"
+			for look in ["normal","hover","pressed","hover_pressed","disabled"]:
+				pick.add_theme_stylebox_override(look,UiKit.button_box({"normal":"button","hover":"button_hover","pressed":"button_pressed","hover_pressed":"button_pressed","disabled":"button_disabled"}[look]))
+			var menu = pick.get_popup()
+			var opts = Duties.options(item.kind)
+			for i in range(opts.size()): menu.add_item(opts[i][1],i)
+			var id = int(item.id)
+			menu.id_pressed.connect(func(i):
+				game.set_duty(id,String(opts[i][0]))
+				fill_drawer())
+			card.add_child(pick)
 	drawer_body.add_child(wrap_label("Les salaires planifiés courent même lorsque le club est fermé. Ménage et maintenance continuent selon les plannings."))
 
 func job_button(kind: String, active: bool, lit: bool = true) -> Button:

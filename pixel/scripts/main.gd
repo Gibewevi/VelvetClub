@@ -2862,6 +2862,18 @@ func team_filter_checks() -> void:
 	check(all.size() == 1,"…with a button to show everyone again")
 	all[0].pressed.emit()
 	check(hud.team_kind == "" and cards.call("Barman") >= 1,"Tout afficher brings the whole team back")
+	# a priority chosen right on an employee's card
+	var picks = hud.drawer_body.find_children("*","MenuButton",true,false).filter(func(b): return b.text.begins_with("Priorité : "))
+	check(picks.size() >= 2,"Maids and technicians have a priority menu on their card (%d)" % picks.size())
+	var maid_item = model.furniture.filter(func(i): return i.kind == "maid")[0]
+	var maid_pick = null
+	for b in picks:
+		if (b as MenuButton).get_popup().item_count == Duties.options("maid").size() and maid_pick == null: maid_pick = b
+	if maid_pick != null:
+		var wc_index = Duties.options("maid").map(func(o): return o[0]).find("wc")
+		maid_pick.get_popup().id_pressed.emit(wc_index)
+	var duties = model.furniture.filter(func(i): return i.kind == "maid" and i.get("duty","") == "wc")
+	check(duties.size() == 1 and hud.drawer_body.find_children("*","MenuButton",true,false).any(func(b): return b.text == "Priorité : Sanitaires"),"Choosing Sanitaires in it gives that maid the toilets first")
 	hud.toggle_drawer("staff")
 	model.restore(start)
 	undo_stack = keep_undo

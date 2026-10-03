@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 # Jeu de gestion en pixel art isométrique (projet pixel/).
 $projectRoot = $PSScriptRoot
-$version = 'Construction-V88-Equipe'
+$version = 'Construction-V89-Priorites'
 $godotBinary = Join-Path $projectRoot '.tools\godot\Godot_v4.5.1-stable_win64_console.exe'
 if (-not (Test-Path -LiteralPath $godotBinary)) {
     throw 'Godot 4.5.1 est absent de .tools/godot. Voir README.md.'
