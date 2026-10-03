@@ -9,12 +9,14 @@ the lawn meets a sidewalk the edge is darker (soil) and tufts grow over the
 slabs. The picture is transparent over the street: the sidewalks and the
 road are drawn under it, the rooms and car parks over it.
 
-Bushes are mounds of leaf rosettes in the street trees' style, lit from the
-upper left, with a soft shadow; one variant flowers.
+Bushes use new reference paintings: broad pointed leaves, yellow-green
+highlights and deep shaded bases, with compact and spreading flowered forms.
 """
 from __future__ import annotations
 
-import math
+from pathlib import Path
+
+from PIL import Image
 
 import numpy as np
 
@@ -219,116 +221,53 @@ def lawn():
 
 # ---------------------------------------------------------------- bushes
 
-LEAVES = [hexrgb(c) for c in ("0f2618", "1b4322", "2a6226", "43822a", "74ae2e", "a9d140")]
-INK = hexrgb("0a1c12")
-SHADOW = (8, 18, 12, 120)
-# width, height (px), shadow radii, footprint (m), blossoms
+# New source paintings based on the player's reference. All four native
+# sprites retain their existing footprint, and are static at every zoom.
+SOURCE_DIR = Path(__file__).resolve().parent / "sources" / "bushes"
 BUSHES = [
-    {"rx": 15, "ry": 10, "top": 18, "shadow": (17, 7), "size": 0.9, "bloom": None},
-    {"rx": 21, "ry": 13, "top": 24, "shadow": (23, 9), "size": 1.3, "bloom": None},
-    {"rx": 29, "ry": 11, "top": 20, "shadow": (31, 9), "size": 1.8, "bloom": None},
-    {"rx": 18, "ry": 12, "top": 21, "shadow": (20, 8), "size": 1.1, "bloom": "pink"},
+    {"source": "green.png", "width": 34, "height": 26, "shadow": (17, 7), "size": 0.9},
+    {"source": "green.png", "width": 46, "height": 34, "shadow": (23, 9), "size": 1.3},
+    {"source": "wide_flowers.png", "width": 62, "height": 34, "shadow": (31, 9), "size": 1.8},
+    {"source": "round_flowers.png", "width": 40, "height": 34, "shadow": (20, 8), "size": 1.1},
 ]
-BW, BH = 72, 44
-BOX, BOY = 36, 38       # the foot of the bush in its picture
-
-
-def h01(*k):
-    v = 0
-    for i, n in enumerate(k):
-        v = (v * 1000003 + (int(n) + 7919) * (i + 1) * 2654435761) & 0xFFFFFFFF
-    v ^= v >> 13
-    v = (v * 1274126177) & 0xFFFFFFFF
-    return ((v ^ (v >> 16)) & 0xFFFF) / 65536.0
+BW, BH = 80, 56
+BOX, BOY = 40, 44
 
 
 def bush(variant):
-    """A mound of leaf rosettes, lit from the upper left."""
+    """Fit a reference-painted leafy bush to its native game footprint.
+
+    Cutout alpha is binary, colours undithered, sampling nearest-neighbour.
+    Only the separate ground shadow uses transparent shading; source halos
+    and marginal alpha are excluded from the foliage cutout.
+    """
     spec = BUSHES[variant]
-    rng = np.random.default_rng(300 + variant)
-    leaf = np.full((BH, BW), -1, dtype=int)
-    cx, cy = 0.0, -spec["top"] * 0.5 - 1
-    rx, ry = spec["rx"], spec["top"] * 0.5 + 1
-    spots = []
-    y = cy - ry + 3
-    row = 0
-    while y <= cy + ry:
-        x = cx - rx + 4 + (4 if row % 2 else 0)
-        while x <= cx + rx - 3:
-            px, py = x + rng.uniform(-1.5, 1.5), y + rng.uniform(-1.2, 1.2)
-            u, w = (px - cx) / rx, (py - cy) / ry
-            if u * u + w * w <= 0.92:
-                spots.append((py, px, rng.uniform(4.6, 6.4)))
-            x += 8.0
-        y += 6.0
-        row += 1
-    spots.sort()
-
-    def set_leaf(x, y, tone):
-        X, Y = int(x) + BOX, int(y) + BOY
-        if 0 <= X < BW and 0 <= Y < BH:
-            leaf[Y, X] = tone
-
-    # deep shade first: it shows between the rosettes
-    for py, px, r in spots:
-        for yy in range(int(py - r), int(py + r) + 2):
-            for xx in range(int(px - r), int(px + r) + 2):
-                if (xx + 0.5 - px) ** 2 + (yy - py - 1.0) ** 2 <= (r * 0.95) ** 2 and yy < 0:
-                    set_leaf(xx, yy, 1)
-    for n, (py, px, r) in enumerate(spots):
-        u, w = (px - cx) / rx, (py - cy) / ry
-        light = -0.5 * u - 0.9 * w
-        ph = h01(variant, n) * 6.28
-        hx, hy = px - r * 0.22, py - r * 0.3
-        for yy in range(int(py - r) - 1, int(py + r) + 2):
-            for xx in range(int(px - r) - 1, int(px + r) + 2):
-                dx, dy = xx + 0.5 - px, yy + 0.5 - py
-                d = math.hypot(dx, dy)
-                lobe = math.cos(6 * math.atan2(dy, dx) + ph)
-                edge = r * (0.8 + 0.2 * lobe)
-                if d > edge or yy >= 0:
-                    continue
-                ex, ey = xx + 0.5 - hx, yy + 0.5 - hy
-                heart = r * (0.46 + 0.14 * math.cos(6 * math.atan2(ey, ex) + ph))
-                tone = 3
-                if math.hypot(ex, ey) < heart and light > -0.5:
-                    tone = 4 if math.hypot(ex, ey) > heart * 0.45 or light <= 0.3 else 5
-                elif d > edge - 1.4:
-                    tone = 2
-                if (dx + dy) / r > 0.7:
-                    tone = min(tone, 1 if light < 0.2 else 2)
-                if light < -0.35:
-                    tone = max(tone - 1, 1)
-                set_leaf(xx, yy, tone)
+    source = Image.open(SOURCE_DIR / spec["source"]).convert("RGBA")
+    alpha = np.array(source.getchannel("A"))
+    ys, xs = np.where(alpha >= 128)
+    if not len(xs):
+        raise ValueError(f"Empty bush source: {spec['source']}")
+    source = source.crop((int(xs.min()), int(ys.min()), int(xs.max())+1, int(ys.max())+1))
+    scale = min(spec["width"] / source.width, spec["height"] / source.height)
+    width, height = round(source.width*scale), round(source.height*scale)
+    pixels = np.array(source.resize((width, height), Image.Resampling.NEAREST))
+    pixels[:, :, 3] = np.where(pixels[:, :, 3] >= 128, 255, 0)
+    pixels[pixels[:, :, 3] == 0] = 0
+    native = np.array(Image.fromarray(pixels).quantize(
+        colors=32, method=Image.Quantize.FASTOCTREE,
+        dither=Image.Dither.NONE).convert("RGBA"))
     img = np.zeros((BH, BW, 4), dtype=np.uint8)
-    # soft shadow on the ground, under the leaves
+    # A compact two-tone contact shadow, complete inside the canvas.
+    yy, xx = np.mgrid[0:BH, 0:BW]
     sx, sy = spec["shadow"]
-    for yy in range(BH):
-        for xx in range(BW):
-            dx, dy = xx - BOX + 2, yy - BOY + 1
-            if (dx / sx) ** 2 + (dy / sy) ** 2 <= 1.0:
-                img[yy, xx] = SHADOW
-    solid = leaf >= 0
-    img[solid, :3] = np.array(LEAVES, dtype=np.uint8)[leaf[solid]]
-    img[solid, 3] = 255
-    for yy in range(BH):
-        for xx in range(BW):
-            if solid[yy, xx]:
-                continue
-            for ax, ay in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                X, Y = xx + ax, yy + ay
-                if 0 <= X < BW and 0 <= Y < BH and solid[Y, X]:
-                    img[yy, xx] = INK + (255,)
-                    break
-    if spec["bloom"]:
-        petal, heart = FLOWERS[spec["bloom"]]
-        for _ in range(14):
-            fx, fy = int(rng.integers(-spec["rx"] + 4, spec["rx"] - 3)), int(rng.integers(-spec["top"] + 3, -3))
-            X, Y = fx + BOX, fy + BOY
-            if 0 < X < BW - 1 and 0 < Y < BH - 1 and solid[Y, X] and leaf[Y, X] >= 2:
-                img[Y, X, :3] = petal
-                img[Y, X + 1, :3] = petal if solid[Y, X + 1] else img[Y, X + 1, :3]
-                img[Y + 1, X, :3] = heart if solid[Y + 1, X] else img[Y + 1, X, :3]
+    distance = ((xx-BOX-2)/sx)**2 + ((yy-BOY+1)/sy)**2
+    img[distance <= 1.0] = (8, 22, 16, 48)
+    img[distance <= 0.55] = (8, 22, 16, 96)
+    left = BOX-width//2
+    top = BOY+4-height
+    region = img[top:top+height, left:left+width]
+    solid = native[:, :, 3] > 0
+    region[solid] = native[solid]
     return img
 
 
