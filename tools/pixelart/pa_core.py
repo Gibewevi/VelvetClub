@@ -1,8 +1,8 @@
 """Shared pixel-art helpers: colours, hue-shifted ramps, outlines, image IO.
 
-Everything in this package paints sprites directly at their final, native
-resolution (floor tile 32 x 16 px, character frame 32 x 48 px). Nothing is ever
-rendered large and reduced: each output pixel is decided exactly once.
+Procedural sprites are painted at their final, native resolution (floor
+tile 32 x 16 px, character frame 32 x 48 px). Trees use new source paintings
+prepared separately on the same native grid, without filtering or dithering.
 """
 from __future__ import annotations
 

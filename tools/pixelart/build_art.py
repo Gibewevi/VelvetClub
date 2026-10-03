@@ -1,7 +1,8 @@
 """Regenerate every sprite of the pixel-art game into pixel/art.
 
-All art is painted at its final resolution (tiles 32 x 16, characters
-32 x 48 frames); the game only enlarges it by whole numbers.
+Sprites are built at native resolution (tiles 32 x 16, characters 32 x 48).
+Trees are prepared from their new source paintings on the native pixel grid;
+the game only enlarges the resulting sprites by whole numbers.
 """
 import time
 

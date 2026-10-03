@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
-# Jeu de gestion en pixel art isométrique (projet pixel/).
+# Jeu de gestion en pixel art isomÃ©trique (projet pixel/).
 $projectRoot = $PSScriptRoot
-$version = 'Construction-V79-Dechets'
+$version = 'Construction-V80-Arbres'
 $godotBinary = Join-Path $projectRoot '.tools\godot\Godot_v4.5.1-stable_win64_console.exe'
 if (-not (Test-Path -LiteralPath $godotBinary)) {
     throw 'Godot 4.5.1 est absent de .tools/godot. Voir README.md.'
@@ -11,74 +11,74 @@ $testData = Join-Path $projectRoot '.tools\userdata'
 $artifacts = Join-Path $projectRoot 'tests\artifacts'
 New-Item -ItemType Directory -Path $testData,$artifacts,(Join-Path $projectRoot 'build') -Force | Out-Null
 
-# 1. Sprites : tout le pixel art est redessiné à sa résolution finale (Python + numpy + Pillow).
+# 1. Sprites : tout le pixel art est redessinÃ© Ã  sa rÃ©solution finale (Python + numpy + Pillow).
 $python = Get-Command python -ErrorAction SilentlyContinue
 if ($python) {
     Push-Location (Join-Path $projectRoot 'tools\pixelart')
     try {
         & python build_art.py
-        if ($LASTEXITCODE -ne 0) { throw 'Génération du pixel art échouée.' }
+        if ($LASTEXITCODE -ne 0) { throw 'GÃ©nÃ©ration du pixel art Ã©chouÃ©e.' }
     } finally { Pop-Location }
 } else {
-    Write-Host 'Python absent : les sprites déjà générés dans pixel/art sont utilisés.'
+    Write-Host 'Python absent : les sprites dÃ©jÃ  gÃ©nÃ©rÃ©s dans pixel/art sont utilisÃ©s.'
 }
 
 $previousAppData = $env:APPDATA
 try {
     $env:APPDATA = $testData
     & $godotBinary --headless --path $gameDir --editor --import --quit --log-file (Join-Path $artifacts 'pixel-import.log')
-    if ($LASTEXITCODE -ne 0) { throw 'Import du projet échoué.' }
+    if ($LASTEXITCODE -ne 0) { throw 'Import du projet Ã©chouÃ©.' }
     & $godotBinary --headless --path $gameDir --script res://tests/model_test.gd --log-file (Join-Path $artifacts 'pixel-model.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-model.log') -Pattern 'MODEL_TESTS_PASSED' -Quiet)) { throw 'Tests du modèle échoués.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-model.log') -Pattern 'MODEL_TESTS_PASSED' -Quiet)) { throw 'Tests du modÃ¨le Ã©chouÃ©s.' }
     & $godotBinary --headless --path $gameDir --script res://tests/parking_fit_test.gd --log-file (Join-Path $artifacts 'pixel-parking-fit.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-parking-fit.log') -Pattern 'PARKING_FIT_TESTS_PASSED' -Quiet)) { throw 'Calcul des places de parking échoué.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-parking-fit.log') -Pattern 'PARKING_FIT_TESTS_PASSED' -Quiet)) { throw 'Calcul des places de parking Ã©chouÃ©.' }
     & $godotBinary --headless --path $gameDir --script res://tests/art_test.gd --log-file (Join-Path $artifacts 'pixel-art.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-art.log') -Pattern 'ART_TESTS_PASSED' -Quiet)) { throw 'Contrôle du pixel art échoué.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-art.log') -Pattern 'ART_TESTS_PASSED' -Quiet)) { throw 'ContrÃ´le du pixel art Ã©chouÃ©.' }
     & $godotBinary --headless --path $gameDir --script res://tests/bed_test.gd --log-file (Join-Path $artifacts 'pixel-beds.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-beds.log') -Pattern 'BED_TESTS_PASSED' -Quiet)) { throw 'Tests des lits échoués.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-beds.log') -Pattern 'BED_TESTS_PASSED' -Quiet)) { throw 'Tests des lits Ã©chouÃ©s.' }
     & $godotBinary --headless --path $gameDir --script res://tests/rest_pose_test.gd --log-file (Join-Path $artifacts 'pixel-rest-pose.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-rest-pose.log') -Pattern 'REST_POSE_TESTS_PASSED' -Quiet)) { throw 'Tests de la posture de repos échoués.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-rest-pose.log') -Pattern 'REST_POSE_TESTS_PASSED' -Quiet)) { throw 'Tests de la posture de repos Ã©chouÃ©s.' }
     & $godotBinary --headless --path $gameDir --script res://tests/delivery_dust_test.gd --log-file (Join-Path $artifacts 'pixel-delivery-dust.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-delivery-dust.log') -Pattern 'DELIVERY_DUST_TESTS_PASSED' -Quiet)) { throw 'Test de la fumée BD échoué.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-delivery-dust.log') -Pattern 'DELIVERY_DUST_TESTS_PASSED' -Quiet)) { throw 'Test de la fumÃ©e BD Ã©chouÃ©.' }
     & $godotBinary --headless --path $gameDir --script res://tests/profile_test.gd --log-file (Join-Path $artifacts 'pixel-profiles.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-profiles.log') -Pattern 'PROFILE_TESTS_PASSED' -Quiet)) { throw 'Tests des histoires et profils persistants échoués.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-profiles.log') -Pattern 'PROFILE_TESTS_PASSED' -Quiet)) { throw 'Tests des histoires et profils persistants Ã©chouÃ©s.' }
     & $godotBinary --headless --path $gameDir --script res://tests/traffic_test.gd --log-file (Join-Path $artifacts 'pixel-traffic.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-traffic.log') -Pattern 'TRAFFIC_TESTS_PASSED' -Quiet)) { throw 'Tests de l''affluence, des files et des statistiques échoués.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-traffic.log') -Pattern 'TRAFFIC_TESTS_PASSED' -Quiet)) { throw 'Tests de l''affluence, des files et des statistiques Ã©chouÃ©s.' }
     & $godotBinary --headless --path $gameDir --script res://tests/calendar_test.gd --log-file (Join-Path $artifacts 'pixel-calendar.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-calendar.log') -Pattern 'CALENDAR_TESTS_PASSED' -Quiet)) { throw 'Tests des plannings et du calendrier échoués.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-calendar.log') -Pattern 'CALENDAR_TESTS_PASSED' -Quiet)) { throw 'Tests des plannings et du calendrier Ã©chouÃ©s.' }
     & $godotBinary --headless --path $gameDir --script res://tests/weather_test.gd --log-file (Join-Path $artifacts 'pixel-weather.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-weather.log') -Pattern 'WEATHER_TESTS_PASSED' -Quiet)) { throw 'Tests des effets météo échoués.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-weather.log') -Pattern 'WEATHER_TESTS_PASSED' -Quiet)) { throw 'Tests des effets mÃ©tÃ©o Ã©chouÃ©s.' }
     & $godotBinary --headless --path $gameDir --script res://tests/client_needs_test.gd --log-file (Join-Path $artifacts 'pixel-client-needs.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-client-needs.log') -Pattern 'CLIENT_NEEDS_TESTS_PASSED' -Quiet)) { throw 'Tests des besoins et sanitaires échoués.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-client-needs.log') -Pattern 'CLIENT_NEEDS_TESTS_PASSED' -Quiet)) { throw 'Tests des besoins et sanitaires Ã©chouÃ©s.' }
     & $godotBinary --headless --path $gameDir --script res://tests/sanitation_test.gd --log-file (Join-Path $artifacts 'pixel-sanitation.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-sanitation.log') -Pattern 'SANITATION_TESTS_PASSED' -Quiet)) { throw 'Tests des files et de l''hygiène échoués.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-sanitation.log') -Pattern 'SANITATION_TESTS_PASSED' -Quiet)) { throw 'Tests des files et de l''hygiÃ¨ne Ã©chouÃ©s.' }
     & $godotBinary --headless --path $gameDir --script res://tests/sanitary_hygiene_test.gd --log-file (Join-Path $artifacts 'pixel-sanitary-hygiene.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-sanitary-hygiene.log') -Pattern 'SANITARY_HYGIENE_TESTS_PASSED' -Quiet)) { throw 'Tests de salissure sanitaire échoués.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-sanitary-hygiene.log') -Pattern 'SANITARY_HYGIENE_TESTS_PASSED' -Quiet)) { throw 'Tests de salissure sanitaire Ã©chouÃ©s.' }
     & $godotBinary --headless --path $gameDir --script res://tests/plumbing_test.gd --log-file (Join-Path $artifacts 'pixel-plumbing.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-plumbing.log') -Pattern 'PLUMBING_TESTS_PASSED' -Quiet)) { throw 'Tests de la plomberie échoués.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-plumbing.log') -Pattern 'PLUMBING_TESTS_PASSED' -Quiet)) { throw 'Tests de la plomberie Ã©chouÃ©s.' }
     & $godotBinary --headless --path $gameDir --script res://tests/cloakroom_test.gd --log-file (Join-Path $artifacts 'pixel-cloak.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-cloak.log') -Pattern 'CLOAKROOM_TESTS_PASSED' -Quiet)) { throw 'Tests du vestiaire échoués.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-cloak.log') -Pattern 'CLOAKROOM_TESTS_PASSED' -Quiet)) { throw 'Tests du vestiaire Ã©chouÃ©s.' }
     & $godotBinary --headless --path $gameDir --script res://tests/waste_test.gd --log-file (Join-Path $artifacts 'pixel-waste.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-waste.log') -Pattern 'WASTE_TESTS_PASSED' -Quiet)) { throw 'Tests des déchets et de la tenue des escorts échoués.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-waste.log') -Pattern 'WASTE_TESTS_PASSED' -Quiet)) { throw 'Tests des dÃ©chets et de la tenue des escorts Ã©chouÃ©s.' }
     & $godotBinary --headless --path $gameDir --script res://tests/recruit_test.gd --log-file (Join-Path $artifacts 'pixel-recruit.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-recruit.log') -Pattern 'RECRUIT_TESTS_PASSED' -Quiet)) { throw 'Tests du recrutement échoués.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-recruit.log') -Pattern 'RECRUIT_TESTS_PASSED' -Quiet)) { throw 'Tests du recrutement Ã©chouÃ©s.' }
     & $godotBinary --headless --path $gameDir --script res://tests/quick_service_test.gd --log-file (Join-Path $artifacts 'pixel-quick.log')
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-quick.log') -Pattern 'QUICK_SERVICE_TESTS_PASSED' -Quiet)) { throw 'Test de la prestation rapide échoué.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-quick.log') -Pattern 'QUICK_SERVICE_TESTS_PASSED' -Quiet)) { throw 'Test de la prestation rapide Ã©chouÃ©.' }
     & $godotBinary --headless --path $gameDir --log-file (Join-Path $artifacts 'pixel-delivery.log') -- --delivery-test
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-delivery.log') -Pattern 'DELIVERY_TEST_PASSED' -Quiet)) { throw 'Tests des commandes et livraisons échoués.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-delivery.log') -Pattern 'DELIVERY_TEST_PASSED' -Quiet)) { throw 'Tests des commandes et livraisons Ã©chouÃ©s.' }
     & $godotBinary --headless --path $gameDir --log-file (Join-Path $artifacts 'pixel-smoke.log') -- --smoke-test
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-smoke.log') -Pattern 'SMOKE_TEST_PASSED' -Quiet)) { throw 'Test de scène échoué.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-smoke.log') -Pattern 'SMOKE_TEST_PASSED' -Quiet)) { throw 'Test de scÃ¨ne Ã©chouÃ©.' }
     & $godotBinary --headless --path $gameDir --log-file (Join-Path $artifacts 'pixel-sim.log') -- --sim-test
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-sim.log') -Pattern 'SIM_TEST_PASSED' -Quiet)) { throw 'Simulation d''une nuit échouée.' }
-    # L'interface se teste dans une vraie fenêtre (clics simulés), quelques secondes.
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-sim.log') -Pattern 'SIM_TEST_PASSED' -Quiet)) { throw 'Simulation d''une nuit Ã©chouÃ©e.' }
+    # L'interface se teste dans une vraie fenÃªtre (clics simulÃ©s), quelques secondes.
     & $godotBinary --path $gameDir --log-file (Join-Path $artifacts 'pixel-ui.log') -- --ui-test
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-ui.log') -Pattern 'UI_TEST_PASSED' -Quiet)) { throw "Test d'interface échoué." }
-    # Fenêtres Revêtements et Personnaliser : pastilles, sélecteur de couleur ouvert (vraie fenêtre).
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-ui.log') -Pattern 'UI_TEST_PASSED' -Quiet)) { throw "Test d'interface Ã©chouÃ©." }
+    # FenÃªtres RevÃªtements et Personnaliser : pastilles, sÃ©lecteur de couleur ouvert (vraie fenÃªtre).
     & $godotBinary --path $gameDir --log-file (Join-Path $artifacts 'pixel-finishes.log') -- --finishes-test
-    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-finishes.log') -Pattern 'FINISHES_TEST_PASSED' -Quiet)) { throw 'Test des fenêtres de couleurs échoué.' }
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-finishes.log') -Pattern 'FINISHES_TEST_PASSED' -Quiet)) { throw 'Test des fenÃªtres de couleurs Ã©chouÃ©.' }
     & $godotBinary --headless --path $gameDir --export-release 'Windows Desktop' (Join-Path $projectRoot "build\$version.exe") --log-file (Join-Path $artifacts 'pixel-export.log')
-    if ($LASTEXITCODE -ne 0) { throw 'Export Windows échoué. Fermez le jeu et réessayez.' }
-    Write-Host "Jeu prêt : build\$version.exe"
+    if ($LASTEXITCODE -ne 0) { throw 'Export Windows Ã©chouÃ©. Fermez le jeu et rÃ©essayez.' }
+    Write-Host "Jeu prÃªt : build\$version.exe"
 } finally {
     $env:APPDATA = $previousAppData
 }
