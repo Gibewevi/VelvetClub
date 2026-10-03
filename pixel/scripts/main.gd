@@ -1316,6 +1316,7 @@ func capture(path: String) -> void:
 			selected_edge = "z:3:2"
 			refresh()
 		if arg == "--setup=waste": capture_waste()
+		if arg == "--setup=frontdesk": capture_front_desk()
 		if arg == "--setup=twirl":
 			await capture_twirl(path)
 			return
@@ -1517,6 +1518,14 @@ func capture_door_walk(path: String) -> void:
 			n += 1
 	print("CAPTURE_SAVED %d frames" % n)
 	get_tree().quit()
+
+func capture_front_desk() -> void:
+	# Documentation: the starter reception with its desk, a receptionist and a wardrobe.
+	var before = model.snapshot()
+	model.add_item("reception",0.0,6.3,0)
+	model.add_item("receptionist",0.0,5.58,0)
+	model.add_item("old_wardrobe",-3.35,5.4,0)
+	commit(before,"accueil")
 
 func capture_waste() -> void:
 	# Documentation: bins at every fill level in the hall, litter on the floor,
@@ -2584,7 +2593,11 @@ func lawn_checks() -> void:
 		return model.rooms.any(func(room): return model.overlaps(room,r)))
 	check(misplaced.is_empty(),"No bush on a sidewalk, a car park or in a room (%d)" % misplaced.size())
 	var slabs = Art.tex(Art.tiles.floors.slabs)
-	check(view.ground.get_children().any(func(n): return n is Polygon2D and n.texture == slabs and Geometry2D.is_point_in_polygon(Iso.to_screen(-1.5,7.5),n.polygon)),"A paved path leads from the front door to the sidewalk")
+	# a front door with lawn before the sidewalk gets a paved path (the
+	# starter reception opens straight onto the sidewalk)
+	for d in view.street_doors:
+		if d.axis != "x" or not d.outside_positive or float(d.z) >= Street.WALK_NEAR.x: continue
+		check(view.ground.get_children().any(func(n): return n is Polygon2D and n.texture == slabs and Geometry2D.is_point_in_polygon(Iso.to_screen(float(d.x)+0.5,float(d.z)+0.5),n.polygon)),"A paved path leads from the front door to the sidewalk")
 	model.restore(start)
 	changed_view()
 
