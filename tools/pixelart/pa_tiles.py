@@ -884,7 +884,7 @@ def export():
     for v in range(len(pa_trees.VARIANTS)):
         save(pa_trees.tree_frame(v), f"props/tree_{v}.png")
         save(pa_trees.tree_pit(v), f"props/tree_pit_{v}.png")
-        man["props"][f"tree_{v}"] = {"file": f"props/tree_{v}.png", "ox": pa_trees.OX, "oy": pa_trees.OY, "lights": [],
+        man["props"][f"tree_{v}"] = {"file": f"props/tree_{v}.png", "ox": pa_trees.OX, "oy": pa_trees.OY, "lights": [], "size": pa_trees.PIT_HALF*2,
                                      "pit": {"file": f"props/tree_pit_{v}.png", "ox": pa_trees.PIT_OX, "oy": pa_trees.PIT_OY}}
     man["props"]["tree"] = man["props"]["tree_0"]
     for name, (prims, pix, top) in {"bush": (*planter_bush(2), 0.45)}.items():

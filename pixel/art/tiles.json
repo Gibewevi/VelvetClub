@@ -4165,9 +4165,10 @@
    "lights": [],
    "pit": {
     "file": "props/tree_pit_0.png",
-    "ox": 28,
-    "oy": 15
-   }
+    "ox": 40,
+    "oy": 22
+   },
+   "size": 2.25
   },
   "tree_1": {
    "file": "props/tree_1.png",
@@ -4176,9 +4177,10 @@
    "lights": [],
    "pit": {
     "file": "props/tree_pit_1.png",
-    "ox": 28,
-    "oy": 15
-   }
+    "ox": 40,
+    "oy": 22
+   },
+   "size": 2.25
   },
   "tree_2": {
    "file": "props/tree_2.png",
@@ -4187,9 +4189,10 @@
    "lights": [],
    "pit": {
     "file": "props/tree_pit_2.png",
-    "ox": 28,
-    "oy": 15
-   }
+    "ox": 40,
+    "oy": 22
+   },
+   "size": 2.25
   },
   "tree": {
    "file": "props/tree_0.png",
@@ -4198,9 +4201,10 @@
    "lights": [],
    "pit": {
     "file": "props/tree_pit_0.png",
-    "ox": 28,
-    "oy": 15
-   }
+    "ox": 40,
+    "oy": 22
+   },
+   "size": 2.25
   },
   "bush": {
    "file": "props/bush.png",

@@ -13,8 +13,10 @@ from PIL import Image
 from pa_core import hexrgb
 
 FRAMES = 1
-W, H = 160, 184
+W, H = 160, 192
 OX, OY = 80, 178
+# The world position is the middle of the root fan, not its lowest tip.
+ROOT_FRONT = 6
 SOURCE_DIR = Path(__file__).resolve().parent / "sources" / "trees"
 # Individual new paintings, with different crown silhouettes and branches.
 VARIANTS = [
@@ -69,7 +71,7 @@ def tree_frame(variant, frame=0):
     root_x = np.where(root_rows)[1]
     foot = round(float(np.median(root_x))) if len(root_x) else width//2
     left = max(4, min(W-width-4, OX-foot))
-    top = OY-height+1
+    top = OY-height+1+ROOT_FRONT
     img = np.zeros((H, W, 4), dtype=np.uint8)
     img[top:top+height, left:left+width] = native
     return img
@@ -81,17 +83,18 @@ def tree_sheet(variant):
 
 # ------------------------------------------------------------------ tree pit
 
-PIT_W, PIT_H = 56, 30
-PIT_OX, PIT_OY = 28, 15
+PIT_W, PIT_H = 80, 44
+PIT_OX, PIT_OY = 40, 22
+PIT_HALF = 1.125
 
 
 def tree_pit(seed=0):
-    """A square pit in the pavement (1.5 m): stone kerb, soil, grass tufts,
+    """A square pit in the pavement (2.25 m): stone kerb, soil, grass tufts,
     small leafy plants and a few yellow flowers, as a flat iso diamond."""
     kerb = [hexrgb(c) for c in ("2e2a36", "4a4656", "6a6878", "8a8a98", "b4b4c0", "d6d6de")]
     soil = [hexrgb(c) for c in ("140c10", "22161a", "30211f", "3e2c26")]
     img = np.zeros((PIT_H, PIT_W, 4), dtype=np.uint8)
-    half = 0.75
+    half = PIT_HALF
 
     def put(x, y, col):
         X, Y = x + PIT_OX, y + PIT_OY

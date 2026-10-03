@@ -2,7 +2,7 @@
 
 Ces trois peintures ont été générées avec l’outil intégré image_gen à partir de la référence fournie par le joueur le 2 octobre 2026. Aucun ancien arbre du jeu n’a été utilisé comme référence. Les deuxième et troisième peintures utilisent la première nouvelle peinture pour conserver le style.
 
-`pa_trees.py` prépare les sources sur une grille native de 160 × 184 pixels, avec des hauteurs distinctes, une palette de 48 couleurs sans tramage, une transparence binaire et un point d’ancrage au pied du tronc. Les sources ci-dessous sont nécessaires pour régénérer les sprites lors de la construction du jeu. Les carrés de plantation sont des éléments de sol séparés.
+`pa_trees.py` prépare les sources sur une grille native de 160 × 192 pixels, avec des hauteurs distinctes, une palette de 48 couleurs sans tramage et une transparence binaire. Le point d’ancrage est au centre de l’éventail des racines : leur pointe avant dépasse de six pixels vers le bas du point au sol. Les carrés de plantation, séparés des arbres, mesurent 2,25 m de côté pour laisser les racines à l’intérieur des bordures. Cette dimension est aussi déclarée dans le manifeste pour conserver les dégagements autour des parkings et voies d’accès. Les sources ci-dessous sont nécessaires pour régénérer les sprites lors de la construction du jeu.
 
 ## tree_full.png
 
