@@ -1398,6 +1398,15 @@ func capture(path: String) -> void:
 			model.set_opening("z:11:2","door")
 			changed_view()
 			if not model.last_split.is_empty(): select_room(int(model.last_split[0]))
+		if arg == "--setup=team_all" or arg == "--setup=team_maids":
+			# Équipe with its job portraits, everyone or the maids only
+			var before = model.snapshot()
+			for e in [["maid",-1.0,3.0],["maid",1.6,3.0],["janitor",-2.6,3.0],["bartender",2.4,1.0],["receptionist",-0.4,6.6],["escort",-2.5,1.0]]:
+				model.add_item(e[0],e[1],e[2],0,Characters.hire_look(e[0],look_rng))
+			commit(before,"équipe")
+			hud.staff_tab = 0
+			hud.team_kind = "maid" if arg == "--setup=team_maids" else ""
+			hud.toggle_drawer("staff")
 		if arg == "--setup=pricetag":
 			# drawing a 4 x 4 m toilets beside the bedroom: its price on the ground
 			set_mode("room")
@@ -2346,6 +2355,7 @@ func smoke_test() -> void:
 	dust_checks()
 	partition_ui_checks()
 	hire_checks()
+	team_filter_checks()
 	door_pick_checks()
 	lawn_checks()
 	post_depth_checks()
@@ -2819,6 +2829,41 @@ func waste_ui_checks() -> void:
 		check(hud.bin_text(item) == "Poubelle : 10 / 10 · pleine","And when it is full")
 	model.restore(start)
 	sim.money = keep_cash
+	undo_stack = keep_undo
+	redo_stack.clear()
+	set_mode("select")
+	clear_selection()
+	changed_view()
+
+func team_filter_checks() -> void:
+	# Équipe: the job portraits at the top show one job at a time.
+	var start = model.snapshot()
+	var keep_undo = undo_stack.duplicate()
+	var before = model.snapshot()
+	model.add_room(15,-20,6,4,0)
+	model.add_item("maid",16.0,-19.0,0)
+	model.add_item("maid",17.0,-19.0,0)
+	model.add_item("bartender",18.0,-19.0,0)
+	commit(before,"équipe")
+	hud.toggle_drawer("staff")
+	hud.staff_tab = 0
+	hud.team_kind = ""
+	hud.fill_drawer()
+	var cards = func(job: String) -> int: return hud.drawer_body.find_children("*","Button",true,false).filter(func(b): return b.text.contains(" · "+job+"\n")).size()
+	var maids = cards.call("Femme de ménage")
+	check(maids >= 2 and cards.call("Barman") >= 1,"Équipe shows the whole team at first (%d maids)" % maids)
+	var face = hud.drawer_body.find_children("*","Button",true,false).filter(func(b): return b.tooltip_text.begins_with("Femme de ménage · ") and b.icon != null)
+	check(face.size() == 1 and not face[0].disabled,"A portrait per job, the maids' with their number")
+	var empty = hud.drawer_body.find_children("*","Button",true,false).filter(func(b): return b.tooltip_text.ends_with("personne pour l'instant"))
+	check(not empty.is_empty() and empty.all(func(b): return b.disabled),"Jobs nobody holds are greyed out")
+	face[0].pressed.emit()
+	check(hud.team_kind == "maid" and cards.call("Femme de ménage") == maids and cards.call("Barman") == 0,"A click on the maids' face shows only the maids")
+	var all = hud.drawer_body.find_children("*","Button",true,false).filter(func(b): return b.text == "Tout afficher")
+	check(all.size() == 1,"…with a button to show everyone again")
+	all[0].pressed.emit()
+	check(hud.team_kind == "" and cards.call("Barman") >= 1,"Tout afficher brings the whole team back")
+	hud.toggle_drawer("staff")
+	model.restore(start)
 	undo_stack = keep_undo
 	redo_stack.clear()
 	set_mode("select")

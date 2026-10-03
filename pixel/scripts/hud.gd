@@ -60,6 +60,7 @@ var drawer_live = true
 var staff_tab = 0          # Personnel: 0 team, 1 hiring, 2 management
 var management_day_offset = 0
 var recruit_kind = ""      # the job whose candidates are shown
+var team_kind = ""         # Équipe: only the employees of this job ("" = everyone)
 var cloak_label: Label
 var drawer_refresh = 0.0   # lists of people and reports: redrawn every 2 s, not 2 per s
 var price_inputs: Dictionary = {}
@@ -470,6 +471,43 @@ func fill_team(team: Array) -> void:
 			staff_tab = 1
 			fill_drawer(),drawer_body)
 		return
+	# one portrait per job, as in Recrutement: a click shows only that job
+	var jobs: Array = []
+	for kind in Catalog.STAFF_ORDER:
+		if kind in Catalog.STAFF_ACTIVE or ClubSim.FEATURES.staff_roles: jobs.append(kind)
+	for item in team:
+		if not item.kind in jobs: jobs.append(item.kind)
+	var counts: Dictionary = {}
+	for item in team: counts[item.kind] = int(counts.get(item.kind,0))+1
+	if team_kind != "" and not counts.has(team_kind): team_kind = ""
+	section("POSTE")
+	# wraps when the team has more kinds of job than fit on one line
+	var faces = HFlowContainer.new()
+	faces.alignment = FlowContainer.ALIGNMENT_CENTER
+	faces.add_theme_constant_override("h_separation",2*S)
+	faces.add_theme_constant_override("v_separation",2*S)
+	drawer_body.add_child(faces)
+	for kind in jobs:
+		var n = int(counts.get(kind,0))
+		var b = job_button(kind,team_kind == kind,n > 0)
+		b.tooltip_text = "%s · %s" % [Catalog.ITEMS[kind].name,("%d employé%s" % [n,"s" if n > 1 else ""]) if n > 0 else "personne pour l'instant"]
+		if n > 0: b.pressed.connect(func():
+			team_kind = "" if team_kind == kind else kind
+			fill_drawer())
+		else: b.disabled = true
+		faces.add_child(b)
+	if team_kind != "":
+		var shown = team.filter(func(i): return i.kind == team_kind)
+		var head = UiKit.hbox(drawer_body,4)
+		var l = UiKit.label("%s · %d" % [Catalog.ITEMS[team_kind].name,shown.size()],1,UiKit.GOLD)
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		head.add_child(l)
+		UiKit.button("Tout afficher",func():
+			team_kind = ""
+			fill_drawer(),head,"Toute l'équipe")
+		team = shown
+	else:
+		drawer_body.add_child(wrap_label("Toute l'équipe · %d employé%s · cliquez un visage pour ne voir qu'un poste." % [team.size(),"s" if team.size() > 1 else ""]))
 	for item in team:
 		var card = UiKit.vbox(UiKit.panel(drawer_body),2)
 		var b = Button.new()
@@ -493,6 +531,23 @@ func fill_team(team: Array) -> void:
 		UiKit.button("Planning",show_schedule.bind(int(item.id)),row,ClubCalendar.summary(item.get("work_schedule",ClubCalendar.default_shift())))
 	drawer_body.add_child(wrap_label("Les salaires planifiés courent même lorsque le club est fermé. Ménage et maintenance continuent selon les plannings."))
 
+func job_button(kind: String, active: bool, lit: bool = true) -> Button:
+	# a compact portrait button for a job: the eight jobs fit in the drawer's width
+	var b = Button.new()
+	b.icon = portrait_texture(Characters.defaults(kind))
+	b.focus_mode = Control.FOCUS_NONE
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	if not lit: b.modulate = Color(1,1,1,0.45)
+	for state in ["normal","hover","pressed","hover_pressed","disabled"]:
+		var st: StyleBoxTexture = UiKit.button_box({"normal":"button","hover":"button_hover","pressed":"button_pressed","hover_pressed":"button_pressed","disabled":"button_disabled"}[state])
+		st.content_margin_left = 2*S
+		st.content_margin_right = 3*S
+		st.content_margin_top = 2*S
+		st.content_margin_bottom = 3*S
+		b.add_theme_stylebox_override(state,st)
+	UiKit.set_active(b,active)
+	return b
+
 func fill_recruiting() -> void:
 	# The jobs, then the three candidates of the day for the chosen one.
 	var jobs: Array = []
@@ -507,11 +562,7 @@ func fill_recruiting() -> void:
 		var entry: Dictionary = Catalog.ITEMS[kind]
 		var need = Catalog.stars_needed(kind)
 		var unlocked = game.sim.stars() >= need
-		var b = Button.new()
-		b.icon = portrait_texture(Characters.defaults(kind))
-		b.focus_mode = Control.FOCUS_NONE
-		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		if not unlocked: b.modulate = Color(1,1,1,0.45)
+		var b = job_button(kind,recruit_kind == kind,unlocked)
 		var what = ""
 		if Characters.is_escort(kind):
 			var st: Dictionary = Characters.STANDINGS[kind]
@@ -523,15 +574,6 @@ Demande un club de %d étoiles." % need]
 		b.pressed.connect(func():
 			recruit_kind = kind
 			fill_drawer())
-		# compact portrait buttons: the eight jobs fit in the drawer's width
-		for state in ["normal","hover","pressed","hover_pressed","disabled"]:
-			var st: StyleBoxTexture = UiKit.button_box({"normal":"button","hover":"button_hover","pressed":"button_pressed","hover_pressed":"button_pressed","disabled":"button_disabled"}[state])
-			st.content_margin_left = 2*S
-			st.content_margin_right = 3*S
-			st.content_margin_top = 2*S
-			st.content_margin_bottom = 3*S
-			b.add_theme_stylebox_override(state,st)
-		UiKit.set_active(b,recruit_kind == kind)
 		row.add_child(b)
 	var entry: Dictionary = Catalog.ITEMS[recruit_kind]
 	var need = Catalog.stars_needed(recruit_kind)
