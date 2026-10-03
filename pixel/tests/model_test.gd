@@ -149,7 +149,7 @@ func _init() -> void:
 		quit(1)
 		return
 	# the floor in front of a shower door stays clear, and the door opens into the room
-	check(rm.add_item("crate",4.3,3.5,0) == -1 and rm.error.contains("douche"),"Nothing may block the shower door")
+	check(rm.add_item("nightstand",4.3,3.5,0) == -1 and rm.error.contains("douche"),"Nothing may block the shower door")
 	check(rm.add_item("shower",3.5,2.4,0) == -1,"A shower whose door would open into another object is refused")
 	var sw = BuildingModel.new()
 	sw.starter()
@@ -447,6 +447,44 @@ func reach_checks() -> void:
 		if not searched: unreachable += 1
 	check(agree == 300 and unreachable > 0,"Reachability from connected areas matches path search (%d/300, %d unreachable)" % [agree,unreachable])
 
+func split_checks() -> void:
+	# A partition from wall to wall cuts the room in two: the far side becomes
+	# a room of its own, of the same kind, that the player can change.
+	var m = BuildingModel.new()
+	var a = m.add_room(0,0,6,4,1)
+	m.set_finishes(a,{"floor_finish":"carpet","floor_color":"9c2e4c","wall_finish":"worn_plaster","wall_color":"b44a5c"})
+	m.set_opening("z:0:1","door")
+	m.add_item("lamp",0.5,0.5,0)
+	var value = m.cost()
+	check(m.add_partition(BuildingModel.partition_keys(Vector2i(2,0),Vector2i(2,4))) == a and m.last_split.size() == 1,"Wall to wall, the partition cuts the room in two")
+	var b = m.room_by_id(int(m.last_split[0]))
+	var kept = m.room_by_id(a)
+	check(m.rooms.size() == 2 and int(b.type) == 1 and b.floor_finish == "carpet" and b.wall_color == "b44a5c","The new room is a bedroom too, with the same finishes")
+	check(BuildingModel.area_of(kept) == 16 and BuildingModel.area_of(b) == 8 and kept.x == 2 and b.x == 0,"The larger side keeps the room (4 x 4), the other is new (2 x 4)")
+	check(not kept.has("walls") and not b.has("walls") and kept.cuts.size() == 4 and b.cuts.size() == 4,"The partition is now the wall between them")
+	check(m.cost() == value+4*BuildingModel.PARTITION_PRICE,"It is paid as a partition, %d $ a metre, nothing more" % BuildingModel.PARTITION_PRICE)
+	check(int(m.room_at(Vector2(0.5,0.5)).id) == int(b.id) and m.item_by_id(m.furniture[0].id).kind == "lamp","The lamp is now in the new room")
+	check(m.set_opening("z:2:1","door"),"A door goes in the wall between them")
+	var n = ClubNav.new()
+	n.rebuild(m)
+	check(n.reachable(Vector2(0.5,2),Vector2(4,2)),"…and people go through it")
+	check(m.edges().has("z:2:2") and m.edges()["z:2:2"].rooms.size() == 2 and m.edges()["z:2:2"].rooms.has(a) and m.edges()["z:2:2"].rooms.has(int(b.id)),"It is drawn as a wall between two rooms")
+	# changed by hand like any room
+	b.type = 0
+	check(m.cost() == value+4*BuildingModel.PARTITION_PRICE,"Changing its type costs nothing")
+	# saved, with what it cost
+	var copy = BuildingModel.new()
+	check(copy.load_checked(JSON.parse_string(JSON.stringify(m.snapshot()))) and copy.room_by_id(a).cuts.size() == 4 and copy.cost() == m.cost(),"Saved and loaded at the same value")
+	# a partition closing off a corner leaves an L-shaped room
+	var l = BuildingModel.new()
+	var big = l.add_room(0,0,6,6,0)
+	l.add_partition(BuildingModel.partition_keys(Vector2i(4,0),Vector2i(4,2)))
+	check(l.last_split.is_empty(),"Half way, nothing is cut yet")
+	l.add_partition(BuildingModel.partition_keys(Vector2i(4,2),Vector2i(6,2)))
+	var corner = l.room_by_id(int(l.last_split[0])) if l.last_split.size() == 1 else {}
+	check(not corner.is_empty() and BuildingModel.area_of(corner) == 4 and BuildingModel.area_of(l.room_by_id(big)) == 32 and not l.room_by_id(big).get("parts",[]).is_empty(),"Closing off a corner: a 2 x 2 room, the rest L-shaped")
+	check(l.room_at(Vector2(5,1)) == corner and l.room_at(Vector2(1,5)) == l.room_by_id(big) and l.room_at(Vector2(5,5)) == l.room_by_id(big),"Every metre of floor is in one of the two")
+
 func partition_checks() -> void:
 	# Walls put up inside a room: along the grid, paid by the metre, crossed
 	# through a door only, saved with the room.
@@ -462,24 +500,26 @@ func partition_checks() -> void:
 	var chair = m.add_item("chair",3.0,2.5,0)
 	check(chair != -1 and m.add_partition(keys) == -1 and m.error.begins_with("Déplacez"),"Furniture on the line must move first")
 	m.remove_item(chair)
-	check(m.add_partition(keys) == a and m.cost() == value+4*BuildingModel.PARTITION_PRICE,"Put up, it costs %d $ a metre" % BuildingModel.PARTITION_PRICE)
-	check(m.add_partition(keys) == -1,"Not twice")
+	# a partition that leaves a passage at its end: the room stays one
+	var part = BuildingModel.partition_keys(Vector2i(3,0),Vector2i(3,3))
+	check(m.add_partition(part) == a and m.cost() == value+3*BuildingModel.PARTITION_PRICE and m.last_split.is_empty(),"Put up, it costs %d $ a metre" % BuildingModel.PARTITION_PRICE)
+	check(m.add_partition(part) == -1,"Not twice")
 	check(m.edges().has("z:3:1") and m.edges()["z:3:1"].get("partition",false) and m.edges()["z:3:1"].rooms == [a,a],"It counts as a wall, with the room on both sides")
-	check(m.closed_areas(m.room_by_id(a)) == 2,"Wall to wall, it closes off the far side")
+	check(m.closed_areas(m.room_by_id(a)) == 1 and m.rooms.size() == 1,"With a passage at its end, the room stays one")
 	var n = ClubNav.new()
 	n.rebuild(m)
-	check(n.reachable(Vector2(1,2),Vector2(2.5,1)) and not n.reachable(Vector2(1,2),Vector2(5,2)),"Nobody walks through a partition")
+	var round_path = n.path(Vector2(1,1.5),Vector2(5,1.5))
+	check(n.reachable(Vector2(1,2),Vector2(5,2)) and round_path.any(func(q): return absf(q.x-3.0) < 0.6 and q.y > 3.0),"Nobody walks through a partition: the way goes round its end")
 	check(m.set_opening("z:3:2","door"),"A door can go in a partition")
 	n.rebuild(m)
-	check(n.reachable(Vector2(1,2),Vector2(5,2)) and m.closed_areas(m.room_by_id(a)) == 1,"People go through its door")
 	var path = n.path(Vector2(1,0.5),Vector2(5,0.5))
-	check(path.any(func(q): return absf(q.x-3.0) < 0.6 and q.y > 2.0 and q.y < 3.0),"The way round goes through the door")
+	check(path.any(func(q): return absf(q.x-3.0) < 0.6 and q.y > 2.0 and q.y < 3.0),"The way goes through its door")
 	check(m.add_item("chair",3.0,0.5,0) == -1 and m.error == "Une cloison passe ici.","Nothing straddles a partition")
 	check(m.add_item("chair",2.5,0.5,0) != -1,"Furniture fits right against it")
-	check(m.partition_run("z:3:0").size() == 4 and m.partition_run("x:1:1").is_empty(),"A partition is taken as a whole run")
+	check(m.partition_run("z:3:0").size() == 3 and m.partition_run("x:1:1").is_empty(),"A partition is taken as a whole run")
 	# saved with the room, with its door
 	var copy = BuildingModel.new()
-	check(copy.load_checked(JSON.parse_string(JSON.stringify(m.snapshot()))) and copy.room_by_id(a).walls.size() == 4 and copy.openings.get("z:3:2") == "door","Partitions and their doors are saved")
+	check(copy.load_checked(JSON.parse_string(JSON.stringify(m.snapshot()))) and copy.room_by_id(a).walls.size() == 3 and copy.openings.get("z:3:2") == "door","Partitions and their doors are saved")
 	var bad = m.snapshot()
 	bad.rooms[0].walls = ["z:0:1","nonsense","z:3:1",5,"z:3:1"]
 	bad.openings.erase("z:3:2")
@@ -488,7 +528,8 @@ func partition_checks() -> void:
 	check(not copy.load_checked(JSON.parse_string(JSON.stringify(bad))),"A partition list that is not a list is refused")
 	# taken down: refunded, its door goes with it
 	var furnished = m.cost()
-	check(m.remove_partition("z:3:1") == 4 and not m.room_by_id(a).has("walls") and not m.openings.has("z:3:2") and m.cost() == furnished-4*BuildingModel.PARTITION_PRICE,"Taking it down refunds it and its door goes with it")
+	check(m.remove_partition("z:3:1") == 3 and not m.room_by_id(a).has("walls") and not m.openings.has("z:3:2") and m.cost() == furnished-3*BuildingModel.PARTITION_PRICE,"Taking it down refunds it and its door goes with it")
+	split_checks()
 	# a smaller room keeps only the partitions still inside it
 	m.add_partition(BuildingModel.partition_keys(Vector2i(0,2),Vector2i(5,2)))
 	m.furniture.clear()

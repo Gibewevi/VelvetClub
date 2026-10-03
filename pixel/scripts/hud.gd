@@ -478,6 +478,7 @@ func fill_team(team: Array) -> void:
 		var profile = game.sim.profiles.get_profile(str(item.get("profile_id","")))
 		var skills = Recruits.stats(item)
 		b.text = "%s · %s\n%s · %d $/h" % [profile.get("name",Catalog.ITEMS[item.kind].name),Catalog.ITEMS[item.kind].name,state,int(skills.wage)]
+		if Duties.valid(item.kind,item.get("duty","")) and String(item.get("duty","")) != "": b.text += " · priorité : "+Duties.name_of(item.kind,item.duty).to_lower()
 		b.icon = portrait_texture(item.appearance)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.focus_mode = Control.FOCUS_NONE
@@ -907,6 +908,14 @@ func _timed_refresh_context() -> void:
 			if a != null and is_instance_valid(a):
 				staff_context_label = UiKit.label(staff_state(a),1,UiKit.MUTED)
 				col.add_child(staff_context_label)
+			if not Duties.options(item.kind).is_empty():
+				# what this employee sees to first
+				section("PRIORITÉ",context_body)
+				var pg = UiKit.grid(context_body,2,2)
+				for o in Duties.options(item.kind):
+					var pb = UiKit.button(o[1],game.set_duty.bind(int(item.id),o[0]),pg,Duties.HINTS.get(o[0],""))
+					pb.custom_minimum_size.x = 84*S
+					UiKit.set_active(pb,String(item.get("duty","")) == o[0])
 			context_body.add_child(wrap_label(ClubCalendar.summary(item.get("work_schedule",ClubCalendar.default_shift()))))
 			UiKit.button("Planning de cet employé",show_schedule.bind(int(item.id)),context_body)
 			if Characters.is_escort(item.kind) and a != null and is_instance_valid(a):

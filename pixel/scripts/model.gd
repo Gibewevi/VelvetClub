@@ -7,6 +7,9 @@ var parkings: Array = []   # {id,x,z,w,h,kind,rotation}; half-metre modular rows
 var openings: Dictionary = {}
 var next_id: int = 1
 var error: String = ""
+var last_split: Array = []    # rooms the last partition made by cutting a room through
+var retype: Dictionary = {}   # set by valid_item: a bare room the object would turn into its own kind
+var last_retype = ""          # the room type the last placement gave a room ("" if none)
 var strict = true   # rules newer than some saves (shower doors kept free, nothing on the street): not enforced on loading
 const LIMIT = 24
 const PARTITION_PRICE = 60   # a metre of partition wall inside a room
@@ -196,6 +199,7 @@ func remove_room(id: int) -> void:
 
 func valid_item(item: Dictionary, except_id: int = -1) -> bool:
 	error = ""
+	retype = {}
 	if not Catalog.ITEMS.has(item.get("kind","")):
 		error = "Objet inconnu."
 		return false
@@ -210,6 +214,14 @@ func valid_item(item: Dictionary, except_id: int = -1) -> bool:
 	for k in room.get("walls",[]):
 		if crosses(area,k):
 			error = "Une cloison passe ici."
+			return false
+	if strict and not Catalog.fits_room(item.kind,int(room.type)):
+		# a room with no furniture yet takes the kind of the first piece put in it
+		var home = Catalog.home_room(item.kind)
+		if home >= 0 and bare(room,except_id):
+			retype = {"room":int(room.id),"type":home}
+		else:
+			error = "%s : à placer dans %s, pas dans %s.%s" % [Catalog.ITEMS[item.kind].name,Catalog.fit_names(item.kind),Catalog.ROOMS[int(room.type)]," Videz la pièce ou changez son type pour la transformer." if home >= 0 else ""]
 			return false
 	var flat = Catalog.ITEMS[item.kind].get("flat",false)
 	var person = Catalog.is_character(item.kind)
@@ -450,10 +462,35 @@ func add_item(kind: String, x: float, z: float, rotation: int = 0, appearance: D
 	if not Catalog.ITEMS.has(kind): return -1
 	var item = {"id":next_id,"kind":kind,"x":x,"z":z,"rot":posmod(rotation,4)}
 	if Catalog.is_character(kind): item.appearance = Characters.normalize(appearance,kind)
+	last_retype = ""
 	if not valid_item(item): return -1
 	item.id = uid()
 	furniture.append(item)
+	apply_retype()
 	return item.id
+
+func bare(room: Dictionary, except_id: int = -1) -> bool:
+	# no furniture tied to a kind of room inside (people, rubbish and
+	# decoration do not count)
+	for other in furniture:
+		if int(other.id) == except_id or Catalog.home_room(other.kind) < 0: continue
+		if Catalog.is_character(other.kind) or Catalog.is_debris(other.kind): continue
+		if room_at(Vector2(other.x,other.z)) == room: return false
+	return true
+
+func misfits(room: Dictionary, room_type: int) -> Array:
+	# the furniture in a room that has no place in a room of that type
+	return furniture.filter(func(i): return room_at(Vector2(i.x,i.z)) == room and not Catalog.fits_room(i.kind,room_type))
+
+func apply_retype() -> void:
+	last_retype = ""
+	if retype.is_empty(): return
+	var room = room_by_id(int(retype.room))
+	var t = int(retype.type)
+	retype = {}
+	if room.is_empty(): return
+	room.type = t
+	last_retype = Catalog.ROOMS[t]
 
 func purchase_item(kind: String, x: float, z: float, rotation: int = 0, appearance: Dictionary = {}) -> int:
 	var id = add_item(kind,x,z,rotation,appearance)
@@ -478,8 +515,10 @@ func move_item(id: int, x: float, z: float, rotation: int) -> bool:
 	candidate.x = x
 	candidate.z = z
 	candidate.rot = posmod(rotation,4)
+	last_retype = ""
 	if not valid_item(candidate,id): return false
 	item.merge(candidate,true)
+	apply_retype()
 	return true
 
 static func edge_key(axis: String, x: int, z: int) -> String:
@@ -578,13 +617,113 @@ func partition_check(keys: Array) -> Dictionary:
 	return room
 
 func add_partition(keys: Array) -> int:
-	# Returns the room it was put up in, or -1.
+	# Returns the room it was put up in, or -1. A partition that cuts the
+	# room right through makes two rooms of it (last_split: the new ones).
+	last_split = []
 	var room = partition_check(keys)
 	if room.is_empty(): return -1
 	if not room.has("walls"): room.walls = []
 	for k in keys:
 		if not room.walls.has(k): room.walls.append(k)
+	last_split = split_by_partitions(room)
 	return int(room.id)
+
+func split_by_partitions(room: Dictionary) -> Array:
+	# The separate areas the partitions (doors or not) leave in a room become
+	# rooms of their own, of the same kind and finishes: the largest keeps the
+	# room, the cut partitions become the walls between them. Returns the ids
+	# of the new rooms.
+	var own = cells_of(room)
+	var walls: Dictionary = {}
+	for k in room.get("walls",[]): walls[k] = true
+	var areas: Array = []
+	var seen: Dictionary = {}
+	for start in own:
+		if seen.has(start): continue
+		var area: Dictionary = {start:true}
+		seen[start] = true
+		var stack: Array = [start]
+		while not stack.is_empty():
+			var c: Vector2i = stack.pop_back()
+			for step in [[Vector2i(1,0),edge_key("z",c.x+1,c.y)],[Vector2i(-1,0),edge_key("z",c.x,c.y)],[Vector2i(0,1),edge_key("x",c.x,c.y+1)],[Vector2i(0,-1),edge_key("x",c.x,c.y)]]:
+				var n: Vector2i = c+step[0]
+				if own.has(n) and not seen.has(n) and not walls.has(step[1]):
+					seen[n] = true
+					area[n] = true
+					stack.append(n)
+		areas.append(area)
+	if areas.size() < 2: return []
+	areas.sort_custom(func(a,b): return a.size() > b.size())
+	var keys: Array = room.get("walls",[]).duplicate()
+	keys.append_array(room.get("cuts",[]))
+	var made: Array = []
+	for i in range(areas.size()):
+		var area: Dictionary = areas[i]
+		var target: Dictionary = room
+		if i > 0:
+			target = {"id":uid(),"type":int(room.type)}
+			for key in ["floor_finish","floor_color","wall_finish","wall_color"]:
+				if room.has(key): target[key] = room[key]
+			rooms.append(target)
+			made.append(int(target.id))
+		set_cells(target,area)
+		var inner: Array = []
+		var cut: Array = []
+		for k in keys:
+			var c = edge_cells(k)
+			var a = area.has(c[0])
+			var b = area.has(c[1])
+			if a and b and walls.has(k): inner.append(k)
+			elif a != b and not cut.has(k): cut.append(k)
+		if inner.is_empty(): target.erase("walls")
+		else: target.walls = inner
+		if cut.is_empty(): target.erase("cuts")
+		else: target.cuts = cut
+	return made
+
+static func set_cells(room: Dictionary, cells: Dictionary) -> void:
+	# a room's shape from its cells: the largest rectangle, then the others as parts
+	var rects: Array = []
+	var used: Dictionary = {}
+	var order = cells.keys()
+	order.sort_custom(func(a,b): return a.y < b.y or (a.y == b.y and a.x < b.x))
+	for c in order:
+		if used.has(c): continue
+		var w = 1
+		while cells.has(c+Vector2i(w,0)) and not used.has(c+Vector2i(w,0)): w += 1
+		var h = 1
+		while true:
+			var row_ok = true
+			for dx in range(w):
+				var n = c+Vector2i(dx,h)
+				if not cells.has(n) or used.has(n):
+					row_ok = false
+					break
+			if not row_ok: break
+			h += 1
+		for dx in range(w):
+			for dz in range(h): used[c+Vector2i(dx,dz)] = true
+		rects.append(Rect2i(c.x,c.y,w,h))
+	rects.sort_custom(func(a,b): return a.get_area() > b.get_area())
+	var first: Rect2i = rects[0]
+	room.x = first.position.x
+	room.z = first.position.y
+	room.w = first.size.x
+	room.h = first.size.y
+	if rects.size() == 1:
+		room.erase("parts")
+		return
+	var parts: Array = []
+	for i in range(1,rects.size()): parts.append({"x":rects[i].position.x,"z":rects[i].position.y,"w":rects[i].size.x,"h":rects[i].size.y})
+	room.parts = parts
+
+static func cut_value(room: Dictionary) -> float:
+	# A room split by a partition: half the partition's price is on each side,
+	# and its wall finish is not charged twice.
+	var n = room.get("cuts",[]).size()
+	if n == 0: return 0.0
+	var wall = float(Finishes.WALLS.get(room.get("wall_finish",""),{}).get("value",0))
+	return n*(PARTITION_PRICE/2.0-wall)
 
 func partition_run(key: String) -> Array:
 	# the whole straight partition a segment belongs to
@@ -805,7 +944,11 @@ func cost() -> int:
 	# Value of the building: rooms by area, renovated finishes and furniture.
 	# Salvaged furniture and debris are worth nothing.
 	var total = 0
-	for room in rooms: total += area_of(room)*Catalog.ROOM_PRICE+Finishes.value(room)+room.get("walls",[]).size()*PARTITION_PRICE
+	var cuts = 0.0
+	for room in rooms:
+		total += area_of(room)*Catalog.ROOM_PRICE+Finishes.value(room)+room.get("walls",[]).size()*PARTITION_PRICE
+		cuts += cut_value(room)
+	total += roundi(cuts)
 	for item in furniture: total += int(Catalog.ITEMS[item.kind].get("price",0))+Sanitation.value(item)
 	var parking_area = 0.0
 	for pk in parkings: parking_area += rect(pk).get_area()
@@ -851,6 +994,18 @@ func load_checked(data: Variant) -> bool:
 				if k is String and k.length() <= 24 and interior_in(own,k) and not kept.has(k): kept.append(k)
 			if kept.is_empty(): loaded.erase("walls")
 			else: loaded.walls = kept
+		if loaded.has("cuts"):
+			# the walls a partition left between this room and the one cut off it
+			if not loaded.cuts is Array or loaded.cuts.size() > 2000: return false
+			var own_cells = cells_of(loaded)
+			var cut_kept: Array = []
+			for k in loaded.cuts:
+				if not k is String or k.length() > 24: continue
+				var c = edge_cells(k)
+				if c.is_empty() or own_cells.has(c[0]) == own_cells.has(c[1]) or cut_kept.has(k): continue
+				cut_kept.append(k)
+			if cut_kept.is_empty(): loaded.erase("cuts")
+			else: loaded.cuts = cut_kept
 		if loaded.has("build"):
 			# a site in progress; damaged progress data restarts nothing, the room is kept finished
 			var works = SitePlan.sanitize(loaded.build)
@@ -884,6 +1039,9 @@ func load_checked(data: Variant) -> bool:
 		if item.has("shine"):
 			if not (item.shine is float or item.shine is int) or not is_finite(float(item.shine)) or not item.kind in Plumbing.KINDS: return false
 			loaded_item.shine = clampf(float(item.shine),0,0.3)
+		if item.has("duty"):
+			# an employee's priority: an unknown one is simply dropped
+			if not Duties.valid(item.kind,item.duty): loaded_item.erase("duty")
 		if item.has("waste"):
 			# pieces in a bin
 			if item.kind != "bin" or not (item.waste is float or item.waste is int) or not is_finite(float(item.waste)): return false

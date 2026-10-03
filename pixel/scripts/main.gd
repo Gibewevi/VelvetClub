@@ -462,9 +462,25 @@ func select_client(a: Actor) -> void:
 	selected_client = a
 	refresh()
 
+func set_duty(id: int, duty: String) -> void:
+	# an employee's priority (not a building change: no undo entry)
+	var item = model.item_by_id(id)
+	if item.is_empty() or not Duties.valid(item.kind,duty): return
+	if duty == "": item.erase("duty")
+	else: item.duty = duty
+	hud.toast("%s : priorité %s." % [Catalog.ITEMS[item.kind].name,Duties.name_of(item.kind,duty).to_lower()] if duty != "" else "%s : ordre de travail habituel." % Catalog.ITEMS[item.kind].name)
+	refresh()
+	request_save()
+
 func set_selected_room_type(t: int) -> void:
 	var room = model.room_by_id(selected_room)
 	if room.is_empty(): return
+	# its furniture must have its place in the new kind of room
+	var misfit = model.misfits(room,t)
+	if not misfit.is_empty():
+		var kind = String(misfit[0].kind)
+		hud.toast("Impossible : %s n'a pas sa place dans : %s (à mettre dans %s). Déplacez-le d'abord." % [Catalog.ITEMS[kind].name,Catalog.ROOMS[t],Catalog.fit_names(kind)])
+		return
 	var before = model.snapshot()
 	room.type = t
 	commit(before,"Pièce transformée en "+Catalog.ROOMS[t]+".")
@@ -552,7 +568,7 @@ func restore_to(data: Dictionary, message: String) -> void:
 	for saved_item in data.get("furniture",[]):
 		var live = model.item_by_id(int(saved_item.id))
 		if live.is_empty(): continue
-		for field in ["soil","shine","wear","leaking","leak_timer","work_schedule","profile_id","waste"]:
+		for field in ["soil","shine","wear","leaking","leak_timer","work_schedule","profile_id","waste","duty"]:
 			if live.has(field): saved_item[field] = live[field]
 			else: saved_item.erase(field)
 	# Nor does it split an extension that has joined its room since.
@@ -880,7 +896,8 @@ func begin_action(screen: Vector2) -> void:
 			view.clear_preview()
 			selected_item = id
 		var pending = model.item_by_id(id).get("delivery_pending",false)
-		if commit(before,(name+" déplacé." if moved else name+(" commandé · emplacement réservé." if pending else " installé."))):
+		var turned = (" La pièce devient : %s." % model.last_retype) if model.last_retype != "" else ""
+		if commit(before,(name+" déplacé." if moved else name+(" commandé · emplacement réservé." if pending else " installé."))+turned):
 			view.place_dust(model.item_by_id(id))
 			if not keep: refresh()
 		return
@@ -1046,6 +1063,20 @@ func moved_candidate(screen: Vector2) -> Dictionary:
 	r.z = p.y
 	return r
 
+func room_rate(t: int) -> int:
+	# what a square metre costs, finishes included, for a 4 x 4 m room
+	var sample = Finishes.defaults(t)
+	sample.merge({"x":0,"z":0,"w":4,"h":4},true)
+	return int(round((16.0*Catalog.ROOM_PRICE+Finishes.value(sample))/16.0))
+
+func extension_tag(ext: Dictionary) -> void:
+	# the price of an extension, on the new ground
+	if ext.get("pieces",[]).is_empty(): return
+	var box: Rect2 = ext.pieces[0]
+	for r in ext.pieces: box = box.merge(r)
+	var price = int(ext.get("price",0))
+	view.price_tag(box,"+%d m²" % int(ext.get("area",0)),("%s $" % UiKit.money(price)) if ext.valid else "—",price <= sim.money)
+
 func update_preview(screen: Vector2) -> void:
 	if ui_blocking(): return
 	parking_pointer = screen
@@ -1055,6 +1086,7 @@ func update_preview(screen: Vector2) -> void:
 			var ext = extension_preview(room_candidate(screen))
 			var name = Catalog.ROOMS[int(ext.target.type)] if not ext.target.is_empty() else ""
 			view.preview_parts(ext.pieces,ext.valid,ext.target)
+			extension_tag(ext)
 			if ext.valid: hud.toast("Agrandir : %s · +%d m² · %s $ · Relâchez pour valider" % [name,int(ext.area),UiKit.money(int(ext.price))],1.5)
 			else: hud.toast("Agrandir : %s · %s" % [name,ext.error],1.5)
 			return
@@ -1063,6 +1095,7 @@ func update_preview(screen: Vector2) -> void:
 			var ext = extension_preview(room_candidate(screen),selected_room)
 			var name = Catalog.ROOMS[int(ext.target.type)] if not ext.target.is_empty() else ""
 			view.preview_parts(ext.pieces,ext.valid,ext.target)
+			extension_tag(ext)
 			if ext.valid: hud.toast("Agrandir : %s · +%d m² · %s $ · chantier · Relâchez pour valider" % [name,int(ext.area),UiKit.money(int(ext.price))],1.5)
 			else: hud.toast("Agrandir : %s · %s" % [name,ext.error],1.5)
 			return
@@ -1084,6 +1117,15 @@ func update_preview(screen: Vector2) -> void:
 				if diff > 0: price_text = " · +%s $" % UiKit.money(diff)
 				elif diff < 0: price_text = " · %s $ remboursés" % UiKit.money(-diff)
 			hud.toast("%d × %d m%s · %s" % [r.w,r.h,price_text,"Relâchez pour valider" if valid else model.error],1.5)
+			# the price on the ground, in the middle of the area drawn
+			var tag = "%s $" % UiKit.money(price)
+			var cost = price
+			if drag.kind == "resize":
+				var grown = drag.original.duplicate()
+				grown.merge(r,true)
+				cost = int(r.w*r.h-drag.original.w*drag.original.h)*Catalog.ROOM_PRICE+Finishes.value(grown)-Finishes.value(drag.original)
+				tag = ("+%s $" % UiKit.money(cost)) if cost > 0 else (("%s $ rendus" % UiKit.money(-cost)) if cost < 0 else "0 $")
+			view.price_tag(Rect2(r.x,r.z,r.w,r.h),"%d × %d m · %d m²" % [r.w,r.h,r.w*r.h],tag,cost <= sim.money)
 		elif drag.kind == "partition":
 			var line = partition_line(drag,screen)
 			var room = model.partition_check(line.keys)
@@ -1104,7 +1146,13 @@ func update_preview(screen: Vector2) -> void:
 	if mode == "furniture":
 		var p = snap_point(ground_at(screen))
 		var item = {"kind":chosen_item,"x":p.x,"z":p.y,"rot":placement_rot(p),"appearance":placement_appearance}
-		view.preview_item(item,model.valid_item(item,moving_item))
+		var ok = model.valid_item(item,moving_item)
+		view.preview_item(item,ok)
+		# the room it would turn into, or why it has no place here
+		var why = ""
+		if ok and not model.retype.is_empty(): why = "La pièce deviendra : "+Catalog.ROOMS[int(model.retype.type)]
+		elif not ok and model.error.contains(" : à placer dans "): why = model.error
+		hud.show_hover(why,screen)
 	elif mode in ["door","window"]:
 		var key = view.nearest_edge(wp)
 		view.preview_edge(key,mode)
@@ -1122,7 +1170,7 @@ func update_preview(screen: Vector2) -> void:
 			var c = ground_at(screen).floor()
 			view.preview_room({"x":c.x,"z":c.y,"w":1,"h":1},true)
 			view.show_edge("")
-			hud.show_hover("Nouvelle pièce : "+Catalog.ROOMS[room_type],screen)
+			hud.show_hover("Nouvelle pièce : %s · environ %s $ le m², finitions comprises · glissez pour voir le prix" % [Catalog.ROOMS[room_type],UiKit.money(room_rate(room_type))],screen)
 		else:
 			var target = model.room_by_id(int(grow.room))
 			var c: Vector2 = grow.start
@@ -1204,7 +1252,10 @@ func finish_drag(screen: Vector2) -> void:
 			refresh()
 			return
 		var text = "Cloison montée · %d m · %s $." % [line.keys.size(),UiKit.money(line.keys.size()*BuildingModel.PARTITION_PRICE)]
-		if model.closed_areas(model.room_by_id(id)) > 1: text += " Elle ferme un espace : ajoutez-y une porte (P)."
+		if not model.last_split.is_empty():
+			# cut right through: the closed-off part is a room of its own
+			text += " Elle coupe la pièce en deux : nouvelle pièce « %s », cliquez-la pour changer son type. Une porte (P) permet de passer." % Catalog.ROOMS[int(model.room_by_id(id).type)]
+		elif model.closed_areas(model.room_by_id(id)) > 1: text += " Elle ferme un espace : ajoutez-y une porte (P)."
 		# stay in the tool: the next partition needs no extra click
 		if commit(before,text): refresh()
 		return
@@ -1275,7 +1326,7 @@ func finish_drag(screen: Vector2) -> void:
 			var r = moved_candidate(screen)
 			drag = {}
 			if model.move_item(int(d.id),r.x,r.z,int(r.rot)):
-				if commit(before,"Objet déplacé."): view.place_dust(model.item_by_id(int(d.id)))
+				if commit(before,"Objet déplacé."+((" La pièce devient : %s." % model.last_retype) if model.last_retype != "" else "")): view.place_dust(model.item_by_id(int(d.id)))
 			else:
 				hud.toast(model.error)
 				refresh()
@@ -1331,6 +1382,36 @@ func capture(path: String) -> void:
 			refresh()
 		if arg == "--setup=waste": capture_waste()
 		if arg == "--setup=frontdesk": capture_front_desk()
+		if arg == "--setup=duty":
+			# a maid selected, told to see to the toilets first
+			var before = model.snapshot()
+			var maid = model.add_item("maid",-1.0,3.0,0)
+			commit(before,"embauche")
+			if maid != -1:
+				set_duty(maid,"wc")
+				select_item(maid)
+		if arg == "--setup=split":
+			# a 6 x 4 m bedroom cut through by a partition: the far part is a room of its own
+			var r = model.add_room(8,0,6,4,1)
+			model.set_opening("x:10:4","door")
+			model.add_partition(BuildingModel.partition_keys(Vector2i(11,0),Vector2i(11,4)))
+			model.set_opening("z:11:2","door")
+			changed_view()
+			if not model.last_split.is_empty(): select_room(int(model.last_split[0]))
+		if arg == "--setup=pricetag":
+			# drawing a 4 x 4 m toilets beside the bedroom: its price on the ground
+			set_mode("room")
+			room_type = 2
+			capture_drag = {"kind":"room","start":Vector2(8,0),"extend":-1}
+			capture_pointer = Vector2(11.5,3.5)
+		if arg == "--setup=fitwc" or arg == "--setup=fitno":
+			# a WC over an empty room (it becomes toilets) or over the hall (refused)
+			# a finished room (a room drawn in game is a building site first)
+			model.add_room(8,0,4,4,0)
+			model.set_opening("z:8:2","door")
+			changed_view()
+			choose_item("toilet")
+			capture_pointer = Vector2(10.0,2.0) if arg == "--setup=fitwc" else Vector2(-1.0,2.5)
 		if arg == "--setup=twirl":
 			await capture_twirl(path)
 			return
@@ -1350,6 +1431,7 @@ func capture(path: String) -> void:
 		if arg == "--pause": set_speed(0)
 		if arg.begins_with("--escorts="): capture_escorts(int(arg.trim_prefix("--escorts=")))
 	hud.toast_time = 0
+	if not capture_drag.is_empty(): drag = capture_drag
 	if capture_pointer != Vector2.INF: update_preview(screen_of(capture_pointer.x,capture_pointer.y))
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--until="):
@@ -1479,6 +1561,7 @@ func capture_site() -> void:
 		if model.resize_room(id,{"x":r.x,"z":r.z,"w":int(r.w)+2,"h":r.h}): commit(before,"Chantier modifié")
 	if not "--no-select" in OS.get_cmdline_user_args(): select_room(id)
 
+var capture_drag: Dictionary = {}   # captures: a drag in progress (room drawing)
 var capture_pointer = Vector2.INF   # captures: where the mouse would be (floor point)
 var capture_action: Callable         # captures: done just before the pictures are taken
 
@@ -2002,8 +2085,8 @@ func capture_reception() -> void:
 	var hall = model.room_at(Vector2(0,2))
 	model.furniture = model.furniture.filter(func(i): return not (Catalog.is_debris(i.kind) and model.rect(hall).has_point(Vector2(i.x,i.z))))
 	var before = model.snapshot()
-	model.add_item("reception",-0.6,3.2,0)
-	model.add_item("receptionist",-1.2,1.4,0)
+	model.add_item("reception",0.0,6.3,0)
+	model.add_item("receptionist",0.0,5.58,0)
 	model.add_room(3,-7,6,7,0)
 	model.set_opening("z:3:-1","door")
 	var stage_id = model.add_item("dance",7.0,-5.5,0)
@@ -2046,6 +2129,8 @@ func capture_depth() -> void:
 	model.rooms = []
 	model.furniture = []
 	model.openings = {}
+	# a sampler of every kind of furniture in one room: no room-type rules here
+	model.strict = false
 	model.add_room(-10,-12,23,20,0)
 	var rows = [
 		[-10.6,[["chair",-9.0,1.4],["armchair",-3.2,1.6],["old_armchair",3.4,1.6],["stool",9.2,1.0]]],
@@ -2489,9 +2574,15 @@ func partition_ui_checks() -> void:
 	var paid = sim.money
 	begin_action(screen_of(18.1,-19.9))
 	check(drag.get("kind","") == "partition" and drag.start == Vector2i(18,-20),"A partition starts on the nearest grid point")
+	var rooms_before = model.rooms.size()
 	finish_drag(screen_of(18.3,-15.8))
 	var room = model.room_by_id(a)
-	check(room.get("walls",[]).size() == 4 and sim.money == paid-4*BuildingModel.PARTITION_PRICE,"Drawn across the room, it is put up and paid by the metre")
+	check(sim.money == paid-4*BuildingModel.PARTITION_PRICE,"Drawn across the room, it is put up and paid by the metre")
+	# two equal halves: one keeps the room, the other is new
+	var left = model.room_at(Vector2(16.5,-18.0))
+	var right = model.room_at(Vector2(19.5,-18.0))
+	var cut_off = right if int(left.get("id",-1)) == a else left
+	check(model.rooms.size() == rooms_before+1 and int(left.get("id",-1)) != int(right.get("id",-2)) and (int(left.id) == a or int(right.id) == a) and int(cut_off.get("type",-1)) == 1 and not room.has("walls"),"Wall to wall, it cuts the room in two: a new bedroom on the other side")
 	check(view.statics.any(func(e): return e.get("key","") == "z:18:-18" and e.kind == "wall" and e.has("sprite")),"It is drawn like a wall")
 	check(mode == "partition","The tool stays ready for the next one")
 	# where a low wall runs straight on (a T), no dark post sticks out of it
@@ -2513,16 +2604,30 @@ func partition_ui_checks() -> void:
 	model.set_opening("z:18:-18","door")
 	commit(before,"porte")
 	check(sim.nav.reachable(Vector2(16,-18),Vector2(20,-18)),"A door in the partition lets people through")
-	# selected by a click on it, taken down as a whole, refunded
+	# the new room is selected with a click and changed like any other
 	set_mode("select")
-	selected_edge = "z:18:-20"
+	var cut_at = Vector2(16.5,-18.5) if cut_off == left else Vector2(19.5,-18.5)
+	begin_action(screen_of(cut_at.x,cut_at.y))
+	drag = {}
+	check(selected_room == int(cut_off.id) and hud.context.visible,"A click selects the new room")
+	set_selected_room_type(4)
+	check(int(model.room_by_id(int(cut_off.id)).type) == 4 and int(model.room_by_id(a).type) == 1,"It becomes a staff room; the bedroom stays a bedroom")
+	clear_selection()
+	# a partition with a passage at its end: selected, taken down, refunded
+	var px = 16 if int(left.id) == a else 20
+	set_mode("partition")
+	begin_action(screen_of(px+0.1,-19.9))
+	finish_drag(screen_of(px+0.1,-16.9))
+	check(model.room_by_id(a).get("walls",[]).size() == 3,"A partition stopping short leaves the room whole")
+	set_mode("select")
+	selected_edge = "z:%d:-20" % px
 	refresh()
-	check(hud.context.visible and hud.context_body.find_children("*","Label",true,false).any(func(l): return l.text == "Cloison · 4 m"),"A selected partition says what it is")
+	check(hud.context.visible and hud.context_body.find_children("*","Label",true,false).any(func(l): return l.text == "Cloison · 3 m"),"A selected partition says what it is")
 	paid = sim.money
 	delete_selection()
-	check(not model.room_by_id(a).has("walls") and not model.openings.has("z:18:-18") and sim.money == paid+4*BuildingModel.PARTITION_PRICE,"Taken down, it is refunded and its door goes too")
+	check(not model.room_by_id(a).has("walls") and sim.money == paid+3*BuildingModel.PARTITION_PRICE,"Taken down, it is refunded")
 	undo()
-	check(model.room_by_id(a).get("walls",[]).size() == 4,"Undo puts it back")
+	check(model.room_by_id(a).get("walls",[]).size() == 3,"Undo puts it back")
 	model.restore(start)
 	undo_stack = keep_undo
 	redo_stack.clear()
@@ -2894,6 +2999,9 @@ func depth_checks() -> void:
 	var before = model.snapshot()
 	var room = model.add_room(-22,-22,17,16,0)
 	check(room != -1,"A spare room for the depth checks")
+	# every kind of seat side by side in one room: the furniture rules of each room type do not apply here
+	var was_strict = model.strict
+	model.strict = false
 	var wrong: Array = []
 	var z: Dictionary = {}
 	var total = 0
@@ -2979,6 +3087,7 @@ func depth_checks() -> void:
 	check(ahead.call("shower:3","tiles_a") and hidden.call("shower:3","door") and hidden.call("shower:3","tiles_b"),"…whichever way the shower is turned")
 	check(hidden.call("shower:2","tiles_a"),"A shower turned around: its tiled wall stands in front of whoever is inside")
 	print("DEPTH_CHECKS %d items, %d people" % [total,people_count])
+	model.strict = was_strict
 	model.restore(before)
 	changed_view()
 
@@ -3042,7 +3151,7 @@ func sim_test() -> void:
 	check(sim.rating < rating0,"Impatient clients hurt the reputation (%.2f -> %.2f)" % [rating0,sim.rating])
 	# 2. A desk alone is not enough: someone has to be there to take the money.
 	before = model.snapshot()
-	var desk = model.add_item("reception",1.3,3.0,0)
+	var desk = model.add_item("reception",0.0,6.3,0)
 	commit(before,"desk")
 	run_sim(300)
 	check(desk != -1 and int(sim_test_totals().entry) == 0,"A desk without a receptionist takes no entrance")

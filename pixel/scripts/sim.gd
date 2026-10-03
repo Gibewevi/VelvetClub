@@ -1532,6 +1532,8 @@ func cleaner_ai(a: Actor, arrived: bool, gm: float) -> void:
 		release_dirt_task(a)
 		a.path = []
 		b.state = "post"
+	# the player's priority for this employee comes first
+	if b.state in ["post","idle","back"] and Duties.start(self,a): return
 	# Wet floors take priority over routine debris and bed making.
 	if Plumbing.technician_tick(self,a,arrived,gm): return
 	if b.state in ["post","idle","back"]:

@@ -147,6 +147,33 @@ static func footprint(kind: String, rotation: int) -> Vector2:
 	var s: Vector2 = ITEMS[kind].size
 	return Vector2(s.y, s.x) if posmod(rotation, 2) == 1 else s
 
+# Which room types each piece of furniture belongs in. By default its own
+# group (bar furniture in a public room, a WC in the toilets...); objects of
+# no group (decoration, lights, plants) and people go anywhere. A few fit in
+# several kinds of room.
+const ROOM_FIT = {
+	"sofa":[0,4,5],"old_sofa":[0,4,5],"table":[0,4,5],"old_table":[0,4,5],"coffee":[0,4,5],"neon":[0,1,5],
+	"armchair":[0,1,4,5],"old_armchair":[0,1,4,5],"old_lamp":[0,1,4,5],"old_wardrobe":[1,4,5],"rope":[0,5],"fridge":[0,3,4],"shower":[1,2]}
+
+static func home_room(kind: String) -> int:
+	# the room type a piece of furniture makes of an empty room (-1: none)
+	var g = int(ITEMS.get(kind,{}).get("group",-1))
+	return g if g >= 0 and g < ROOMS.size() else -1
+
+static func fits_room(kind: String, room_type: int) -> bool:
+	if is_character(kind) or is_debris(kind): return true
+	if ROOM_FIT.has(kind): return room_type in ROOM_FIT[kind]
+	var home = home_room(kind)
+	return home < 0 or home == room_type
+
+static func fit_names(kind: String) -> String:
+	# "les toilettes", "un espace public ou une réception"...
+	var types: Array = ROOM_FIT.get(kind,[home_room(kind)])
+	var names: Array = []
+	for t in types: names.append(ROOMS[int(t)])
+	if names.size() == 1: return names[0]
+	return ", ".join(names.slice(0,names.size()-1))+" ou "+names[-1]
+
 static func is_debris(kind: String) -> bool:
 	return ITEMS.has(kind) and ITEMS[kind].get("debris",false)
 

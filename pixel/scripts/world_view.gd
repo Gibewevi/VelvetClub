@@ -1788,6 +1788,51 @@ func preview_room(r: Dictionary, valid: bool) -> void:
 	preview_node = poly
 	overlay.add_child(poly)
 
+func price_tag(area: Rect2, size_line: String, price_line: String, affordable: bool = true) -> void:
+	# A small label on the ground being drawn: its size, then what it costs
+	# (in red when the money is not there).
+	if preview_node == null: return
+	var tag = Node2D.new()
+	var lines: Array = []
+	for i in range(2):
+		var ls = LabelSettings.new()
+		ls.font = UiKit.font
+		ls.font_size = 10 if i == 0 else 16
+		ls.font_color = UiKit.INK if i == 0 else (UiKit.GOLD if affordable else UiKit.RED)
+		ls.outline_size = 3
+		ls.outline_color = Color("140c18")
+		var l = Label.new()
+		l.label_settings = ls
+		l.text = size_line if i == 0 else price_line
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lines.append(l)
+	var w = 0.0
+	var h = 0.0
+	for l in lines:
+		var m: Vector2 = l.get_minimum_size()
+		w = maxf(w,m.x)
+		h += m.y
+	var back = Panel.new()
+	var box = StyleBoxFlat.new()
+	box.bg_color = Color(0.08,0.05,0.1,0.82)
+	box.border_color = UiKit.GOLD if affordable else UiKit.RED
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(3)
+	back.add_theme_stylebox_override("panel",box)
+	back.size = Vector2(w+12,h+4)
+	back.position = -back.size/2.0
+	tag.add_child(back)
+	var y = -h/2.0
+	for l in lines:
+		var m: Vector2 = l.get_minimum_size()
+		l.size = Vector2(w,m.y)
+		l.position = Vector2(-w/2.0,y)
+		y += m.y
+		tag.add_child(l)
+	var c = area.get_center()
+	tag.position = (Iso.pixel(c.x,c.y)-preview_node.position).round()
+	preview_node.add_child(tag)
+
 func preview_parts(rects: Array, valid: bool, outline_room: Dictionary = {}) -> void:
 	# An extension: the new ground in green (red when refused), the room it
 	# joins outlined.
