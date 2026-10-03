@@ -570,7 +570,7 @@ func restore_to(data: Dictionary, message: String) -> void:
 	for saved_item in data.get("furniture",[]):
 		var live = model.item_by_id(int(saved_item.id))
 		if live.is_empty(): continue
-		for field in ["soil","shine","wear","leaking","leak_timer","work_schedule","profile_id","waste","duty"]:
+		for field in ["soil","shine","wear","leaking","leak_timer","work_schedule","profile_id","waste","duty","stock","stock_key"]:
 			if live.has(field): saved_item[field] = live[field]
 			else: saved_item.erase(field)
 	# Nor does it split an extension that has joined its room since.
@@ -590,6 +590,7 @@ func restore_to(data: Dictionary, message: String) -> void:
 		if SitePlan.building(live_room): saved_room.build = SitePlan.merge(live_room.build,saved_room.build)
 		else: saved_room.erase("build")
 	model.restore(data)
+	sim.bar_stock.sync()
 	sim.money -= model.cost()-old.cost()
 	sim.ledger.book_value(sim.day,old.cost_parts(),model.cost_parts())
 	clear_selection()
@@ -756,6 +757,7 @@ func manual_save() -> void:
 func reset_club() -> void:
 	var before = model.snapshot()
 	deliveries.reset()
+	sim.bar_stock.reset()
 	model.starter()
 	sim.money = ClubSim.START_MONEY
 	sim.ledger = Ledger.new()
@@ -1431,6 +1433,8 @@ func capture(path: String) -> void:
 		if arg == "--setup=team": capture_recruit(0)
 		if arg == "--setup=recruit": capture_recruit(1)
 		if arg == "--setup=traffic": preload("res://scripts/traffic_demo.gd").setup(self)
+		if arg == "--setup=bars": BarDemo.setup(self)
+		if arg == "--setup=bar-fill": BarDemo.setup(self,true)
 		if arg == "--open": toggle_open()
 	hud.toast_time = 0
 	center_camera()
@@ -3259,6 +3263,9 @@ func sim_test() -> void:
 	model.set_opening("z:3:-1","door")
 	var bar = model.add_item("bar",5.0,-2.6,0)
 	var bartender = model.add_item("bartender",6.4,-0.6,0)
+	var stock_shelf = model.add_item("bottles_small",4.25,-5.5,0)
+	if stock_shelf > 0: model.item_by_id(stock_shelf).stock = 48
+	model.add_item("bottle_crate",.5,-2.7,0)
 	var shower = model.add_item("shower",3.5,3.55,3)
 	var floor_id = model.add_item("dancefloor",-1.5,1.2,0)
 	var stage_id = model.add_item("dance",7.0,-5.5,0)

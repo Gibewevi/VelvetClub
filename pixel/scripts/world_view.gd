@@ -438,6 +438,9 @@ var cloak_fill: Dictionary = {}   # rack / locker id -> share of its places take
 var containers: Array = []         # dumpsters by the street: {pos, away} (where the maids empty the bins)
 
 func item_variant(item: Dictionary) -> String:
+	if item.get("kind","") == "bottle_crate" and int(item.get("stock",48)) == 0 and not item.get("delivery_pending",false): return "bottle_crate_fill_0"
+	if Catalog.bottle_shelf(item.get("kind","")) and not item.get("delivery_pending",false):
+		return "%s_fill_%d" % [item.kind,ceili(int(item.get("stock",0))/4.0)]
 	# The picture an item shows right now: a bed in use or unmade, a shower door ajar,
 	# a coat rack or lockers as full as the cloakroom is.
 	if item.kind in ClubSim.BED_KINDS: return bed_variant(item)
@@ -492,6 +495,12 @@ func refresh_bin(id: int) -> void:
 	# something thrown in or the bin emptied: it shows how full it is
 	var item = model.item_by_id(id)
 	if item.is_empty() or not item_entries.has(id): return
+	var info = Art.furniture_entry(item_variant(item),int(item.rot))
+	if not info.is_empty(): apply_look(item_entries[id],info,item)
+
+func refresh_stock(id: int) -> void:
+	var item = model.item_by_id(id)
+	if item.is_empty() or not item_entries.has(id) or Catalog.stock_capacity(item.kind) == 0: return
 	var info = Art.furniture_entry(item_variant(item),int(item.rot))
 	if not info.is_empty(): apply_look(item_entries[id],info,item)
 
@@ -1566,7 +1575,7 @@ func _timed_process(delta: float) -> void:
 	for d in doors:
 		var open = false
 		for a in actors:
-			if is_instance_valid(a) and not a.has_meta("season_leaf") and a.world.distance_to(d.center) < float(d.get("reach",0.9)):
+			if is_instance_valid(a) and not a.has_meta("season_leaf") and not a.has_meta("bar_parcel") and a.world.distance_to(d.center) < float(d.get("reach",0.9)):
 				open = true
 				break
 		# the leaf swings through its pictures: closed, ajar, open (and back)

@@ -240,7 +240,7 @@ func valid_item(item: Dictionary, except_id: int = -1) -> bool:
 		elif strict and Catalog.clear_rect(other).size != Vector2.ZERO and Catalog.clear_rect(other).grow(-0.04).intersects(area.grow(-0.04)):
 			error = "Cet objet bloquerait la porte de la douche."
 			return false
-		if area.grow(-0.06).intersects(item_rect(other).grow(-0.06)):
+		if solids_overlap(item,other):
 			if person and Catalog.is_character(other.kind):
 				error = "Deux personnes ne peuvent pas occuper la même place."
 			else:
@@ -249,6 +249,12 @@ func valid_item(item: Dictionary, except_id: int = -1) -> bool:
 	return true
 
 # ------------------------------------------------------------------ car parks
+
+static func solids_overlap(a: Dictionary, b: Dictionary) -> bool:
+	for ra in Catalog.item_solids(a):
+		for rb in Catalog.item_solids(b):
+			if ra.grow(-.06).intersects(rb.grow(-.06)): return true
+	return false
 
 func parking_by_id(id: int) -> Dictionary:
 	for pk in parkings:
@@ -465,6 +471,7 @@ func add_item(kind: String, x: float, z: float, rotation: int = 0, appearance: D
 	last_retype = ""
 	if not valid_item(item): return -1
 	item.id = uid()
+	BarStock.initialize(item)
 	furniture.append(item)
 	apply_retype()
 	return item.id
@@ -944,10 +951,10 @@ func cost() -> int:
 	# Value of the building: rooms by area, renovated finishes and furniture.
 	# Salvaged furniture and debris are worth nothing.
 	var parts = cost_parts()
-	return int(parts.building)+int(parts.furniture)+int(parts.parking)
+	return int(parts.building)+int(parts.furniture)+int(parts.parking)+int(parts.alcohol)
 
 func cost_parts() -> Dictionary:
-	# the same value in the books' three kinds of spending
+	# the same value in the books' construction and supply spending
 	var building = 0
 	var cuts = 0.0
 	for room in rooms:
@@ -955,10 +962,17 @@ func cost_parts() -> Dictionary:
 		cuts += cut_value(room)
 	building += roundi(cuts)
 	var stuff = 0
-	for item in furniture: stuff += int(Catalog.ITEMS[item.kind].get("price",0))+Sanitation.value(item)
+	var alcohol = 0
+	for item in furniture:
+		var price = int(Catalog.ITEMS[item.kind].get("price",0))
+		if item.kind == "bottle_crate": price = roundi(price*int(item.get("stock",48))/48.0)
+		if item.kind == "bottle_crate":
+			alcohol += price
+			continue
+		stuff += price+Sanitation.value(item)
 	var parking_area = 0.0
 	for pk in parkings: parking_area += rect(pk).get_area()
-	return {"building":building,"furniture":stuff,"parking":roundi(parking_area*Street.PRICE_M2)}
+	return {"building":building,"furniture":stuff,"parking":roundi(parking_area*Street.PRICE_M2),"alcohol":alcohol}
 
 func debris() -> Array:
 	return furniture.filter(func(i): return Catalog.is_debris(i.kind))
@@ -979,6 +993,7 @@ func load_checked(data: Variant) -> bool:
 	candidate.strict = false
 	var ids = {}
 	var delivery_keys = {}
+	var stock_keys = {}
 	for r in data.rooms:
 		if not r is Dictionary: return false
 		for key in ["id","x","z","w","h","type"]:
@@ -1047,6 +1062,14 @@ func load_checked(data: Variant) -> bool:
 		if item.has("duty"):
 			# an employee's priority: an unknown one is simply dropped
 			if not Duties.valid(item.kind,item.duty): loaded_item.erase("duty")
+		if Catalog.stock_capacity(item.kind) > 0:
+			var value = item.get("stock",Catalog.stock_capacity(item.kind))
+			if not (value is float or value is int) or not is_finite(float(value)): return false
+			if item.has("stock_key") and (not item.stock_key is String or item.stock_key.length() > 128): return false
+			loaded_item.stock = clampi(int(value),0,Catalog.stock_capacity(item.kind))
+			BarStock.initialize(loaded_item,true)
+			if stock_keys.has(loaded_item.stock_key): return false
+			stock_keys[loaded_item.stock_key] = true
 		if item.has("waste"):
 			# pieces in a bin
 			if item.kind != "bin" or not (item.waste is float or item.waste is int) or not is_finite(float(item.waste)): return false

@@ -63,6 +63,7 @@ var finance_period = "today"   # the period the finance report shows
 var recruit_kind = ""      # the job whose candidates are shown
 var team_kind = ""         # Équipe: only the employees of this job ("" = everyone)
 var cloak_label: Label
+var stock_label: Label
 var drawer_refresh = 0.0   # lists of people and reports: redrawn every 2 s, not 2 per s
 var price_inputs: Dictionary = {}
 var tariff_demand: Label
@@ -257,6 +258,7 @@ func _timed_process(delta: float) -> void:
 		if is_instance_valid(staff_context_label):
 			var employee = game.sim.staff.get(game.selected_item)
 			if is_instance_valid(employee): staff_context_label.text = staff_state(employee)
+		if is_instance_valid(stock_label): stock_label.text = stock_text(game.model.item_by_id(game.selected_item))
 		drawer_refresh -= 0.5
 		if drawer_live and drawer_refresh <= 0.0 and active in ["clients","reports","deliveries","staff"] and not drawer_has_focus():
 			drawer_refresh = 2.0
@@ -666,8 +668,23 @@ func staff_state(a: Actor) -> String:
 		"to_fixture", "cleaning_fixture": return "Entretient les sanitaires"
 		"to_repair": return "Va réparer une fuite"
 		"repairing": return "Répare la plomberie"
+		"stock_walk", "stock_pick": return "Récupère un carton en réserve"
+		"stock_carry": return "Transporte les bouteilles"
+		"stock_fill": return "Réapprovisionne l'étagère"
 		"patrol": return "Ronde"
 	return "Disponible"
+
+func stock_text(item: Dictionary) -> String:
+	if item.is_empty(): return ""
+	if item.kind in Catalog.BARS:
+		var shelves = game.sim.bar_stock.shelves(item)
+		if shelves.is_empty(): return "Aucune étagère à bouteilles à proximité. Placez-en une dans cette salle, à moins de 6 m."
+		var count = game.sim.bar_stock.available(item)
+		var q = float(Catalog.ITEMS[item.kind].get("bar_quality",0))
+		var offer = "Alcools premium à +65 % du tarif classique." if q > 0 else "Alcools au tarif classique."
+		return "%d verres disponibles · %d étagère(s)\nAttrait +%d %% · %s\n%s" % [count,shelves.size(),roundi(q*.8*100),offer,"Rupture : vérifiez les cartons en réserve et l'accès du barman." if count == 0 else "Le barman remplit les étagères à 25 % ou moins."]
+	var count = int(item.get("stock",0))
+	return "%d / %d bouteilles · %d verres restants\n%s" % [ceili(count/4.0),Catalog.stock_capacity(item.kind)/4,count,"Carton vide : peut être retiré." if item.kind == "bottle_crate" and count == 0 else ("Carton livré : le barman vient le chercher." if item.kind == "bottle_crate" else "Stock visible, réapprovisionné depuis la réserve.")]
 
 func fill_clients() -> void:
 	var sim: ClubSim = game.sim
@@ -755,6 +772,9 @@ func fill_decor_grid(g: GridContainer = null) -> void:
 		b.tooltip_text = "%s · %s · %.1f × %.1f m" % [e.name,e.tag,e.size.x,e.size.y]
 		if Cloakroom.CAPACITY.has(kind): b.tooltip_text += " · %d manteaux" % int(Cloakroom.CAPACITY[kind])
 		if kind == "bin": b.tooltip_text += " · %d déchets, vidée par les femmes de ménage" % Waste.CAPACITY
+		if Catalog.bottle_shelf(kind): b.tooltip_text += " · livrée vide · 4 verres par bouteille · cartons en réserve requis"
+		if kind in Catalog.BARS: b.tooltip_text += " · attrait du bar +%d %% · davantage de commandes premium" % roundi(float(e.get("bar_quality",0))*.8*100)
+		if kind == "bottle_crate": b.tooltip_text += " · 48 verres · à livrer dans une réserve accessible"
 		b.pressed.connect(game.choose_item.bind(kind))
 		UiKit.set_active(b,game.mode == "furniture" and game.chosen_item == kind)
 		g.add_child(b)
@@ -795,6 +815,7 @@ func fill_services() -> void:
 	tariff_demand = wrap_label("",1,UiKit.INK)
 	drawer_body.add_child(tariff_demand)
 	drawer_body.add_child(wrap_label("L'entrée et les boissons influencent l'affluence. Leurs prix élevés attirent moins de clients."))
+	drawer_body.add_child(wrap_label("Ce tarif est celui de l'alcool classique. Les bars de gamme supérieure encouragent les commandes premium, facturées 65 % de plus."))
 	refresh_tariff_summary()
 
 func refresh_tariff_summary() -> void:
@@ -918,6 +939,7 @@ func refresh_context() -> void:
 func _timed_refresh_context() -> void:
 	staff_context_label = null
 	cloak_label = null
+	stock_label = null
 	site_room = -1
 	site_label = null
 	site_bar = null
@@ -944,6 +966,8 @@ func _timed_refresh_context() -> void:
 		var need = int(client.brain.get("bladder",0.0))
 		context_body.add_child(UiKit.label("Besoin de toilettes : %d %%" % need,1,UiKit.RED if need >= 85 else (UiKit.GOLD if need >= 65 else UiKit.MUTED)))
 		context_body.add_child(UiKit.label("Boissons consommées : %d" % int(client.brain.get("drinks",0)),1,UiKit.MUTED))
+		if client.brain.has("last_drink"):
+			context_body.add_child(wrap_label("Dernière commande : %s · %d $" % [client.brain.last_drink,int(client.brain.get("last_drink_price",0))],1,UiKit.GOLD))
 		UiKit.button("Fiche et histoire",show_profile.bind(str(client.brain.get("profile_id","")),0),context_body)
 		if client.brain.state == "toilet_wait":
 			context_body.add_child(wrap_label(client.brain.get("wait_reason","Cherche un sanitaire"),1,UiKit.GOLD))
@@ -1022,6 +1046,11 @@ func _timed_refresh_context() -> void:
 			context.reset_size()
 			return
 		if not item.get("delivery_pending",false):
+			if item.kind in Catalog.BARS or Catalog.stock_capacity(item.kind) > 0:
+				section("ALCOOL",context_body)
+				stock_label = wrap_label(stock_text(item),1,UiKit.GOLD)
+				context_body.add_child(stock_label)
+				UiKit.button("Commander un carton · 96 $",game.choose_item.bind("bottle_crate"),context_body,"Placez son fantôme dans la réserve : il sera livré par camionnette.")
 			if Cloakroom.CAPACITY.has(item.kind):
 				cloak_label = UiKit.label(cloak_text(item),1,UiKit.GOLD)
 				context_body.add_child(cloak_label)

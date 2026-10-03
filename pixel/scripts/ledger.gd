@@ -20,6 +20,7 @@ const EXPENSE = [
 	["ads","Annonces de recrutement"],
 	["building","Travaux : pièces, cloisons, finitions"],
 	["furniture","Mobilier et équipements"],
+	["alcohol","Achats d'alcool"],
 	["parking","Parkings"]]
 const PERIODS = [["today","Aujourd'hui"],["yesterday","Hier"],["week","7 jours"],["month","30 jours"],["all","Depuis le début"]]
 
@@ -46,7 +47,7 @@ func book(day: int, side: String, kind: String, amount: float, job: String = "")
 
 func book_value(day: int, before: Dictionary, after: Dictionary) -> void:
 	# building work and purchases: what each kind of spending changed by
-	for kind in ["building","furniture","parking"]:
+	for kind in ["building","furniture","parking","alcohol"]:
 		var diff = int(after.get(kind,0))-int(before.get(kind,0))
 		if diff > 0: book(day,"out",kind,diff)
 		elif diff < 0: book(day,"in","resale",-diff)

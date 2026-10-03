@@ -55,7 +55,7 @@ func setup(owner_game, data: Dictionary = {}) -> void:
 
 static func package_size(item: Dictionary) -> int:
 	var size: Vector2 = Catalog.ITEMS[item.kind].size
-	if item.kind in ["fridge","shower","locker","cloak_locker","cabinet"] or maxf(size.x,size.y) >= 1.5: return 2
+	if Catalog.bottle_shelf(item.kind) or item.kind in ["fridge","shower","locker","cloak_locker","cabinet"] or maxf(size.x,size.y) >= 1.5: return 2
 	return 1 if size.x*size.y > .5 else 0
 
 func item_for(key: String) -> Dictionary:

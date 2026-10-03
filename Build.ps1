@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 # Jeu de gestion en pixel art isométrique (projet pixel/).
 $projectRoot = $PSScriptRoot
-$version = 'Construction-V90-Bilan'
+$version = 'Construction-V91-Bars'
 $godotBinary = Join-Path $projectRoot '.tools\godot\Godot_v4.5.1-stable_win64_console.exe'
 if (-not (Test-Path -LiteralPath $godotBinary)) {
     throw 'Godot 4.5.1 est absent de .tools/godot. Voir README.md.'
@@ -46,6 +46,8 @@ try {
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-traffic.log') -Pattern 'TRAFFIC_TESTS_PASSED' -Quiet)) { throw 'Tests de l''affluence, des files et des statistiques échoués.' }
     & $godotBinary --headless --path $gameDir --script res://tests/tariffs_test.gd --log-file (Join-Path $artifacts 'pixel-tariffs.log')
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-tariffs.log') -Pattern 'TARIFFS_TESTS_PASSED' -Quiet)) { throw 'Tests des tarifs et de leur sauvegarde échoués.' }
+    & $godotBinary --headless --path $gameDir --script res://tests/bar_stock_test.gd --log-file (Join-Path $artifacts 'pixel-bar-stock.log')
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-bar-stock.log') -Pattern 'BAR_STOCK_TESTS_PASSED' -Quiet)) { throw 'Tests du stock et du réapprovisionnement des bars échoués.' }
     & $godotBinary --headless --path $gameDir --script res://tests/calendar_test.gd --log-file (Join-Path $artifacts 'pixel-calendar.log')
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-calendar.log') -Pattern 'CALENDAR_TESTS_PASSED' -Quiet)) { throw 'Tests des plannings et du calendrier échoués.' }
     & $godotBinary --headless --path $gameDir --script res://tests/seasons_test.gd --log-file (Join-Path $artifacts 'pixel-seasons.log')

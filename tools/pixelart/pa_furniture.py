@@ -436,6 +436,10 @@ def mattress_pattern():
 
 
 def item(kind: str, r: int = 0) -> Item:
+    import pa_bars
+    modern = pa_bars.make(kind)
+    if modern is not None:
+        return modern
     m = M
     if kind == "bar":
         prims = [
@@ -1337,6 +1341,8 @@ def bake(kind, r):
                 Y = int(round(ay)) + yy - pix.oy + cv.oy
                 if 0 <= X < cv.w and 0 <= Y < cv.h:
                     cv.rgba[Y, X] = c
+    import pa_bars
+    pa_bars.paint(cv,it,kind,r)
     lights = []
     for L in it.lights:
         p = T(L["p"])
@@ -1445,8 +1451,9 @@ def split_parts(kind, r, cv, it):
 
 
 def export(kinds=None, previews=None):
+    import pa_bars
     manifest = {}
-    for kind in kinds or KINDS:
+    for kind in kinds or list(dict.fromkeys(KINDS + pa_bars.kinds())):
         entry = {}
         for r in range(4):
             cv, lights, it = bake(kind, r)

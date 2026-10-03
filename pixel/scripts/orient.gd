@@ -17,11 +17,11 @@ const WALL_BACKED = ["sofa","old_sofa","armchair","old_armchair","bed","heart_be
 	"poster","boards","toilet","old_toilet","urinal","sink","old_sink","shelf","old_shelf","locker","old_locker","fridge",
 	"old_fridge","old_wardrobe","cabinet","coat_rack","cloak_locker","desk","shower","nightstand","crate"]
 # a counter: someone works behind it, so its back keeps a free strip
-const COUNTERS = {"bar":["backbar"],"reception":[]}
+const COUNTERS = {"bar":["backbar","bottles_small","bottles_arch","bottles_luxe"],"reception":[]}
 # what an item turns towards, and which of its sides is its front
 const FACES = {
 	"chair":{"targets":["table","old_table","desk","coffee"],"front":Vector2(0,1)},
-	"stool":{"targets":["bar"],"front":Vector2(0,-1)},
+	"stool":{"targets":["bar","bar_module","bar_round","bar_l","bar_luxe"],"front":Vector2(0,-1)},
 	"sofa":{"targets":["coffee","table","old_table","dance"],"front":Vector2(0,1)},
 	"old_sofa":{"targets":["coffee","table","old_table","dance"],"front":Vector2(0,1)},
 	"armchair":{"targets":["coffee","table","old_table"],"front":Vector2(0,1)},
@@ -30,7 +30,7 @@ const FACES = {
 }
 
 static func applies(kind: String) -> bool:
-	return kind in WALL_BACKED or COUNTERS.has(kind) or FACES.has(kind)
+	return kind in WALL_BACKED or COUNTERS.has(kind) or FACES.has(kind) or kind in Catalog.BARS or Catalog.stock_capacity(kind) > 0
 
 static func best(model: BuildingModel, kind: String, x: float, z: float, current: int, except_id: int = -1) -> int:
 	# The rotation this item should have here, or -1 when nothing decides.
@@ -51,14 +51,14 @@ static func score(model: BuildingModel, item: Dictionary, except_id: int = -1) -
 	var s = 0.0
 	var back = Catalog.direction_to_world(item,Vector2(0,-1))
 	var gap = wall_gap(model,item,back)
-	if kind in WALL_BACKED and gap <= FLUSH:
+	if (kind in WALL_BACKED or Catalog.stock_capacity(kind) > 0) and gap <= FLUSH:
 		s += 10.0-gap*10.0
 		if door_behind(model,item,back): s -= 8.0
-	if COUNTERS.has(kind):
+	if COUNTERS.has(kind) or kind in Catalog.BARS:
 		# the free strip behind, up to a wall or the back bar
 		var behind = gap
 		for other in model.furniture:
-			if int(other.id) == except_id or not other.kind in COUNTERS[kind]: continue
+			if int(other.id) == except_id or not other.kind in COUNTERS.get(kind,["backbar","bottles_small","bottles_arch","bottles_luxe"]): continue
 			var d = strip_to(model.item_rect(item),model.item_rect(other),back)
 			if d >= 0.0: behind = minf(behind,d)
 		if behind >= 0.6 and behind <= 2.6: s += 9.0-absf(behind-1.1)

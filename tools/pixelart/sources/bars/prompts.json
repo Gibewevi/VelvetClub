@@ -1,0 +1,49 @@
+{
+  "tool": "built-in image_gen",
+  "mode": "style-transfer",
+  "shared_prompt": "Use case: style-transfer. Edit target image 1 is four rotations of ONE game furniture asset on a transparent 2x2 atlas. Image 2 is the EXISTING GAME ART STYLE TO MATCH EXACTLY. Redraw image 1 with the SIMPLE, CHUNKY, FLAT PIXEL ART language of image 2. This is a tiny native game sprite about 50 to 80 pixels wide. GREATLY REDUCE detail: broad flat color masses, 2 or 3 tones per material, LARGE coherent pixel clusters and crisp one-pixel outline, no texture noise, no dithering, no tiny glitter highlights, NO fine marble veins, NO granular wood, NO gradients, NO realistic rendering, NO high frequency details, NO bright confetti pixels. Think simple polished retro tycoon furniture, not detailed illustration. Retain personality through clear silhouettes and colors, not through texture. Neon: one clean thin consistent tube in pale pink with magenta edge, NO baked glare or glow: game adds subtle halo. Gold uses muted ochre in broad simple lines, with no white glints. Plants use 6 big two-tone leaves. Keep EXACTLY the footprint, proportions, FOUR rotated view angles/cell layout and 2:1 projection of target: top-left and bottom-right front, top-right and bottom-left back. GENUINE TRANSPARENT background, no floor, no texts or extra furniture, no U.",
+  "style_reference": "game_style.png — existing game furniture at native resolution",
+  "native_render": "Nearest-neighbour, binary alpha, fixed shared 30-colour palette, no dithering or animated neon. Stock bottles composed separately.",
+  "assets": [
+    {
+      "kind": "bar_module",
+      "prompt": "Small plum bar module with a single pink heart on customer front, short gold footrest, one simple green potted plant, three simple bottles and a warm small lamp. Keep the heart as a CLEAN single tube. Back panels have just one cupboard seam.",
+      "reference": "codex-clipboard-98086b57-5e15-4018-8698-5df3ba9232ca.png"
+    },
+    {
+      "kind": "bar_round",
+      "prompt": "Straight rounded-end crimson bar. THREE or FOUR big red padded diamond panels, single small clean pink heart at one front end, plum top with at most ONE broad gold vein, simple brass taps, three display bottles, one plain warm lamp and one simple palm. No tiny quilt pattern.",
+      "reference": "codex-clipboard-99391bed-a275-4ecc-abb6-5af70d6a68f0.png"
+    },
+    {
+      "kind": "bar_luxe",
+      "prompt": "Straight premium bar with warm ivory worktop, TWO clean pink hearts on its front ends, broad dark red padded panels, gold footrest. Remove all marble veining and busy cloth patterns: use broad ivory and gold rim. Three simple display bottles, plain taps, small warm lamp and small simple palm. Service side plain plum cupboards.",
+      "reference": "codex-clipboard-99391bed-a275-4ecc-abb6-5af70d6a68f0.png"
+    },
+    {
+      "kind": "bar_l",
+      "prompt": "Small bar in L, ONE wing only, keep the inside aisle empty. Plum top, broad red wood panels separated by just THREE seams, clean pink neon rim, a single clean heart on outer short end. Simple brass taps, three simple bottles, one small warm lamp and plant. No fine fluting/wood grain.",
+      "reference": "codex-clipboard-99391bed-a275-4ecc-abb6-5af70d6a68f0.png"
+    },
+    {
+      "kind": "bottles_small",
+      "prompt": "Tall compact 4-tier EMPTY shelf, plum wood with flat broad shades, gold edge, one simple green plant on top. NO bottles or tiny trinkets. Preserve exactly FOUR EMPTY rows with thin dark/gold shelves, at same positions as target.",
+      "reference": "codex-clipboard-e22a69f0-95f5-46bc-8a1b-c10cebfb04f4.png"
+    },
+    {
+      "kind": "backbar",
+      "prompt": "Double-arch red cupboard. Simple dark red frame, clean red/orange neon arch edges, warm lamp under each arch, gold plinth. Two rows of EMPTY bottle slots. Below the two bottle tiers, a simple row of four stemware outlines and two lower cyan glass cupboard panes. No reflections/facets in glass. NO bottles.",
+      "reference": "codex-clipboard-e22a69f0-95f5-46bc-8a1b-c10cebfb04f4.png"
+    },
+    {
+      "kind": "bottles_arch",
+      "prompt": "Arched dark plum EMPTY bottle cabinet with clean pink arch light and one simple neon heart inside header. Exactly THREE empty bottle rows above a simple row of four stemware outlines, bottom plain plum cupboard with two simple gold handles. NO bottles.",
+      "reference": "codex-clipboard-e22a69f0-95f5-46bc-8a1b-c10cebfb04f4.png"
+    },
+    {
+      "kind": "bottles_luxe",
+      "prompt": "Wide rectangular EMPTY plum backbar. Clean pink rail under top and down the sides, two simple potted green plants. Exactly THREE empty bottle rows above a few SIMPLE glass stemware outlines. Two plain lower drawers with flat gold handles. NO bottles.",
+      "reference": "codex-clipboard-e22a69f0-95f5-46bc-8a1b-c10cebfb04f4.png"
+    }
+  ]
+}

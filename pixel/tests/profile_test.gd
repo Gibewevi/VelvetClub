@@ -103,7 +103,9 @@ func run() -> void:
 	model.add_room(-5,-3,10,8,0)
 	model.set_opening("x:0:5","door")
 	var maid_id = model.add_item("maid",-3,1,0)
-	model.add_item("bar",1,-1,0)
+	var counter_id = model.add_item("bar",1,-1,0)
+	var shelf_id = model.add_item("bottles_small",1,-2.4,0)
+	var barman_id = model.add_item("bartender",1,-1.8,0)
 	model.add_item("sofa",-2,-1,0)
 	var view = WorldView.new()
 	root.add_child(view)
@@ -149,6 +151,10 @@ func run() -> void:
 	client.brain.paid = true
 	client.brain.sat = 80
 	client.brain.visits = 0
+	# A preferred activity is available only with stock and a barman at his post.
+	sim.bar_stock.set_stock(model.item_by_id(shelf_id),48)
+	sim.staff[barman_id].brain.bar_id = counter_id
+	sim.staff[barman_id].brain.state = "working"
 	var count_bar: Array = []
 	for preference in ["","bar"]:
 		var count = 0

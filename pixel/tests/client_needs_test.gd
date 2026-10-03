@@ -41,7 +41,8 @@ func run() -> void:
 	old_wc = model.add_item("old_toilet",-2.4,-6.4,0)
 	urinal = model.add_item("urinal",-.8,-6.7,0)
 	model.add_item("sink",-.6,-4.2,0)
-	model.add_item("bar",2,0,0)
+	var counter_id = model.add_item("bar",2,0,0)
+	var shelf_id = model.add_item("bottles_small",2,-2,0)
 	bar_id = model.add_item("bartender",2,-.9,0)
 	maid_id = model.add_item("maid",-3,2,0)
 	check(wc != -1 and old_wc != -1 and urinal != -1 and maid_id != -1 and bar_id != -1,"Fixture and staff test layout fits")
@@ -95,7 +96,9 @@ func run() -> void:
 	check(is_equal_approx(male.brain.bladder,21.8),"Without drinking, a bar does not magically accelerate bladder pressure")
 	male.brain.bladder = 20.0
 	male.brain.activity = "bar"
-	sim.staff[bar_id].brain.state = "post"
+	sim.bar_stock.set_stock(model.item_by_id(shelf_id),48)
+	sim.staff[bar_id].brain.bar_id = counter_id
+	sim.staff[bar_id].brain.state = "working"
 	sim.start_activity(male)
 	check(male.brain.drinks in [1,2] and male.brain.bladder > 20.0 and male.brain.digestion > 0,"Drinks actually served at the bar increase pressure and digestion")
 	var pressure: float = male.brain.bladder

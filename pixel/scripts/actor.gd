@@ -27,6 +27,8 @@ var shadow: Sprite2D
 static var shadow_tex: Texture2D
 var carry: Sprite2D               # a rubbish bag in hand (a maid on her way to the containers)
 static var bag_tex: Texture2D
+var bar_carry: Sprite2D
+var bar_carry_kind = ""
 
 func configure(app: Dictionary) -> void:
 	appearance = app
@@ -119,11 +121,38 @@ func set_carry(on: bool) -> void:
 	place_carry()
 
 func place_carry() -> void:
+	if bar_carry != null and bar_carry.visible:
+		bar_carry.position = Vector2(-7,-23) if bar_carry_kind == "box" else Vector2(5 if not flip else -8,-27)
+		bar_carry.z_index = -1 if view == "back" else 1
 	# held at her side, down by the hip, on the side away from the viewer's
 	# eye line so it always shows beside her
 	if carry == null or not carry.visible: return
 	carry.position = Vector2(4 if not flip else -11,-17)
 	move_child(carry,get_child_count()-1)
+
+func set_bar_carry(name: String) -> void:
+	bar_carry_kind = name
+	if name == "":
+		if bar_carry != null: bar_carry.visible = false
+		return
+	if bar_carry == null:
+		bar_carry = Sprite2D.new()
+		bar_carry.centered = false
+		add_child(bar_carry)
+	if name == "box":
+		var info: Dictionary = Art.read("delivery.json").box_0_0
+		var img = Art.image(info.file).duplicate()
+		img.resize(15,13,Image.INTERPOLATE_NEAREST)
+		bar_carry.texture = ImageTexture.create_from_image(img)
+	else:
+		var img = Image.create(4,9,false,Image.FORMAT_RGBA8)
+		for y in range(9):
+			for x in range(4):
+				if y < 3 and x in [0,3]: continue
+				img.set_pixel(x,y,Color("d9cbb3") if y in [0,5,6] else (Color("75ac74") if x < 2 else Color("326052")))
+		bar_carry.texture = ImageTexture.create_from_image(img)
+	bar_carry.visible = true
+	place_carry()
 
 static func bag_texture() -> Texture2D:
 	if bag_tex == null:

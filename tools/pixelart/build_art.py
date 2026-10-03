@@ -14,11 +14,14 @@ import pa_delivery
 import pa_sanitary
 import pa_site
 import pa_seasons
+import prepare_bars
 from pa_core import write_json, OUT
 
 
 def main():
     t0 = time.time()
+    for painting in prepare_bars.ROOT.glob("*_painting.png"):
+        prepare_bars.prepare(painting.stem.removesuffix("_painting"))
     pa_charsheet.export()
     write_json("furniture.json", pa_furniture.export())
     pa_tiles.export()

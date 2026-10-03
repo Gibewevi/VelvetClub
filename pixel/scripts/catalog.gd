@@ -28,7 +28,20 @@ const ROOM_FINISHES = [
 const ITEMS = {
 	"bar": {"name":"Comptoir de bar", "size":Vector2(3,1), "group":0, "tag":"BAR", "price":1800,
 		"spots":[{"use":"stand","who":"client","at":Vector2(-1,0.85),"face":Vector2(0,-1)},{"use":"stand","who":"client","at":Vector2(0,0.85),"face":Vector2(0,-1)},{"use":"stand","who":"client","at":Vector2(1,0.85),"face":Vector2(0,-1)},{"use":"work","who":"bartender","at":Vector2(0,-0.8),"face":Vector2(0,1)}]},
-	"backbar": {"name":"Étagère à bouteilles", "size":Vector2(2,0.5), "group":0, "tag":"BAR", "price":900},
+	"backbar": {"name":"Double arche Rubis · 16 bouteilles", "size":Vector2(2,0.5), "group":0, "tag":"BOUTEILLES", "price":900,"bottles":16},
+	"bar_module":{"name":"Module de bar néon","size":Vector2(1.5,1),"group":0,"tag":"BAR","price":1050,"bar_quality":0.1,
+		"spots":[{"use":"stand","who":"client","at":Vector2(0,.85),"face":Vector2(0,-1)},{"use":"work","who":"bartender","at":Vector2(0,-.85),"face":Vector2(0,1)}]},
+	"bar_round":{"name":"Bar arrondi néon","size":Vector2(3.2,1.2),"group":0,"tag":"BAR","price":2700,"bar_quality":0.3,
+		"spots":[{"use":"stand","who":"client","at":Vector2(-1,.95),"face":Vector2(0,-1)},{"use":"stand","who":"client","at":Vector2(0,.95),"face":Vector2(0,-1)},{"use":"stand","who":"client","at":Vector2(1,.95),"face":Vector2(0,-1)},{"use":"work","who":"bartender","at":Vector2(0,-.95),"face":Vector2(0,1)}]},
+	"bar_l":{"name":"Petit bar en L · Grenat","size":Vector2(3.4,2.4),"group":0,"tag":"BAR","price":3600,"bar_quality":0.45,
+		"solid":[Rect2(-1.7,.3,3.4,.9),Rect2(-1.7,-1.2,.9,1.5)],
+		"spots":[{"use":"stand","who":"client","at":Vector2(-.7,1.55),"face":Vector2(0,-1)},{"use":"stand","who":"client","at":Vector2(.5,1.55),"face":Vector2(0,-1)},{"use":"stand","who":"client","at":Vector2(-2.05,-.6),"face":Vector2(1,0)},{"use":"work","who":"bartender","at":Vector2(.2,-.2),"face":Vector2(0,1)}]},
+	"bar_luxe":{"name":"Bar Prestige · Cœur et or","size":Vector2(3.6,1.2),"group":0,"tag":"BAR","price":4800,"bar_quality":0.9,
+		"spots":[{"use":"stand","who":"client","at":Vector2(-1.2,.95),"face":Vector2(0,-1)},{"use":"stand","who":"client","at":Vector2(0,.95),"face":Vector2(0,-1)},{"use":"stand","who":"client","at":Vector2(1.2,.95),"face":Vector2(0,-1)},{"use":"work","who":"bartender","at":Vector2(0,-.95),"face":Vector2(0,1)}]},
+	"bottles_small":{"name":"Meuble compact · 12 bouteilles","size":Vector2(1.2,.5),"group":0,"tag":"BOUTEILLES","price":480,"bottles":12},
+	"bottles_arch":{"name":"Arche Cœur · 27 bouteilles","size":Vector2(2.4,.55),"group":0,"tag":"BOUTEILLES","price":1650,"bottles":27},
+	"bottles_luxe":{"name":"Bibliothèque Prestige · 36 bouteilles","size":Vector2(2.6,.6),"group":0,"tag":"BOUTEILLES","price":2400,"bottles":36},
+	"bottle_crate":{"name":"Carton de 12 bouteilles","size":Vector2(.8,.8),"group":3,"tag":"ALCOOL","price":96,"bottles_reserve":12},
 	"stool": {"name":"Tabouret", "size":Vector2(0.7,0.7), "group":0, "tag":"ASSISE", "price":120,
 		"spots":[{"use":"sit","who":"client","at":Vector2(0,0.1),"face":Vector2(0,-1),"lift":7}]},
 	"table": {"name":"Table ronde", "size":Vector2(1.3,1.3), "group":0, "tag":"SALON", "price":260},
@@ -176,6 +189,24 @@ static func fit_names(kind: String) -> String:
 
 static func is_debris(kind: String) -> bool:
 	return ITEMS.has(kind) and ITEMS[kind].get("debris",false)
+
+const BARS = ["bar","bar_module","bar_round","bar_l","bar_luxe"]
+
+static func stock_capacity(kind: String) -> int:
+	return int(ITEMS.get(kind,{}).get("bottles",ITEMS.get(kind,{}).get("bottles_reserve",0)))*4
+
+static func bottle_shelf(kind: String) -> bool:
+	return ITEMS.get(kind,{}).has("bottles")
+
+static func item_solids(item: Dictionary) -> Array:
+	var size = footprint(item.kind,int(item.rot))
+	if not ITEMS[item.kind].has("solid"): return [Rect2(Vector2(item.x,item.z)-size/2.0,size)]
+	var out: Array = []
+	for r in ITEMS[item.kind].solid:
+		var a = local_to_world(item,r.position)
+		var b = local_to_world(item,r.end)
+		out.append(Rect2(Vector2(minf(a.x,b.x),minf(a.y,b.y)),(a-b).abs()))
+	return out
 
 static func is_used(kind: String) -> bool:
 	return ITEMS.has(kind) and ITEMS[kind].get("used",false)

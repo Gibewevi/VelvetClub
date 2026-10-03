@@ -47,7 +47,9 @@ func run() -> void:
 	Art.load_all()
 	var model = BuildingModel.new()
 	model.add_room(-4,-4,8,8,0)
-	model.add_item("bar",0,0,0)
+	var counter_id = model.add_item("bar",0,0,0)
+	var shelf_id = model.add_item("backbar",0,-3,0)
+	model.item_by_id(shelf_id).stock = 96
 	var bartender_id = model.add_item("bartender",0,-1,0)
 	var world = WorldView.new()
 	root.add_child(world)
@@ -59,6 +61,7 @@ func run() -> void:
 	var bartender: Actor = bar_sim.staff[bartender_id]
 	bartender.path = []
 	bartender.brain.state = "working"
+	bartender.brain.bar_id = counter_id
 	check(bar_sim.role_present("bartender"),"Bar price test uses a planned bartender at work")
 	var client = Actor.new()
 	client.configure(Characters.defaults("man"))

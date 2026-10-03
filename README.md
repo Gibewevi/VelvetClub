@@ -15,6 +15,7 @@ La partie est enregistrée dans `%APPDATA%\Godot\app_userdata\Construction\pixel
 - On meuble les pièces (orientation automatique, livraison par camionnette), puis on embauche le personnel (accueil, bar, ménage, technique, escorts).
 - On ouvre le club. Les clients font la queue, paient à l'accueil, boivent, dansent, rencontrent les escorts et ont des besoins sanitaires. Leur satisfaction fait la réputation.
 - Le bouton **Tarifs** (également accessible depuis Personnel → Gestion) permet de régler l'entrée, les boissons, les pourboires scène et les trois prestations. Les prix par standing sont affichés ; les prestations déjà acceptées gardent leur montant. Les tarifs sont sauvegardés et « Nouveau club » rétablit les prix conseillés.
+- Les bars proposent des comptoirs droits, des modules juxtaposables et un petit L, avec néons lumineux. Le stock d'alcool vient de meubles à bouteilles approvisionnés : les bouteilles disparaissent à mesure des consommations. Le barman récupère les cartons livrés dans la réserve et remplit ses étagères progressivement. Voir [le guide des bars](BARS.md).
 - Le calendrier commence au **1er avril**. Les mois, de durée réelle, font évoluer progressivement la végétation : verdure et fleurs au printemps/été, feuillage orangé/rouge et chute des feuilles à l'automne, pelouse enneigée, branches dénudées et neige sur les arbustes en hiver. Les feuilles restent à leur emplacement après chargement, sont recouvertes par la neige et se décomposent au printemps. La date et la saison sont affichées sous l'heure.
 - Météo, plannings, parkings et fiches de personnages complètent la gestion.
 - Personnel → Gestion affiche les arrivées, les entrées, les abandons, l'occupation et les prévisions des prochaines 24 heures. Voir [le guide de l'affluence](AFFLUENCE.md).
@@ -63,6 +64,7 @@ Outils, à passer après `--` sur la ligne de commande :
 | `pixel/scripts/world_view.gd` | Rendu : sols, murs, tri de profondeur, rue, pluie, petits objets, poussière de pose |
 | `pixel/scripts/site_plan.gd`, `construction.gd`, `site_worker.gd` | Chantiers : progression logique, affichage, ouvriers |
 | `pixel/scripts/deliveries.gd` et `delivery_*.gd` | Commandes, camionnette, livreurs, fumée des pneus |
+| `pixel/scripts/bar_stock.gd`, `bar_parcel.gd` | Stock physique d'alcool, service local, trajet du barman, cartons et remplissage |
 | `pixel/scripts/hud.gd`, `ui_kit.gd`, `editors.gd` | Interface rétro pixel art |
 | `pixel/scripts/main.gd`, `prof.gd` | Caméra, outils, historique, sauvegarde, garde-fou de fluidité, tests intégrés, profilage |
 | `tools/pixelart/` | Génération de tout le pixel art à la résolution native (personnages, mobilier, tuiles, rue, livraison, chantier, interface) |

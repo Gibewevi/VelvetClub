@@ -51,8 +51,7 @@ func rebuild(building: BuildingModel, delivery_road: bool = false, extra_obstacl
 		if item.get("delivery_pending",false): continue
 		# People walk around (or over) rugs and debris.
 		if Catalog.is_character(item.kind) or Catalog.ITEMS[item.kind].get("flat",false) or Catalog.is_debris(item.kind): continue
-		var r: Rect2 = model.item_rect(item).grow(0.04)
-		obstacles.append(r)
+		for r in Catalog.item_solids(item): obstacles.append(r.grow(.04))
 	for r in obstacles:
 		var c0 = cell_of(r.position)
 		var c1 = cell_of(r.end)

@@ -67,6 +67,7 @@ var recruit_gone: Array = []   # candidates hired then let go today
 var saved_weather_state = ""
 var saved_weather_ground: Dictionary = {}
 var saved_seasons: Dictionary = {}
+var bar_stock = BarStock.new()
 var saved_night: Dictionary = {}
 var speed = 1
 var rating = 1.0
@@ -120,6 +121,7 @@ signal debris_dropped(id: int)
 func setup(building: BuildingModel, world: WorldView) -> void:
 	model = building
 	view = world
+	bar_stock.setup(self)
 	rng.seed = 20260928
 	maintenance_rng.seed = 20260951
 	waste_rng.seed = 20261002
@@ -155,7 +157,7 @@ func to_dict() -> Dictionary:
 		if is_instance_valid(client): profiles.sync_spending(client)
 	var spills: Array = []
 	for d in dirt: spills.append({"x":d.pos.x,"z":d.pos.y,"kind":d.get("kind","water"),"load":d.get("load",1.0),"work":d.get("work",6.0),"fixture":d.get("fixture",-1),"origin_x":d.get("origin",d.pos).x,"origin_z":d.get("origin",d.pos).y})
-	return {"money":money,"day":day,"minute":minute,"rating":rating,"open":open,"prices":prices.duplicate(),"history":history.duplicate(true),"dirt":spills,"calendar_version":1,"seasons":view.seasons.to_dict() if view != null else saved_seasons.duplicate(true),"opening_hours":opening_hours.duplicate(),"opening_override":opening_override,"override_window":override_window,
+	return {"money":money,"day":day,"minute":minute,"rating":rating,"open":open,"prices":prices.duplicate(),"history":history.duplicate(true),"dirt":spills,"bar_stock":bar_stock.to_dict(),"calendar_version":1,"seasons":view.seasons.to_dict() if view != null else saved_seasons.duplicate(true),"opening_hours":opening_hours.duplicate(),"opening_override":opening_override,"override_window":override_window,
 		"weather":{"rain":rain_strength,"remaining":weather_remaining,"rng_state":str(weather_rng.state),"ground":view.rain_ground.to_dict() if view != null else saved_weather_ground.duplicate()},"wage_remainder":wage_remainder,"night":night.duplicate(true),"characters":profiles.to_dict(),"recruits":Recruits.to_dict(self),"traffic":traffic.to_dict(),"ledger":ledger.to_dict()}
 
 func from_dict(data: Variant) -> void:
@@ -184,6 +186,8 @@ func from_dict(data: Variant) -> void:
 		override_window = data.get("override_window",false)
 	var weather = data.get("weather",{})
 	saved_seasons = data.seasons.duplicate(true) if data.get("seasons") is Dictionary else {}
+	bar_stock.from_dict(data.get("bar_stock",{}))
+	if model != null: bar_stock.sync()
 	saved_weather_ground = {}
 	if weather is Dictionary:
 		if weather.get("ground") is Dictionary: saved_weather_ground = weather.ground.duplicate()
@@ -251,6 +255,7 @@ func _timed_layout_changed() -> void:
 	find_entrance()
 	admission.rebuild(self)
 	sync_staff()
+	bar_stock.layout_changed()
 	for a in staff.values():
 		if is_instance_valid(a) and a.brain.state in ["to_fixture","cleaning_fixture","to_repair","repairing"]:
 			release(a)
@@ -354,6 +359,7 @@ func sync_staff() -> void:
 		if not seen.has(id):
 			var a = staff[id]
 			if is_instance_valid(a):
+				bar_stock.interrupt(a)
 				release(a)
 				release_dirt_task(a)
 				view.remove_actor(a)
@@ -522,6 +528,7 @@ func reconcile_staff(a: Actor) -> bool:
 	a.brain.overtime = false
 	if not planned:
 		if a.brain.state != "off_shift":
+			bar_stock.interrupt(a)
 			release(a)
 			release_dirt_task(a)
 			release_debris(a)
@@ -737,6 +744,7 @@ func start_next_night() -> void:
 	for id in staff:
 		var a = staff[id]
 		if is_instance_valid(a):
+			bar_stock.interrupt(a)
 			release(a)
 			a.path = []
 			a.lift = 0
@@ -1124,10 +1132,10 @@ func choose_activity(a: Actor) -> void:
 		leave(a)
 		return
 	var options: Array = []
-	if FEATURES.bar:
-		var bar_spots = free_spots("sit","client",[0]).filter(func(s): return model.item_by_id(s.item).kind == "stool")
-		bar_spots.append_array(free_spots("stand","client",[0]).filter(func(s): return model.item_by_id(s.item).kind == "bar"))
-		if not bar_spots.is_empty(): options.append(["bar",4.0 if role_present("bartender") else 1.0,bar_spots])
+	if FEATURES.bar and int(b.get("budget",0)) >= int(prices.drink):
+		var bar_spots = free_spots("sit","client",[0]).filter(func(s): return model.item_by_id(s.item).kind == "stool" and bar_stock.can_serve_spot(s))
+		bar_spots.append_array(free_spots("stand","client",[0]).filter(func(s): return model.item_by_id(s.item).kind in Catalog.BARS and bar_stock.can_serve_spot(s)))
+		options.append_array(bar_stock.activity_options(bar_spots))
 	var lounge = free_spots("sit","client",[0,5]).filter(func(s): return model.item_by_id(s.item).kind in ["sofa","chair","armchair","old_sofa"])
 	if not lounge.is_empty(): options.append(["lounge",3.0,lounge])
 	if FEATURES.stage:
@@ -1266,17 +1274,11 @@ func start_activity(a: Actor) -> void:
 			a.play("idle")
 		"bar":
 			b.timer = rng.randf_range(15,30)
-			var staffed = role_present("bartender")
-			# a quick bartender pours a second round more often
-			var drinks = 1 if rng.randf() < 1.0-0.4*bartender_speed() else 2
-			if staffed:
-				earn(int(prices.drink)*drinks,"bar",a)
-				b.spent += int(prices.drink)*drinks
-				b.sat += 5
-				ClientNeeds.drink(a,drinks)
-				b.sat += bartender_serve()
+			if bar_stock.serve(a):
+				b.timer = rng.randf_range(15,30)
 			else:
-				b.sat -= 10
+				b.sat -= 4
+				b.timer = 5.0
 				a.emote("help",2.0)
 			if FEATURES.client_mess and rng.randf() < 0.12: add_dirt(a.world+Vector2(0,0.6))
 		"lounge":
@@ -1340,7 +1342,7 @@ func staff_ai(a: Actor, dt: float) -> void:
 	# a quick employee gets through the work sooner (an escort's energy is used apart)
 	if b.role != "escort": gm *= float(b.get("speed",1.0))
 	match b.role:
-		"bartender": work_at(a,arrived,"bar","bartender",gm)
+		"bartender": bar_stock.tick(a,arrived,gm)
 		"receptionist": receptionist_ai(a,arrived,gm)
 		"security": security_ai(a,arrived,gm)
 		"cleaner": cleaner_ai(a,arrived,gm)
@@ -1826,7 +1828,7 @@ const SERVICES = [
 # Price factor by standing (1 débutante .. 4 prestige).
 const STANDING_RATE = [1.0,1.0,1.3,1.7,2.2]
 # Furniture where people cross paths in the public room.
-const SOCIAL_KINDS = ["bar","stool","chair","table","coffee","sofa","old_sofa","armchair","old_armchair","old_table","dancefloor"]
+const SOCIAL_KINDS = ["bar","bar_module","bar_round","bar_l","bar_luxe","stool","chair","table","coffee","sofa","old_sofa","armchair","old_armchair","old_table","dancefloor"]
 const BED_KINDS = ["bed","heart_bed","old_bed"]
 
 static func infection_risk(client_washed: bool, bed_unmade: bool, mess: int) -> float:
