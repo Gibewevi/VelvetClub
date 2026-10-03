@@ -2094,7 +2094,7 @@ func check(condition: bool, description: String) -> void:
 func smoke_test() -> void:
 	await get_tree().process_frame
 	# The derelict start: worn rooms, salvaged furniture, debris, no staff, closed.
-	check(model.rooms.size() == 4,"The modest derelict premises have four rooms")
+	check(model.rooms.size() == 5,"The modest derelict premises have five rooms, with a small reception at the street")
 	check(model.debris().size() >= 10,"Debris litters the building (%d)" % model.debris().size())
 	check(sim.staff.is_empty() and not sim.open,"No staff yet and the club is closed")
 	check(sim.money == ClubSim.START_MONEY and ClubSim.START_MONEY >= 1000000,"The player starts with the temporary test budget")
@@ -2584,7 +2584,7 @@ func lawn_checks() -> void:
 		return model.rooms.any(func(room): return model.overlaps(room,r)))
 	check(misplaced.is_empty(),"No bush on a sidewalk, a car park or in a room (%d)" % misplaced.size())
 	var slabs = Art.tex(Art.tiles.floors.slabs)
-	check(view.ground.get_children().any(func(n): return n is Polygon2D and n.texture == slabs and Geometry2D.is_point_in_polygon(Iso.to_screen(-1.5,6.5),n.polygon)),"A paved path leads from the front door to the sidewalk")
+	check(view.ground.get_children().any(func(n): return n is Polygon2D and n.texture == slabs and Geometry2D.is_point_in_polygon(Iso.to_screen(-1.5,7.5),n.polygon)),"A paved path leads from the front door to the sidewalk")
 	model.restore(start)
 	changed_view()
 

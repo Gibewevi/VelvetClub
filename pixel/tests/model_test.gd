@@ -22,7 +22,7 @@ func _init() -> void:
 	# The derelict building the player starts with.
 	var d = BuildingModel.new()
 	d.starter()
-	check(d.rooms.size() == 4,"The modest derelict premises have four rooms")
+	check(d.rooms.size() == 5 and d.rooms.any(func(r): return int(r.type) == 5),"The modest derelict premises have five rooms, a reception among them")
 	check(d.rooms.filter(func(r): return int(r.type) == 1).size() == 1,"There is a single bedroom")
 	check(d.furniture.size() == 28,"Every starter object was placed (%d)" % d.furniture.size())
 	check(d.debris().size() >= 10,"Debris is scattered around (%d)" % d.debris().size())

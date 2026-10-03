@@ -964,8 +964,8 @@ func valid_parts(room: Dictionary) -> bool:
 	return true
 
 func starter() -> void:
-	# The modest derelict premises the player takes over: a small hall on the
-	# street, a WC, a storeroom and a single bedroom with torn wallpaper and an
+	# The modest derelict premises the player takes over: a small hall behind an
+	# empty reception on the street, a WC, a storeroom and a single bedroom with torn wallpaper and an
 	# old carpet. A few salvaged pieces of furniture are kept for free, and
 	# technicians must clear the debris. No staff yet.
 	parkings.clear()
@@ -977,7 +977,9 @@ func starter() -> void:
 	add_room(-4,-4,3,3,2,{"floor_finish":"dirty_tile","floor_color":"8a8c98","wall_finish":"dirty_tile","wall_color":"c2cad0"})
 	add_room(-1,-4,4,3,3,{"floor_finish":"dirty_tile","floor_color":"7a767e","wall_finish":"decay","wall_color":"8e2e3c"})
 	add_room(3,0,4,4,1,{"floor_finish":"worn_carpet","floor_color":"56627e","wall_finish":"torn_wallpaper","wall_color":"6e5a7a"})
-	for key in ["x:-2:5","x:-3:-1","x:1:-1","z:3:2"]: set_opening(key,"door")
+	# a small empty reception in front of the hall, on the street side
+	add_room(-3,5,3,2,5,{"floor_finish":"damaged_wood","floor_color":"a88256","wall_finish":"decay","wall_color":"9a2a3a"})
+	for key in ["x:-2:5","x:-2:7","x:-3:-1","x:1:-1","z:3:2"]: set_opening(key,"door")
 	for key in ["z:-4:0"]: set_opening(key,"window")
 	for entry in [
 		# hall: an old sofa by the window, a table, a pillar, posters, a boarded window, rubbish
