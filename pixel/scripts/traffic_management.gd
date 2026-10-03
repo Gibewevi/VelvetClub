@@ -16,6 +16,13 @@ static func populate(hud) -> void:
 	var sim = hud.game.sim
 	var body: VBoxContainer = hud.drawer_body
 	UiKit.button("Régler les tarifs",hud.toggle_drawer.bind("services"),body,"Entrées, boissons, scène et prestations")
+	# the books in short, the full report a click away
+	hud.section("FINANCES",body)
+	var today: Dictionary = sim.ledger.period("today",sim.day)
+	var earned = Ledger.total(today,"in")
+	var spent = Ledger.total(today,"out")
+	body.add_child(hud.wrap_label("Aujourd'hui : +%s $ de recettes · −%s $ de dépenses · résultat %s%s $" % [UiKit.money(earned),UiKit.money(spent),"+" if earned >= spent else "−",UiKit.money(absi(earned-spent))],1,UiKit.INK))
+	UiKit.button("Bilan financier",func(): FinanceReport.open(hud),body,"Le détail : prestations, boissons, pourboires, salaires par poste, travaux et achats")
 	hud.section("EN DIRECT",body)
 	var inside = sim.inside_count()
 	var capacity = sim.admission.capacity

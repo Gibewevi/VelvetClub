@@ -943,17 +943,22 @@ func set_opening(key: String, kind: String) -> bool:
 func cost() -> int:
 	# Value of the building: rooms by area, renovated finishes and furniture.
 	# Salvaged furniture and debris are worth nothing.
-	var total = 0
+	var parts = cost_parts()
+	return int(parts.building)+int(parts.furniture)+int(parts.parking)
+
+func cost_parts() -> Dictionary:
+	# the same value in the books' three kinds of spending
+	var building = 0
 	var cuts = 0.0
 	for room in rooms:
-		total += area_of(room)*Catalog.ROOM_PRICE+Finishes.value(room)+room.get("walls",[]).size()*PARTITION_PRICE
+		building += area_of(room)*Catalog.ROOM_PRICE+Finishes.value(room)+room.get("walls",[]).size()*PARTITION_PRICE
 		cuts += cut_value(room)
-	total += roundi(cuts)
-	for item in furniture: total += int(Catalog.ITEMS[item.kind].get("price",0))+Sanitation.value(item)
+	building += roundi(cuts)
+	var stuff = 0
+	for item in furniture: stuff += int(Catalog.ITEMS[item.kind].get("price",0))+Sanitation.value(item)
 	var parking_area = 0.0
 	for pk in parkings: parking_area += rect(pk).get_area()
-	total += roundi(parking_area*Street.PRICE_M2)
-	return total
+	return {"building":building,"furniture":stuff,"parking":roundi(parking_area*Street.PRICE_M2)}
 
 func debris() -> Array:
 	return furniture.filter(func(i): return Catalog.is_debris(i.kind))

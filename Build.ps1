@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 # Jeu de gestion en pixel art isométrique (projet pixel/).
 $projectRoot = $PSScriptRoot
-$version = 'Construction-V89-Priorites'
+$version = 'Construction-V90-Bilan'
 $godotBinary = Join-Path $projectRoot '.tools\godot\Godot_v4.5.1-stable_win64_console.exe'
 if (-not (Test-Path -LiteralPath $godotBinary)) {
     throw 'Godot 4.5.1 est absent de .tools/godot. Voir README.md.'
@@ -68,6 +68,8 @@ try {
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-room-fit.log') -Pattern 'ROOM_FIT_TESTS_PASSED' -Quiet)) { throw 'Tests du mobilier par type de pièce échoués.' }
     & $godotBinary --headless --path $gameDir --script res://tests/duty_test.gd --log-file (Join-Path $artifacts 'pixel-duty.log')
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-duty.log') -Pattern 'DUTY_TESTS_PASSED' -Quiet)) { throw 'Tests des priorités du personnel échoués.' }
+    & $godotBinary --headless --path $gameDir --script res://tests/ledger_test.gd --log-file (Join-Path $artifacts 'pixel-ledger.log')
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-ledger.log') -Pattern 'LEDGER_TESTS_PASSED' -Quiet)) { throw 'Tests du bilan financier échoués.' }
     & $godotBinary --headless --path $gameDir --script res://tests/recruit_test.gd --log-file (Join-Path $artifacts 'pixel-recruit.log')
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-recruit.log') -Pattern 'RECRUIT_TESTS_PASSED' -Quiet)) { throw 'Tests du recrutement échoués.' }
     & $godotBinary --headless --path $gameDir --script res://tests/quick_service_test.gd --log-file (Join-Path $artifacts 'pixel-quick.log')

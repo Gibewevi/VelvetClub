@@ -104,6 +104,7 @@ static func advertise(sim) -> void:
 	refresh(sim)
 	sim.recruit_batch = int(sim.recruit_batch)+1
 	sim.money -= AD_PRICE
+	sim.ledger.book(sim.day,"out","ads",AD_PRICE)
 	sim.night.wages = int(sim.night.get("wages",0))+AD_PRICE
 	sim.stats_changed.emit()
 

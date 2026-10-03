@@ -59,6 +59,7 @@ var site_refresh = 0.0
 var drawer_live = true
 var staff_tab = 0          # Personnel: 0 team, 1 hiring, 2 management
 var management_day_offset = 0
+var finance_period = "today"   # the period the finance report shows
 var recruit_kind = ""      # the job whose candidates are shown
 var team_kind = ""         # Équipe: only the employees of this job ("" = everyone)
 var cloak_label: Label
@@ -810,6 +811,7 @@ func refresh_tariff_summary() -> void:
 
 func fill_reports() -> void:
 	var sim: ClubSim = game.sim
+	UiKit.button("Bilan financier",func(): FinanceReport.open(self),drawer_body,"Recettes et dépenses : prestations, boissons, pourboires, salaires, travaux")
 	section("NUIT %d EN COURS · %s" % [sim.day,sim.clock_text()])
 	var income = int(sim.night.entry)+int(sim.night.bar)+int(sim.night.dance)+int(sim.night.private)
 	for entry in [["Entrées",sim.night.entry],["Bar",sim.night.bar],["Scène",sim.night.dance],["Salons privés",sim.night.private],["Salaires",-int(sim.night.wages)]]:

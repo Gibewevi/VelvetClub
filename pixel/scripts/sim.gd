@@ -42,6 +42,7 @@ var nav = ClubNav.new()
 var rng = RandomNumberGenerator.new()
 var profiles = CharacterProfiles.new()
 var traffic = TrafficHistory.new()
+var ledger = Ledger.new()       # the books: income and spending by day and kind
 var admission = ClubAdmission.new()
 var maintenance_rng = RandomNumberGenerator.new()
 var maintenance_clock = 0.0
@@ -155,12 +156,13 @@ func to_dict() -> Dictionary:
 	var spills: Array = []
 	for d in dirt: spills.append({"x":d.pos.x,"z":d.pos.y,"kind":d.get("kind","water"),"load":d.get("load",1.0),"work":d.get("work",6.0),"fixture":d.get("fixture",-1),"origin_x":d.get("origin",d.pos).x,"origin_z":d.get("origin",d.pos).y})
 	return {"money":money,"day":day,"minute":minute,"rating":rating,"open":open,"prices":prices.duplicate(),"history":history.duplicate(true),"dirt":spills,"calendar_version":1,"seasons":view.seasons.to_dict() if view != null else saved_seasons.duplicate(true),"opening_hours":opening_hours.duplicate(),"opening_override":opening_override,"override_window":override_window,
-		"weather":{"rain":rain_strength,"remaining":weather_remaining,"rng_state":str(weather_rng.state),"ground":view.rain_ground.to_dict() if view != null else saved_weather_ground.duplicate()},"wage_remainder":wage_remainder,"night":night.duplicate(true),"characters":profiles.to_dict(),"recruits":Recruits.to_dict(self),"traffic":traffic.to_dict()}
+		"weather":{"rain":rain_strength,"remaining":weather_remaining,"rng_state":str(weather_rng.state),"ground":view.rain_ground.to_dict() if view != null else saved_weather_ground.duplicate()},"wage_remainder":wage_remainder,"night":night.duplicate(true),"characters":profiles.to_dict(),"recruits":Recruits.to_dict(self),"traffic":traffic.to_dict(),"ledger":ledger.to_dict()}
 
 func from_dict(data: Variant) -> void:
 	if not data is Dictionary: return
 	profiles.from_dict(data.get("characters",{}))
 	traffic.from_dict(data.get("traffic",{}))
+	ledger.from_dict(data.get("ledger",{}))
 	Recruits.from_dict(self,data.get("recruits"))
 	for key in ["money","day","minute","rating"]:
 		var v = data.get(key)
@@ -585,7 +587,9 @@ func accrue_wages(minutes: float) -> void:
 	var total = 0.0
 	for a in staff.values():
 		if is_instance_valid(a) and a.brain.state != "off_shift":
-			total += float(a.brain.get("wage",Catalog.ITEMS[a.kind].get("wage",0)))*minutes/60.0
+			var pay = float(a.brain.get("wage",Catalog.ITEMS[a.kind].get("wage",0)))*minutes/60.0
+			total += pay
+			ledger.book(day,"out","wages",pay,a.kind)
 	wage_remainder += total
 	var amount = floori(wage_remainder+.0000001)
 	wage_remainder = maxf(0,wage_remainder-amount)
@@ -695,6 +699,7 @@ func earn(amount: int, category: String, actor: Actor = null) -> void:
 	if actor != null and actor.kind == "client": profiles.spend(actor,amount)
 	money += amount
 	night[category] = int(night.get(category,0))+amount
+	ledger.book(day,"in",{"dance":"stage"}.get(category,category),amount)
 	if actor != null: actor.emote("dollar",2.0)
 
 func end_night() -> void:
@@ -2018,6 +2023,7 @@ func crowd_tips(e: Actor, activities: Array, radius: float, base: int, per_level
 		c.brain.spent += tip
 		c.brain.sat = minf(float(c.brain.sat)+1.0,100.0)
 		money += tip
+		ledger.book(day,"in","stage_tips" if counter == "stage_tips" else "floor_tips",tip)
 		night.tips = int(night.get("tips",0))+tip
 		night.dance = int(night.dance)+tip
 		if counter != "": night[counter] = int(night.get(counter,0))+tip
@@ -2203,6 +2209,7 @@ func end_service(c: Actor, aborted: bool = false) -> void:
 	if started and not aborted:
 		var tier = int(sv.tier)
 		money += int(sv.price)
+		ledger.book(day,"in","services",int(sv.price))
 		night.private = int(night.private)+int(sv.price)
 		c.brain.spent += int(sv.price)
 		view.float_text(c.world,"+%d $" % int(sv.price),Color("ffd66b"),3.0)
@@ -2320,6 +2327,7 @@ func service_script(c: Actor, gm: float) -> void:
 			# a tip for the show, then under the covers
 			var tip = 10*(1+int(sv.tier))*standing(e) if e != null and is_instance_valid(e) else 10
 			money += tip
+			ledger.book(day,"in","private_tips",tip)
 			view.float_text(sv.stage,"+%d $" % tip,Color("ffd66b"),2.5)
 			night.private = int(night.private)+tip
 			c.brain.spent += tip

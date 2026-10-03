@@ -509,12 +509,14 @@ func commit(before: Dictionary, message: String) -> bool:
 	var old = BuildingModel.new()
 	old.restore(before)
 	var diff = model.cost()-old.cost()
+	var value_before = old.cost_parts()
 	if diff > 0 and diff > sim.money:
 		model.restore(before)
 		changed_view()
 		hud.toast("Fonds insuffisants : il manque %s $." % UiKit.money(diff-sim.money))
 		return false
 	sim.money -= diff
+	sim.ledger.book_value(sim.day,value_before,model.cost_parts())
 	undo_stack.append(before)
 	if undo_stack.size() > 80: undo_stack.pop_front()
 	redo_stack.clear()
@@ -589,6 +591,7 @@ func restore_to(data: Dictionary, message: String) -> void:
 		else: saved_room.erase("build")
 	model.restore(data)
 	sim.money -= model.cost()-old.cost()
+	sim.ledger.book_value(sim.day,old.cost_parts(),model.cost_parts())
 	clear_selection()
 	changed_view()
 	hud.toast(message)
@@ -755,6 +758,7 @@ func reset_club() -> void:
 	deliveries.reset()
 	model.starter()
 	sim.money = ClubSim.START_MONEY
+	sim.ledger = Ledger.new()
 	sim.prices = ClubSim.default_prices()
 	sim.rating = 1.0
 	sim.day = 1
@@ -1907,6 +1911,15 @@ func profile_run() -> void:
 	var litter_now = model.furniture.filter(func(i): return Catalog.ITEMS[i.kind].get("litter",false)).size()
 	var undressed = sim.staff.values().filter(func(e): return is_instance_valid(e) and e.brain.has("dressed")).size()
 	print("PROFILE_WASTE littered=%d binned=%d emptied=%d litter_now=%d bins=%d undressed_now=%d" % [int(sim.night.get("littered",0)),int(sim.night.get("binned",0)),int(sim.night.get("bins_emptied",0)),litter_now,model.furniture.filter(func(i): return i.kind == "bin").size(),undressed])
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--finance-capture="):
+			# the finance report after the run, as the player sees it
+			set_speed(0)
+			hud.finance_period = "today"
+			FinanceReport.open(hud)
+			for i in range(4): await get_tree().process_frame
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png(arg.trim_prefix("--finance-capture="))
 	print("PROFILE_DONE")
 	get_tree().quit()
 
@@ -2356,6 +2369,7 @@ func smoke_test() -> void:
 	partition_ui_checks()
 	hire_checks()
 	team_filter_checks()
+	finance_checks()
 	door_pick_checks()
 	lawn_checks()
 	post_depth_checks()
@@ -2834,6 +2848,32 @@ func waste_ui_checks() -> void:
 	set_mode("select")
 	clear_selection()
 	changed_view()
+
+func finance_checks() -> void:
+	# Personnel > Gestion: the books in short, and the full finance report.
+	var keep_period = hud.finance_period
+	sim.earn(150,"entry")
+	sim.ledger.book(sim.day,"in","services",260)
+	sim.ledger.book(sim.day,"out","wages",42,"maid")
+	hud.toggle_drawer("staff")
+	hud.staff_tab = 2
+	hud.fill_drawer()
+	var labels = hud.drawer_body.find_children("*","Label",true,false)
+	check(labels.any(func(l): return l.text.begins_with("Aujourd'hui : +")),"Gestion shows today's income and spending")
+	var open_button = hud.drawer_body.find_children("*","Button",true,false).filter(func(b): return b.text == "Bilan financier")
+	check(open_button.size() == 1,"…and a Bilan financier button")
+	if open_button.size() == 1: open_button[0].pressed.emit()
+	check(hud.modal != null and is_instance_valid(hud.modal),"It opens the finance report")
+	if hud.modal != null and is_instance_valid(hud.modal):
+		var texts = hud.modal.find_children("*","Label",true,false).map(func(l): return l.text)
+		check(texts.has("RECETTES") and texts.has("DÉPENSES") and texts.has("Prestations en chambre") and texts.has("Total des recettes") and texts.has("RÉSULTAT"),"Income, spending and the result, line by line")
+		check(texts.any(func(t): return t.ends_with("· Femme de ménage")),"Wages by job")
+		var week = hud.modal.find_children("*","Button",true,false).filter(func(b): return b.text == "7 jours")
+		if week.size() == 1: week[0].pressed.emit()
+		check(hud.finance_period == "week" and hud.modal.find_children("*","Label",true,false).any(func(l): return l.text.begins_with("Jours ")),"Another period at a click")
+		hud.close_modal()
+	hud.finance_period = keep_period
+	hud.toggle_drawer("staff")
 
 func team_filter_checks() -> void:
 	# Équipe: the job portraits at the top show one job at a time.
