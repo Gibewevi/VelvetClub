@@ -1526,14 +1526,21 @@ func cleaner_ai(a: Actor, arrived: bool, gm: float) -> void:
 	var b = a.brain
 	# discretion: out of a room where a couple is, back to her post
 	var here = model.room_at(a.world)
-	if b.state != "back" and not here.is_empty() and room_private(here):
-		release(a)
-		release_debris(a)
-		release_bed_task(a)
-		release_dirt_task(a)
-		Waste.interrupt(self,a)
-		b.state = "back"
-		if not go(a,b.post): b.state = "post"
+	if not here.is_empty() and room_private(here):
+		# she only leaves the room; work is taken up again once out of it
+		# (taking a job from in here sent her back and forth on the spot)
+		if b.state != "back":
+			release(a)
+			release_debris(a)
+			release_bed_task(a)
+			release_dirt_task(a)
+			Waste.interrupt(self,a)
+			b.state = "back"
+			if not go(a,b.post): a.path = []
+		elif a.path.is_empty() and a.world.distance_to(b.post) > 0.3:
+			# held up on the way out: set off again (but not if her post is in here)
+			go(a,b.post)
+		if a.path.is_empty(): a.play("idle")
 		return
 	if b.state in ["to_dirt","mopping"] and (not b.has("dirt") or not b.dirt in dirt or room_private(model.room_at(b.dirt.pos)) or not nav.reachable(a.world,b.dirt.pos)):
 		release_dirt_task(a)

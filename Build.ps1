@@ -72,6 +72,8 @@ try {
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-duty.log') -Pattern 'DUTY_TESTS_PASSED' -Quiet)) { throw 'Tests des priorités du personnel échoués.' }
     & $godotBinary --headless --path $gameDir --script res://tests/ledger_test.gd --log-file (Join-Path $artifacts 'pixel-ledger.log')
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-ledger.log') -Pattern 'LEDGER_TESTS_PASSED' -Quiet)) { throw 'Tests du bilan financier échoués.' }
+    & $godotBinary --headless --path $gameDir --script res://tests/privacy_test.gd --log-file (Join-Path $artifacts 'pixel-privacy.log')
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-privacy.log') -Pattern 'PRIVACY_TESTS_PASSED' -Quiet)) { throw "Test du personnel qui quitte une chambre occupée échoué." }
     & $godotBinary --headless --path $gameDir --script res://tests/recruit_test.gd --log-file (Join-Path $artifacts 'pixel-recruit.log')
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-recruit.log') -Pattern 'RECRUIT_TESTS_PASSED' -Quiet)) { throw 'Tests du recrutement échoués.' }
     & $godotBinary --headless --path $gameDir --script res://tests/quick_service_test.gd --log-file (Join-Path $artifacts 'pixel-quick.log')
