@@ -6,7 +6,9 @@ Jeu natif Windows de gestion d'un club, en isométrique et en vrai pixel art ré
 
 Téléchargez la dernière version dans les **[Releases](https://github.com/Gibewevi/VelvetClub/releases)** : elle contient l'archive Windows, avec l'exécutable et son guide. Chaque version y a ses notes : ce qui change, comment s'en servir, ce qui a été vérifié. **L'historique des versions se trouve uniquement là.**
 
-La partie est enregistrée dans `%APPDATA%\Godot\app_userdata\Construction\pixel_club.json`, avec une copie de secours `.bak`. Le jeu note aussi sa fluidité dans `perf.log`, au même endroit.
+Au lancement, une introduction **BIT-GAMES** de quelques secondes précède le menu principal. Une touche ou un clic permet de la passer. Choisir **Nouvelle partie**, **Charger une partie** ou **Quitter** ; les flèches et Entrée permettent aussi de naviguer dans le menu.
+
+Chaque nouvelle partie possède sa propre sauvegarde dans `%APPDATA%\Godot\app_userdata\Construction\clubs\`, avec une copie de secours `.bak`. **Charger une partie** présente les clubs enregistrés et retrouve aussi l'ancienne sauvegarde `pixel_club.json`, sans l'écraser lors de la création d'un nouveau club. Les fichiers illisibles sont signalés et conservés. Depuis la partie, **Menu → Menu principal** enregistre le club avant de revenir à l'accueil. Le jeu note aussi sa fluidité dans `perf.log`, au même endroit.
 
 ## En bref
 
@@ -40,7 +42,7 @@ Ouvrir `pixel/project.godot` dans Godot 4.5.1 (Godot et les modèles d'export so
 
 `./Build.ps1` effectue, dans l'ordre :
 
-1. **Art** : régénère tout le pixel art (`tools/pixelart/build_art.py`, avec Python, numpy et Pillow).
+1. **Art** : conserve les PNG existants de `pixel/art/`, y compris les retouches faites dans Aseprite. `./Build.ps1 -RegenerateArt` reconstruit volontairement les sprites depuis leurs sources (`tools/pixelart/build_art.py`, avec Python, numpy et Pillow) et remplace ces PNG.
 2. **Import** : importe le projet.
 3. **Tests** :
    - les scripts de `pixel/tests/` (modèle, art, parkings, lits, livraisons, calendrier, météo, besoins, sanitaires, plomberie, prestations, profils…) ;
@@ -49,6 +51,8 @@ Ouvrir `pixel/project.godot` dans Godot 4.5.1 (Godot et les modèles d'export so
 4. **Export** : produit l'exécutable dans `build/`.
 
 Les journaux de tests sont dans `tests/artifacts/`.
+
+Pour retoucher un meuble dans Aseprite, enregistrer le PNG dans `pixel/art/furniture/`, en gardant sa taille et son fond transparent. Le suffixe `_0`, `_1`, `_2` ou `_3` désigne une orientation : modifier `_0` ne change pas les trois autres vues. Dans Godot, laisser le projet réimporter l'image et relancer la scène. Un exécutable dans `build/` contient une copie intégrée des sprites : il faut refaire `./Build.ps1`, puis relancer l'exécutable pour voir les retouches. Le jeu ne relit pas les PNG du projet pendant son exécution.
 
 Outils, à passer après `--` sur la ligne de commande :
 

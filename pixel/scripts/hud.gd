@@ -878,6 +878,7 @@ func fill_settings() -> void:
 	UiKit.button("Enregistrer",func(): game.manual_save(),drawer_body,"Ctrl + S","save")
 	UiKit.button("Nouveau club",func(): confirm("Nouveau club","Repartir du club de départ ?\nL'argent et la réputation sont réinitialisés.",func(): game.reset_club()),drawer_body,"","plus")
 	UiKit.button("Commandes et aide",func(): show_help(),drawer_body,"F1","help")
+	UiKit.button("Menu principal",func(): game.return_to_menu(),drawer_body,"Enregistrer la partie et revenir à l'accueil","menu")
 	UiKit.button("Quitter",func(): game.quit(),drawer_body,"","exit")
 	drawer_body.add_child(wrap_label(game.save_status))
 

@@ -27,6 +27,12 @@ Les huit meubles ont été préparés avec le skill **imagegen**, via l'outil in
 
 Les versions finales privilégient les aplats et des groupes de pixels francs, avec une palette commune de 30 couleurs. Les petites textures, veinures et reflets dispersés ont été supprimés. Les bouteilles utilisent des tons regroupés et des étiquettes sobres ; les néons ont un éclairage constant et un halo doux, sans animation de scintillement.
 
+### Retouches dans Aseprite
+
+Les PNG chargés par le jeu sont ceux de `pixel/art/furniture/`. Pour retoucher le Bar Prestige vu dans l'orientation 0, modifier `pixel/art/furniture/bar_luxe_0.png`, conserver sa taille et sa transparence, puis enregistrer en PNG. Chaque orientation possède son propre fichier. Les images de `tools/pixelart/sources/bars/native/` servent à la génération ; elles ne sont pas chargées directement par le jeu. Les étagères utilisent aussi des fichiers `_fill_N` selon leur niveau de stock.
+
+`./Build.ps1` conserve désormais les PNG existants, les importe et les intègre à l'exécutable. Relancer celui-ci après compilation ; un ancien exécutable garde ses anciennes images. `./Build.ps1 -RegenerateArt` est réservé à une reconstruction volontaire depuis les sources : cette option remplace les PNG retouchés, ainsi que les images natives préparées.
+
 La finition V92 conserve ces peintures et leurs accessoires. `pa_bar_polish.py` régularise uniquement les portions droites du liseré du plateau, retire les petits fragments détachés et aligne les bouteilles sur les tablettes peintes. Les bouteilles ont une silhouette simple, sans reflets dispersés. Les formes, arches, cœurs, plantes, lampes, dimensions et points d'ancrage restent ceux des modèles validés ; aucune peinture de remplacement n'est utilisée.
 
 Captures de contrôle : `--capture=<png> --setup=bars --focus=0,-3 --zoom=2 --pause` ; pour le réapprovisionnement, `--setup=bar-fill --stock-state=stock_carry` ou `stock_fill`.

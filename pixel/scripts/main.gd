@@ -35,6 +35,7 @@ var undo_stack: Array = []
 var redo_stack: Array = []
 var panning = false
 var save_path = "user://pixel_club.json"
+var save_title = "Mon club"
 var save_timer: Timer
 var autosave_timer: Timer
 var save_status = "Sauvegarde automatique active"
@@ -47,7 +48,7 @@ func _ready() -> void:
 	get_tree().auto_accept_quit = false
 	Art.load_all()
 	var args = OS.get_cmdline_user_args()
-	test_mode = "--smoke-test" in args or "--ui-test" in args or "--sim-test" in args or "--delivery-test" in args or "--finishes-test" in args
+	test_mode = "--smoke-test" in args or "--ui-test" in args or "--sim-test" in args or "--delivery-test" in args or "--finishes-test" in args or "--front-end-test" in args
 	# Screenshots always start from the fresh club and never write a save.
 	var profile_save = ""
 	for arg in args:
@@ -56,19 +57,37 @@ func _ready() -> void:
 		if arg.begins_with("--profile-save="): profile_save = arg.trim_prefix("--profile-save=")
 	if profile_save != "": test_mode = true
 	if test_mode: save_path = "user://pixel_test.json"
+	var launch: Dictionary = get_tree().get_meta("club_launch",{})
+	if get_tree().has_meta("club_launch"): get_tree().remove_meta("club_launch")
+	var fresh = bool(launch.get("fresh",false))
+	if not launch.is_empty():
+		save_path = str(launch.path)
+		save_title = str(launch.get("title","Mon club"))
 	var bad_save = false
 	var club_data = {}
 	var delivery_data = {}
+	var view_data = {}
 	model.starter()
-	var load_path = profile_save if profile_save != "" else ("" if test_mode else save_path)
+	var load_path = profile_save if profile_save != "" else ("" if fresh or (test_mode and launch.is_empty()) else save_path)
+	if not launch.is_empty() and not fresh:
+		var selected = ClubSaves.new().read(save_path)
+		if not selected.has("data"):
+			get_tree().set_meta("club_menu_notice",selected.error)
+			get_tree().set_meta("club_skip_intro",true)
+			get_tree().change_scene_to_file.call_deferred("res://boot.tscn")
+			return
 	if load_path != "" and FileAccess.file_exists(load_path):
 		var data = JSON.parse_string(FileAccess.get_file_as_string(load_path))
 		if data is Dictionary and model.load_checked(data.get("model")):
 			club_data = data.get("club",{})
+			if data.get("meta") is Dictionary: save_title = str(data.meta.get("title","Mon club"))
 			if data.get("deliveries") is Dictionary: delivery_data = data.deliveries
+			if data.get("view") is Dictionary: view_data = data.view
 		else:
 			bad_save = true
 			model.starter()
+	if view_data.get("zoom") is float or view_data.get("zoom") is int:
+		if is_finite(float(view_data.zoom)): zoom = clampi(int(view_data.zoom),1,4)
 	var screen = DisplayServer.screen_get_size()
 	var ui_scale = 3 if DisplayServer.window_get_size().x >= 2400 else 2
 	UiKit.setup(ui_scale)
@@ -87,6 +106,8 @@ func _ready() -> void:
 	container.add_child(viewport)
 	view = WorldView.new()
 	viewport.add_child(view)
+	if view_data.get("walls") is float or view_data.get("walls") is int:
+		if is_finite(float(view_data.walls)): view.wall_mode = clampi(int(view_data.walls),0,1)
 	view.setup(model)
 	camera = Camera2D.new()
 	camera.anchor_mode = Camera2D.ANCHOR_MODE_FIXED_TOP_LEFT
@@ -143,7 +164,18 @@ func _ready() -> void:
 	center_camera.call_deferred()
 	hud.refresh_stats()
 	initialized = true
+	if fresh: save_game()
+	if not launch.is_empty():
+		var arrival = ColorRect.new()
+		arrival.color = Color("100e1b")
+		arrival.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		arrival.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		ui_layer.add_child(arrival)
+		var fade = create_tween()
+		fade.tween_property(arrival,"modulate:a",0,.3)
+		fade.tween_callback(arrival.queue_free)
 	if bad_save: hud.toast("Sauvegarde illisible : club de départ chargé. L'ancien fichier reste intact jusqu'à la prochaine sauvegarde.")
+	elif not launch.is_empty() and not fresh: hud.toast("Partie chargée · "+save_title)
 	else: hud.toast("Votre local est à rénover : embauchez un technicien pour nettoyer, puis ouvrez le club (O).",8.0)
 	if "--smoke-test" in args: smoke_test.call_deferred()
 	if "--sim-test" in args: sim_test.call_deferred()
@@ -225,6 +257,15 @@ func black_box(delta: float) -> void:
 
 func quit() -> void:
 	_notification(NOTIFICATION_WM_CLOSE_REQUEST)
+
+func return_to_menu() -> void:
+	save_game()
+	if save_status != "Enregistré sur cet ordinateur":
+		hud.toast(save_status)
+		return
+	perf_write("=== retour au menu")
+	get_tree().set_meta("club_skip_intro",true)
+	get_tree().change_scene_to_file("res://boot.tscn")
 
 # ------------------------------------------------------------------ camera
 
@@ -729,7 +770,7 @@ func save_game() -> void:
 	Prof.add("save",p0)
 
 func _timed_save_game() -> void:
-	var data = {"model":model.snapshot(),"club":sim.to_dict(),"deliveries":deliveries.to_dict(),"view":{"zoom":zoom,"walls":view.wall_mode}}
+	var data = {"model":model.snapshot(),"club":sim.to_dict(),"deliveries":deliveries.to_dict(),"view":{"zoom":zoom,"walls":view.wall_mode},"meta":{"title":save_title}}
 	var temp = save_path+".tmp"
 	var file = FileAccess.open(temp,FileAccess.WRITE)
 	if file == null:

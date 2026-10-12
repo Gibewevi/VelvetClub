@@ -1,7 +1,12 @@
+[CmdletBinding()]
+param(
+    [switch]$RegenerateArt
+)
+
 $ErrorActionPreference = 'Stop'
 # Jeu de gestion en pixel art isométrique (projet pixel/).
 $projectRoot = $PSScriptRoot
-$version = 'Construction-V93-Bouteilles'
+$version = 'Construction-V94-Accueil'
 $godotBinary = Join-Path $projectRoot '.tools\godot\Godot_v4.5.1-stable_win64_console.exe'
 if (-not (Test-Path -LiteralPath $godotBinary)) {
     throw 'Godot 4.5.1 est absent de .tools/godot. Voir README.md.'
@@ -11,16 +16,19 @@ $testData = Join-Path $projectRoot '.tools\userdata'
 $artifacts = Join-Path $projectRoot 'tests\artifacts'
 New-Item -ItemType Directory -Path $testData,$artifacts,(Join-Path $projectRoot 'build') -Force | Out-Null
 
-# 1. Sprites : tout le pixel art est redessiné à sa résolution finale (Python + numpy + Pillow).
-$python = Get-Command python -ErrorAction SilentlyContinue
-if ($python) {
+# Les PNG de pixel/art sont les assets de travail, notamment ceux retouchés
+# dans Aseprite. Ne les régénérer que sur demande explicite.
+if ($RegenerateArt) {
+    $python = Get-Command python -ErrorAction SilentlyContinue
+    if (-not $python) { throw 'Python est requis pour -RegenerateArt.' }
+    Write-Host 'Régénération demandée : les sprites sont reconstruits depuis leurs sources.'
     Push-Location (Join-Path $projectRoot 'tools\pixelart')
     try {
-        & python build_art.py
+        & $python.Source build_art.py
         if ($LASTEXITCODE -ne 0) { throw 'Génération du pixel art échouée.' }
     } finally { Pop-Location }
 } else {
-    Write-Host 'Python absent : les sprites déjà générés dans pixel/art sont utilisés.'
+    Write-Host 'Les PNG existants de pixel/art sont conservés, y compris les retouches Aseprite.'
 }
 
 $previousAppData = $env:APPDATA
@@ -28,6 +36,8 @@ try {
     $env:APPDATA = $testData
     & $godotBinary --headless --path $gameDir --editor --import --quit --log-file (Join-Path $artifacts 'pixel-import.log')
     if ($LASTEXITCODE -ne 0) { throw 'Import du projet échoué.' }
+    & $godotBinary --headless --path $gameDir --script res://tests/front_end_test.gd --log-file (Join-Path $artifacts 'pixel-front-end.log') -- --front-end-test
+    if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-front-end.log') -Pattern 'FRONT_END_TESTS_PASSED' -Quiet)) { throw 'Tests du menu principal et des sauvegardes échoués.' }
     & $godotBinary --headless --path $gameDir --script res://tests/model_test.gd --log-file (Join-Path $artifacts 'pixel-model.log')
     if ($LASTEXITCODE -ne 0 -or -not (Select-String -LiteralPath (Join-Path $artifacts 'pixel-model.log') -Pattern 'MODEL_TESTS_PASSED' -Quiet)) { throw 'Tests du modèle échoués.' }
     & $godotBinary --headless --path $gameDir --script res://tests/parking_fit_test.gd --log-file (Join-Path $artifacts 'pixel-parking-fit.log')
